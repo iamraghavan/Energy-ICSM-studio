@@ -1,200 +1,384 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useSearchParams } from "next/navigation";
+import { format } from "date-fns";
+import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { colleges, sports } from "@/lib/data";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, CalendarIcon, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import type { Sport } from "@/lib/types";
+import { Logo } from "@/components/shared/logo";
 
-const personalDetailsSchema = z.object({
-    fullName: z.string().min(3, "Full name must be at least 3 characters"),
-    email: z.string().email("Invalid email address"),
-    phone: z.string().regex(/^\d{10}$/, "Phone number must be 10 digits"),
+const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "application/pdf"];
+
+const formSchema = z.object({
+    fullName: z.string().min(3, "Full name must be at least 3 characters."),
+    dob: z.date({ required_error: "Date of birth is required." }),
+    gender: z.enum(['male', 'female', 'other'], { required_error: "Please select a gender." }),
+    email: z.string().email("Invalid email address."),
+    mobile: z.string().length(10, "Mobile number must be 10 digits."),
+    isWhatsappSame: z.boolean().default(false).optional(),
+    whatsapp: z.string().optional(),
+    
+    collegeId: z.string({ required_error: "Please select your college."}),
+    otherCollegeName: z.string().optional(),
+    department: z.string().min(2, "Department is required."),
+    year: z.enum(['I', 'II', 'III', 'IV', 'PG-I', 'PG-II'], { required_error: "Please select your year of study." }),
+    cityState: z.string().min(2, "City/State is required."),
+    
+    sportType: z.enum(['Individual', 'Team'], { required_error: "Please select an event type." }),
+    sportId: z.string({ required_error: "Please select a sport." }),
+    teamName: z.string().optional(),
+
+    needsAccommodation: z.boolean().default(false),
+    transactionId: z.string().min(1, "Transaction ID is required."),
+    paymentScreenshot: z.any()
+        .refine((files) => files?.length == 1, "Payment screenshot is required.")
+        .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Max file size is 2MB.`)
+        .refine(
+            (files) => ACCEPTED_IMAGE_TYPES.includes(files?.[0]?.type),
+            "Only .jpg, .jpeg, .png and .pdf formats are supported."
+        ),
+}).refine(data => {
+    if (data.collegeId === 'other') {
+        return !!data.otherCollegeName && data.otherCollegeName.length > 2;
+    }
+    return true;
+}, {
+    message: "Please enter your college name.",
+    path: ["otherCollegeName"],
+}).refine(data => {
+    if (data.sportType === 'Team') {
+        return !!data.teamName && data.teamName.length > 2;
+    }
+    return true;
+}, {
+    message: "Team name is required for team events.",
+    path: ["teamName"],
 });
 
-const collegeInfoSchema = z.object({
-    collegeId: z.string().min(1, "Please select your college"),
-    studentId: z.string().min(3, "Student ID is required"),
-});
-
-const sportSelectionSchema = z.object({
-    sportId: z.string().min(1, "Please select a sport"),
-});
-
-type PersonalDetails = z.infer<typeof personalDetailsSchema>;
-type CollegeInfo = z.infer<typeof collegeInfoSchema>;
-type SportSelection = z.infer<typeof sportSelectionSchema>;
-
-const steps = [
-  { id: 1, name: "Personal Details" },
-  { id: 2, name: "College Information" },
-  { id: 3, name: "Sport Selection" },
-  { id: 4, name: "Confirmation" },
-];
+type FormData = z.infer<typeof formSchema>;
 
 export default function RegisterPage() {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [formData, setFormData] = useState({});
-  const searchParams = useSearchParams();
-  const initialSportId = searchParams.get('sport');
-
-  const goNext = (data: any) => {
-    setFormData(prev => ({ ...prev, ...data }));
-    if (currentStep < steps.length) {
-      setCurrentStep(step => step + 1);
-    }
-  };
-
-  const goPrev = () => {
-    if (currentStep > 0) {
-      setCurrentStep(step => step - 1);
-    }
-  };
-  
-  const progress = ((currentStep) / (steps.length -1)) * 100;
-  
-  const defaultValues = { ...formData, sportId: initialSportId || undefined };
-
-  return (
-    <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl">
-        <CardHeader>
-          <CardTitle className="font-headline">Energy Sports Meet Registration</CardTitle>
-          {currentStep < steps.length - 1 && (
-            <>
-              <CardDescription>Step {currentStep + 1} of {steps.length - 1}: {steps[currentStep].name}</CardDescription>
-              <Progress value={progress} className="mt-4" />
-            </>
-          )}
-        </CardHeader>
-        <CardContent>
-            {currentStep === 0 && <PersonalDetailsForm goNext={goNext} defaultValues={defaultValues} />}
-            {currentStep === 1 && <CollegeInfoForm goNext={goNext} goPrev={goPrev} defaultValues={defaultValues} />}
-            {currentStep === 2 && <SportSelectionForm goNext={goNext} goPrev={goPrev} defaultValues={defaultValues} />}
-            {currentStep === 3 && <ConfirmationStep data={formData} goPrev={goPrev} />}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-function PersonalDetailsForm({ goNext, defaultValues }: { goNext: (data: PersonalDetails) => void, defaultValues: any }) {
-  const form = useForm<PersonalDetails>({ resolver: zodResolver(personalDetailsSchema), defaultValues });
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(goNext)} className="space-y-6">
-        <FormField name="fullName" control={form.control} render={({ field }) => (
-          <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-        )} />
-        <FormField name="email" control={form.control} render={({ field }) => (
-          <FormItem><FormLabel>Email Address</FormLabel><FormControl><Input {...field} type="email" /></FormControl><FormMessage /></FormItem>
-        )} />
-        <FormField name="phone" control={form.control} render={({ field }) => (
-          <FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input {...field} type="tel" /></FormControl><FormMessage /></FormItem>
-        )} />
-        <CardFooter className="p-0 pt-6"><Button type="submit" className="w-full">Next</Button></CardFooter>
-      </form>
-    </Form>
-  );
-}
-
-function CollegeInfoForm({ goNext, goPrev, defaultValues }: { goNext: (data: CollegeInfo) => void, goPrev: () => void, defaultValues: any }) {
-    const form = useForm<CollegeInfo>({ resolver: zodResolver(collegeInfoSchema), defaultValues });
-    return (
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(goNext)} className="space-y-6">
-            <FormField name="collegeId" control={form.control} render={({ field }) => (
-                <FormItem>
-                    <FormLabel>College</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl><SelectTrigger><SelectValue placeholder="Select your college" /></SelectTrigger></FormControl>
-                        <SelectContent>
-                            {colleges.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                    <FormMessage />
-                </FormItem>
-            )} />
-            <FormField name="studentId" control={form.control} render={({ field }) => (
-                <FormItem><FormLabel>Student ID Card Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-            <CardFooter className="p-0 pt-6 flex justify-between"><Button type="button" variant="outline" onClick={goPrev}>Back</Button><Button type="submit">Next</Button></CardFooter>
-        </form>
-      </Form>
-    );
-}
-
-function SportSelectionForm({ goNext, goPrev, defaultValues }: { goNext: (data: SportSelection) => void, goPrev: () => void, defaultValues: any }) {
-    const form = useForm<SportSelection>({ resolver: zodResolver(sportSelectionSchema), defaultValues });
-    return (
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(goNext)} className="space-y-6">
-          <FormField name="sportId" control={form.control} render={({ field }) => (
-            <FormItem>
-              <FormLabel>Sport</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl><SelectTrigger><SelectValue placeholder="Select a sport to participate in" /></SelectTrigger></FormControl>
-                  <SelectContent>
-                      {sports.map(s => <SelectItem key={s.id} value={s.id} disabled={s.slotsLeft === 0}>{s.name} ({s.type}) - {s.slotsLeft} slots left</SelectItem>)}
-                  </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )} />
-          <CardFooter className="p-0 pt-6 flex justify-between"><Button type="button" variant="outline" onClick={goPrev}>Back</Button><Button type="submit">Review</Button></CardFooter>
-        </form>
-      </Form>
-    );
-}
-  
-function ConfirmationStep({ data, goPrev }: { data: any, goPrev: () => void }) {
     const [submitted, setSubmitted] = useState(false);
+    const [formData, setFormData] = useState<FormData | null>(null);
+    const [filteredSports, setFilteredSports] = useState<Sport[]>([]);
+    const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
 
-    const handleSubmit = () => {
+    const form = useForm<FormData>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            isWhatsappSame: false,
+            needsAccommodation: false,
+        }
+    });
+
+    const { watch, setValue } = form;
+    const sportType = watch('sportType');
+    const collegeId = watch('collegeId');
+    const isWhatsappSame = watch('isWhatsappSame');
+    const mobile = watch('mobile');
+    const paymentScreenshot = watch('paymentScreenshot');
+
+    useEffect(() => {
+        if (sportType) {
+            setFilteredSports(sports.filter(s => s.type === sportType));
+            setValue('sportId', ''); // Reset sport selection
+        }
+    }, [sportType, setValue]);
+    
+    useEffect(() => {
+        if (isWhatsappSame) {
+            setValue('whatsapp', mobile);
+        } else {
+            setValue('whatsapp', '');
+        }
+    }, [isWhatsappSame, mobile, setValue]);
+
+    useEffect(() => {
+        if (paymentScreenshot && paymentScreenshot.length > 0) {
+            const file = paymentScreenshot[0];
+            if (file.type.startsWith("image/")) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setScreenshotPreview(reader.result as string);
+                };
+                reader.readAsDataURL(file);
+            } else {
+                 setScreenshotPreview(null);
+            }
+        } else {
+            setScreenshotPreview(null);
+        }
+    }, [paymentScreenshot]);
+
+    const onSubmit = (data: FormData) => {
         console.log("Form data submitted:", data);
+        setFormData(data);
         setSubmitted(true);
     };
 
-    if (submitted) {
+    if (submitted && formData) {
         return (
-            <div className="text-center space-y-4 py-8">
-                <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
-                <h2 className="text-2xl font-bold font-headline">Registration Successful!</h2>
-                <p className="text-muted-foreground">Thank you for registering. We've sent a confirmation to your email.</p>
-                <Button asChild><a href="/">Back to Home</a></Button>
+            <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
+                <Card className="w-full max-w-md">
+                    <CardContent className="pt-6">
+                        <div className="text-center space-y-4 py-8">
+                            <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
+                            <h2 className="text-2xl font-bold font-headline">Registration Successful!</h2>
+                            <p className="text-muted-foreground">Your Registration ID: <span className="font-mono text-primary">REG{Date.now()}</span></p>
+                            <p className="text-muted-foreground text-sm">A confirmation email has been sent to <span className="font-semibold">{formData.email}</span>.</p>
+                            <Button asChild><a href="/">Back to Home</a></Button>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         )
     }
 
-    const selectedCollege = colleges.find(c => c.id === data.collegeId)?.name;
-    const selectedSport = sports.find(s => s.id === data.sportId)?.name;
+    const { formState: { isSubmitting } } = form;
 
     return (
-      <div className="space-y-6">
-        <div className="space-y-2">
-            <h3 className="font-semibold font-headline">Confirm Your Details</h3>
-            <p className="text-sm text-muted-foreground">Please review your information carefully before submitting.</p>
+        <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
+            <Card className="w-full max-w-2xl my-8">
+                <CardHeader className="text-center">
+                    <div className="mx-auto">
+                        <Logo />
+                    </div>
+                    <CardTitle className="font-headline text-3xl mt-4">Energy Sports Meet 2026 Registration</CardTitle>
+                    <CardDescription>Join the ultimate inter-college showdown!</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+
+                            {/* Personal Information */}
+                            <FormSection title="Personal Details">
+                                <FormField name="fullName" control={form.control} render={({ field }) => (
+                                    <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="Enter your full name" {...field} /></FormControl><FormMessage /></FormItem>
+                                )} />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                     <FormField name="dob" control={form.control} render={({ field }) => (
+                                        <FormItem className="flex flex-col">
+                                            <FormLabel>Date of Birth</FormLabel>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0" align="start">
+                                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date() || date < new Date("1950-01-01")} initialFocus />
+                                                </PopoverContent>
+                                            </Popover>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    <FormField name="gender" control={form.control} render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Gender</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <FormControl><SelectTrigger><SelectValue placeholder="Select your gender" /></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="male">Male</SelectItem>
+                                                    <SelectItem value="female">Female</SelectItem>
+                                                    <SelectItem value="other">Other</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                </div>
+                                <FormField name="email" control={form.control} render={({ field }) => (
+                                    <FormItem><FormLabel>Email Address</FormLabel><FormControl><Input type="email" placeholder="student@college.edu" {...field} /></FormControl><FormMessage /></FormItem>
+                                )} />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <FormField name="mobile" control={form.control} render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Mobile Number</FormLabel>
+                                            <FormControl>
+                                                <div className="flex items-center">
+                                                    <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 bg-muted text-sm">+91</span>
+                                                    <Input type="tel" placeholder="9876543210" className="rounded-l-none" {...field} />
+                                                </div>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    <FormField name="whatsapp" control={form.control} render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>WhatsApp Number</FormLabel>
+                                            <FormControl><Input type="tel" disabled={isWhatsappSame} {...field} /></FormControl>
+                                            <div className="flex items-center space-x-2 pt-2">
+                                                <Checkbox id="isWhatsappSame" checked={isWhatsappSame} onCheckedChange={(checked) => setValue('isWhatsappSame', !!checked)} />
+                                                <label htmlFor="isWhatsappSame" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Same as mobile</label>
+                                            </div>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                </div>
+                            </FormSection>
+
+                            {/* Academic Details */}
+                            <FormSection title="Academic Details">
+                                <FormField name="collegeId" control={form.control} render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>College Name</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl><SelectTrigger><SelectValue placeholder="Search and select your college" /></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                                {colleges.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                                <SelectItem value="other">Other (Please specify)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                {collegeId === 'other' && (
+                                     <FormField name="otherCollegeName" control={form.control} render={({ field }) => (
+                                        <FormItem><FormLabel>Enter Your College Name</FormLabel><FormControl><Input placeholder="Your college name" {...field} /></FormControl><FormMessage /></FormItem>
+                                    )} />
+                                )}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <FormField name="department" control={form.control} render={({ field }) => (
+                                        <FormItem><FormLabel>Department</FormLabel><FormControl><Input placeholder="e.g. CSE" {...field} /></FormControl><FormMessage /></FormItem>
+                                    )} />
+                                    <FormField name="year" control={form.control} render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Year of Study</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <FormControl><SelectTrigger><SelectValue placeholder="Select year" /></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    {['I', 'II', 'III', 'IV', 'PG-I', 'PG-II'].map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    <FormField name="cityState" control={form.control} render={({ field }) => (
+                                        <FormItem><FormLabel>City/State</FormLabel><FormControl><Input placeholder="e.g. Chennai, Tamil Nadu" {...field} /></FormControl><FormMessage /></FormItem>
+                                    )} />
+                                </div>
+                            </FormSection>
+                            
+                             {/* Sport Selection */}
+                             <FormSection title="Sport Selection">
+                                <FormField name="sportType" control={form.control} render={({ field }) => (
+                                    <FormItem className="space-y-3">
+                                        <FormLabel>Event Type</FormLabel>
+                                        <FormControl>
+                                            <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4">
+                                                <FormItem className="flex items-center space-x-3 space-y-0">
+                                                    <FormControl><RadioGroupItem value="Individual" /></FormControl>
+                                                    <FormLabel className="font-normal">Individual Event</FormLabel>
+                                                </FormItem>
+                                                <FormItem className="flex items-center space-x-3 space-y-0">
+                                                    <FormControl><RadioGroupItem value="Team" /></FormControl>
+                                                    <FormLabel className="font-normal">Team Event</FormLabel>
+                                                </FormItem>
+                                            </RadioGroup>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                {sportType && (
+                                     <FormField name="sportId" control={form.control} render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Sport</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <FormControl><SelectTrigger><SelectValue placeholder={`Select a ${sportType.toLowerCase()} sport`} /></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    {filteredSports.map(s => <SelectItem key={s.id} value={s.id} disabled={s.slotsLeft === 0}>{s.name} - {s.slotsLeft} slots left</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                )}
+                                {sportType === 'Team' && (
+                                    <FormField name="teamName" control={form.control} render={({ field }) => (
+                                        <FormItem><FormLabel>Team Name</FormLabel><FormControl><Input placeholder="Enter your team name" {...field} /></FormControl><FormMessage /></FormItem>
+                                    )} />
+                                )}
+                             </FormSection>
+
+                             {/* Accommodation & Payment */}
+                             <FormSection title="Accommodation & Payment">
+                                <FormField control={form.control} name="needsAccommodation" render={({ field }) => (
+                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                        <div className="space-y-1 leading-none">
+                                            <FormLabel>I require accommodation during the event.</FormLabel>
+                                            <FormDescription>Note: Accommodation charges may apply separately.</FormDescription>
+                                        </div>
+                                    </FormItem>
+                                )} />
+                                
+                                <div className="space-y-4 rounded-lg border bg-muted/50 p-4">
+                                    <div className="flex justify-between items-center">
+                                        <p className="font-medium">Registration Fee:</p>
+                                        <p className="font-bold text-lg text-primary">₹150</p>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">Please pay using the QR code below and enter the Transaction ID.</p>
+                                    <div className="flex justify-center">
+                                        <Image src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=example@upi" alt="Payment QR Code" width={150} height={150} />
+                                    </div>
+                                     <FormField name="transactionId" control={form.control} render={({ field }) => (
+                                        <FormItem><FormLabel>Transaction ID</FormLabel><FormControl><Input placeholder="Enter the UPI Transaction ID" {...field} /></FormControl><FormMessage /></FormItem>
+                                    )} />
+                                     <FormField control={form.control} name="paymentScreenshot" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Upload Payment Screenshot</FormLabel>
+                                            <FormControl>
+                                                <Input type="file" accept={ACCEPTED_IMAGE_TYPES.join(',')} onChange={(e) => field.onChange(e.target.files)} />
+                                            </FormControl>
+                                            <FormDescription>File must be a JPG, PNG, or PDF under 2MB.</FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                     )} />
+                                     {screenshotPreview && (
+                                        <div className="mt-4">
+                                            <p className="text-sm font-medium mb-2">Screenshot Preview:</p>
+                                            <Image src={screenshotPreview} alt="Screenshot preview" width={200} height={400} className="rounded-md border object-contain" />
+                                        </div>
+                                     )}
+                                </div>
+                             </FormSection>
+
+                            <Button type="submit" className="w-full" disabled={isSubmitting}>
+                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {isSubmitting ? "Processing..." : "Complete Registration"}
+                            </Button>
+                        </form>
+                    </Form>
+                </CardContent>
+            </Card>
         </div>
-        <div className="space-y-4 rounded-md border p-4 bg-muted/50">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div><p className="font-medium">Full Name:</p><p>{data.fullName}</p></div>
-                <div><p className="font-medium">Email:</p><p>{data.email}</p></div>
-                <div><p className="font-medium">Phone:</p><p>{data.phone}</p></div>
-                <div><p className="font-medium">College:</p><p>{selectedCollege}</p></div>
-                <div><p className="font-medium">Student ID:</p><p>{data.studentId}</p></div>
-                <div><p className="font-medium">Selected Sport:</p><p>{selectedSport}</p></div>
-            </div>
+    );
+}
+
+function FormSection({ title, children }: { title: string, children: React.ReactNode }) {
+    return (
+        <div className="space-y-4">
+            <h3 className="text-lg font-semibold font-headline border-b pb-2">{title}</h3>
+            <div className="space-y-4">{children}</div>
         </div>
-        <CardFooter className="p-0 pt-6 flex justify-between"><Button type="button" variant="outline" onClick={goPrev}>Back</Button><Button onClick={handleSubmit}>Confirm & Register</Button></CardFooter>
-      </div>
     );
 }
