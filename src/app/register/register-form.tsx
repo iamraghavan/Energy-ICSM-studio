@@ -42,12 +42,13 @@ const getSportIcon = (iconName: string) => {
     return sportIconMap[iconName] || HelpCircle;
 };
 
-const sixteenYearsAgo = new Date();
-sixteenYearsAgo.setFullYear(sixteenYearsAgo.getFullYear() - 16);
-
 const formSchema = z.object({
     fullName: z.string().min(3, "Full name must be at least 3 characters."),
-    dob: z.date({ required_error: "Date of birth is required." }).max(sixteenYearsAgo, { message: "You must be at least 16 years old." }),
+    dob: z.date({ required_error: "Date of birth is required." }).refine((date) => {
+        const sixteenYearsAgo = new Date();
+        sixteenYearsAgo.setFullYear(sixteenYearsAgo.getFullYear() - 16);
+        return date <= sixteenYearsAgo;
+    }, { message: "You must be at least 16 years old." }),
     gender: z.enum(['male', 'female', 'other'], { required_error: "Please select a gender." }),
     email: z.string().email("Invalid email address."),
     mobile: z.string().length(10, { message: "Mobile number must be 10 digits." }),
@@ -113,10 +114,16 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
     const { toast } = useToast();
     const [submitted, setSubmitted] = useState(false);
     const [formData, setFormData] = useState<FormSchema | null>(null);
+    const [registrationId, setRegistrationId] = useState<string>('');
     const [filteredSports, setFilteredSports] = useState<FormSport[]>([]);
     const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
     const [isOcrLoading, setIsOcrLoading] = useState(false);
     const [registrationFee, setRegistrationFee] = useState("0.00");
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
     
     const sports = useMemo(() => {
         if (!apiSports) return [];
@@ -269,7 +276,6 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
     const onSubmit = async (data: FormSchema) => {
         const apiFormData = new FormData();
         
-        // Convert camelCase keys from form data to snake_case for the API
         const snakeCaseData: { [key: string]: any } = {
             name: data.fullName,
             dob: format(data.dob, 'yyyy-MM-dd'),
@@ -318,6 +324,7 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
             console.log("Form submission successful:", result);
             setFormData(data);
             setSubmitted(true);
+            setRegistrationId(result.registrationId);
             toast({
                 title: "Registration Successful!",
                 description: `Your Registration ID is ${result.registrationId}. A confirmation has been sent to your email.`,
@@ -341,7 +348,7 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
                         <div className="text-center space-y-4 py-8">
                             <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
                             <h2 className="text-2xl font-bold font-headline">Registration Successful!</h2>
-                            <p className="text-muted-foreground">Your Registration ID: <span className="font-mono text-primary">REG{Date.now()}</span></p>
+                            <p className="text-muted-foreground">Your Registration ID: <span className="font-mono text-primary">{registrationId}</span></p>
                             <p className="text-muted-foreground text-sm">A confirmation email has been sent to <span className="font-semibold">{formData.email}</span>.</p>
                             <Button asChild><a href="/">Back to Home</a></Button>
                         </div>
@@ -352,6 +359,9 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
     }
 
     const { formState: { isSubmitting } } = form;
+
+    const sixteenYearsAgo = new Date();
+    sixteenYearsAgo.setFullYear(sixteenYearsAgo.getFullYear() - 16);
 
     return (
         <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
@@ -383,13 +393,14 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
                                                     value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
                                                     onChange={(e) => {
                                                         if (e.target.value) {
-                                                            const [year, month, day] = e.target.value.split('-').map(Number);
-                                                            field.onChange(new Date(year, month - 1, day));
+                                                            const date = new Date(e.target.value);
+                                                            const userTimezoneOffset = date.getTimezoneOffset() * 60000;
+                                                            field.onChange(new Date(date.getTime() + userTimezoneOffset));
                                                         } else {
                                                             field.onChange(undefined);
                                                         }
                                                     }}
-                                                    max={sixteenYearsAgo.toISOString().split("T")[0]}
+                                                    max={isClient ? sixteenYearsAgo.toISOString().split("T")[0] : undefined}
                                                     min="1950-01-01"
                                                 />
                                             </FormControl>
