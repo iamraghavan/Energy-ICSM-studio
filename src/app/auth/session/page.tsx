@@ -12,7 +12,7 @@ import { getRedirectPathForRole, type DecodedToken } from '@/lib/auth';
 import { Logo } from '@/components/shared/logo';
 import { Loader2 } from 'lucide-react';
 
-export default function LoginPage() {
+export default function AuthSessionPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [email, setEmail] = useState('');

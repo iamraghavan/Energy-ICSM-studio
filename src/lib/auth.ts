@@ -47,5 +47,5 @@ export const getDecodedToken = (): DecodedToken | null => {
 
 export const getRedirectPathForRole = (role: string): string => {
     const viewId = ROLE_TO_VIEW_ID[role];
-    return viewId ? `/console/${viewId}` : '/login';
+    return viewId ? `/console/${viewId}` : '/auth/session';
 }

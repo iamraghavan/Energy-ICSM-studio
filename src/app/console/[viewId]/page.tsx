@@ -29,7 +29,7 @@ export default function ConsoleViewPage() {
         const expectedRole = getRoleForViewId(viewId);
 
         if (!tokenData) {
-            router.replace('/login');
+            router.replace('/auth/session');
             return;
         }
 

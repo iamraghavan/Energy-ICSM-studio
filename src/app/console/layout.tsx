@@ -17,7 +17,7 @@ function ConsoleHeader() {
 
     const handleLogout = () => {
         localStorage.removeItem('jwt_token');
-        router.push('/login');
+        router.push('/auth/session');
     };
 
     return (

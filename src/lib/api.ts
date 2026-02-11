@@ -32,7 +32,7 @@ api.interceptors.response.use(
   (error) => {
     if (typeof window !== 'undefined' && error.response && (error.response.status === 401 || error.response.status === 403)) {
         localStorage.removeItem('jwt_token');
-        window.location.href = '/login';
+        window.location.href = '/auth/session';
     }
     return Promise.reject(error);
   }
