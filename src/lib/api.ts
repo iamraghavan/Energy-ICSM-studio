@@ -13,10 +13,36 @@ const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
+
+api.interceptors.request.use((config) => {
+    if (typeof window !== 'undefined') {
+        const token = localStorage.getItem('jwt_token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+    }
+    return config;
+}, (error) => {
+    return Promise.reject(error);
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (typeof window !== 'undefined' && error.response && (error.response.status === 401 || error.response.status === 403)) {
+        localStorage.removeItem('jwt_token');
+        window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+
+export const loginUser = async (credentials: any) => {
+    const response = await api.post('/auth/login', credentials);
+    return response.data;
+};
 
 export const getColleges = async (): Promise<College[]> => {
     const response = await fetch(`${API_BASE_URL}/colleges`);
