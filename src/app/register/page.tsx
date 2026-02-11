@@ -84,6 +84,15 @@ export default function RegisterPage() {
         defaultValues: {
             isWhatsappSame: false,
             needsAccommodation: false,
+            fullName: "",
+            email: "",
+            mobile: "",
+            whatsapp: "",
+            otherCollegeName: "",
+            department: "",
+            cityState: "",
+            teamName: "",
+            transactionId: "",
         }
     });
 
