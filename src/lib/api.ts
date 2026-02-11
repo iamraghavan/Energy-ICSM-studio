@@ -144,7 +144,7 @@ export const getRegistrations = async (): Promise<Registration[]> => {
 };
 
 export const getRegistration = async (id: string): Promise<Registration> => {
-    const response = await api.get(`/register/${id}`);
+    const response = await api.get(`/registrations/${id}`);
     const responseData = response.data;
     // Handle cases where the data might be the registration object directly,
     // or nested under a `data` property.
