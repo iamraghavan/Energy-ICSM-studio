@@ -23,6 +23,8 @@ import { cn } from "@/lib/utils";
 import type { Sport, College } from "@/lib/types";
 import { Logo } from "@/components/shared/logo";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png"];
@@ -42,9 +44,12 @@ const getSportIcon = (iconName: string) => {
     return sportIconMap[iconName] || HelpCircle;
 };
 
+const sixteenYearsAgo = new Date();
+sixteenYearsAgo.setFullYear(sixteenYearsAgo.getFullYear() - 16);
+
 const formSchema = z.object({
     fullName: z.string().min(3, "Full name must be at least 3 characters."),
-    dob: z.date({ required_error: "Date of birth is required." }),
+    dob: z.date({ required_error: "Date of birth is required." }).max(sixteenYearsAgo, { message: "You must be at least 16 years old." }),
     gender: z.enum(['male', 'female', 'other'], { required_error: "Please select a gender." }),
     email: z.string().email("Invalid email address."),
     mobile: z.string().length(10, { message: "Mobile number must be 10 digits." }),
@@ -62,7 +67,6 @@ const formSchema = z.object({
     teamName: z.string().optional(),
 
     needsAccommodation: z.boolean().default(false),
-    transactionId: z.string().min(1, "Transaction ID is required."),
     paymentScreenshot: z.any()
         .refine((files) => files?.length == 1, "Payment screenshot is required.")
         .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Max file size is 5MB.`)
@@ -70,6 +74,7 @@ const formSchema = z.object({
             (files) => ACCEPTED_IMAGE_TYPES.includes(files?.[0]?.type),
             "Only .jpg, .jpeg and .png formats are supported."
         ),
+    transactionId: z.string().min(1, "Transaction ID is required."),
 }).refine(data => {
     if (data.collegeId === 'other') {
         return !!data.otherCollegeName && data.otherCollegeName.length > 2;
@@ -107,6 +112,12 @@ export default function RegisterPage() {
     const [filteredSports, setFilteredSports] = useState<Sport[]>([]);
     const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
     const [isOcrLoading, setIsOcrLoading] = useState(false);
+    const [isClient, setIsClient] = useState(false);
+    const isMobile = useIsMobile();
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
 
     const form = useForm<FormData>({
         resolver: zodResolver(formSchema),
@@ -328,19 +339,50 @@ export default function RegisterPage() {
                                      <FormField name="dob" control={form.control} render={({ field }) => (
                                         <FormItem className="flex flex-col">
                                             <FormLabel>Date of Birth</FormLabel>
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <FormControl>
-                                                        <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                        </Button>
-                                                    </FormControl>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0" align="start">
-                                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date() || date < new Date("1950-01-01")} initialFocus />
-                                                </PopoverContent>
-                                            </Popover>
+                                            {!isClient ? (
+                                                <Skeleton className="h-10 w-full" />
+                                            ) : isMobile ? (
+                                                <FormControl>
+                                                    <Input
+                                                        type="date"
+                                                        className="w-full"
+                                                        value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
+                                                        onChange={(e) => {
+                                                            if (e.target.value) {
+                                                                const [year, month, day] = e.target.value.split('-').map(Number);
+                                                                field.onChange(new Date(year, month - 1, day));
+                                                            } else {
+                                                                field.onChange(undefined);
+                                                            }
+                                                        }}
+                                                        max={sixteenYearsAgo.toISOString().split("T")[0]}
+                                                        min="1950-01-01"
+                                                    />
+                                                </FormControl>
+                                            ) : (
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <FormControl>
+                                                            <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                            </Button>
+                                                        </FormControl>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-auto p-0" align="start">
+                                                        <Calendar
+                                                            mode="single"
+                                                            selected={field.value}
+                                                            onSelect={field.onChange}
+                                                            disabled={(date) => date > sixteenYearsAgo || date < new Date("1950-01-01")}
+                                                            initialFocus
+                                                            captionLayout="dropdown-buttons"
+                                                            fromYear={1950}
+                                                            toYear={sixteenYearsAgo.getFullYear()}
+                                                        />
+                                                    </PopoverContent>
+                                                </Popover>
+                                            )}
                                             <FormMessage />
                                         </FormItem>
                                     )} />
