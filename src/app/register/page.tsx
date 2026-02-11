@@ -16,21 +16,38 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { colleges, sports } from "@/lib/data";
-import { CheckCircle, CalendarIcon, Loader2 } from "lucide-react";
+import { getColleges, getSports, registerStudent, type ApiSport } from "@/lib/api";
+import { CheckCircle, CalendarIcon, Loader2, Trophy, Goal, Dribbble, Volleyball, PersonStanding, Waves, Swords, Disc, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Sport } from "@/lib/types";
+import type { Sport, College } from "@/lib/types";
 import { Logo } from "@/components/shared/logo";
+import { useToast } from "@/hooks/use-toast";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "application/pdf"];
+
+const sportIconMap: { [key: string]: React.ElementType } = {
+    'Cricket': Trophy,
+    'Football': Goal,
+    'Basketball': Dribbble,
+    'Volleyball': Volleyball,
+    'Athletics (100m)': PersonStanding,
+    'Swimming': Waves,
+    'Fencing': Swords,
+    'Discus Throw': Disc,
+};
+
+const getSportIcon = (iconName: string) => {
+    return sportIconMap[iconName] || HelpCircle;
+};
 
 const formSchema = z.object({
     fullName: z.string().min(3, "Full name must be at least 3 characters."),
     dob: z.date({ required_error: "Date of birth is required." }),
     gender: z.enum(['male', 'female', 'other'], { required_error: "Please select a gender." }),
     email: z.string().email("Invalid email address."),
-    mobile: z.string().length(10, "Mobile number must be 10 digits."),
+    countryCode: z.string(),
+    mobile: z.string().min(8, "Mobile number is required.").max(15, "Invalid mobile number."),
     isWhatsappSame: z.boolean().default(false).optional(),
     whatsapp: z.string().optional(),
     
@@ -74,8 +91,11 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 export default function RegisterPage() {
+    const { toast } = useToast();
     const [submitted, setSubmitted] = useState(false);
     const [formData, setFormData] = useState<FormData | null>(null);
+    const [colleges, setColleges] = useState<College[]>([]);
+    const [sports, setSports] = useState<Sport[]>([]);
     const [filteredSports, setFilteredSports] = useState<Sport[]>([]);
     const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
 
@@ -86,15 +106,37 @@ export default function RegisterPage() {
             needsAccommodation: false,
             fullName: "",
             email: "",
+            countryCode: "+91",
             mobile: "",
             whatsapp: "",
+            collegeId: "",
             otherCollegeName: "",
             department: "",
             cityState: "",
+            sportId: "",
             teamName: "",
             transactionId: "",
         }
     });
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const [collegesData, sportsData] = await Promise.all([getColleges(), getSports()]);
+                setColleges(collegesData);
+                const sportsWithIcons = sportsData.map((s: ApiSport) => ({...s, icon: getSportIcon(s.icon)}));
+                setSports(sportsWithIcons);
+            } catch (error) {
+                console.error('Failed to fetch initial data', error);
+                toast({
+                    variant: 'destructive',
+                    title: 'Failed to load data',
+                    description: 'Could not fetch colleges and sports. Please try refreshing the page.'
+                })
+            }
+        }
+        fetchData();
+    }, [toast]);
 
     const { watch, setValue } = form;
     const sportType = watch('sportType');
@@ -108,15 +150,15 @@ export default function RegisterPage() {
             setFilteredSports(sports.filter(s => s.type === sportType));
             setValue('sportId', ''); // Reset sport selection
         }
-    }, [sportType, setValue]);
+    }, [sportType, setValue, sports]);
     
     useEffect(() => {
         if (isWhatsappSame) {
-            setValue('whatsapp', mobile);
+            setValue('whatsapp', watch('countryCode') + mobile);
         } else {
             setValue('whatsapp', '');
         }
-    }, [isWhatsappSame, mobile, setValue]);
+    }, [isWhatsappSame, mobile, setValue, watch]);
 
     useEffect(() => {
         if (paymentScreenshot && paymentScreenshot.length > 0) {
@@ -135,10 +177,39 @@ export default function RegisterPage() {
         }
     }, [paymentScreenshot]);
 
-    const onSubmit = (data: FormData) => {
-        console.log("Form data submitted:", data);
-        setFormData(data);
-        setSubmitted(true);
+    const onSubmit = async (data: FormData) => {
+        const apiFormData = new FormData();
+
+        Object.entries(data).forEach(([key, value]) => {
+            if (key === 'dob' && value instanceof Date) {
+                apiFormData.append(key, value.toISOString());
+            } else if (key === 'paymentScreenshot') {
+                apiFormData.append(key, value[0]);
+            } else if (value !== null && value !== undefined) {
+                apiFormData.append(key, String(value));
+            }
+        });
+
+        // Combine country code and mobile
+        apiFormData.set('mobile', data.countryCode + data.mobile);
+
+        try {
+            const result = await registerStudent(apiFormData);
+            console.log("Form submission successful:", result);
+            setFormData(data);
+            setSubmitted(true);
+            toast({
+                title: "Registration Successful!",
+                description: `Your Registration ID is ${result.registrationId}. A confirmation has been sent to your email.`,
+            });
+        } catch (error: any) {
+            console.error("Form submission error:", error);
+            toast({
+                variant: "destructive",
+                title: "Registration Failed",
+                description: error.response?.data?.error || "An unknown error occurred. Please try again.",
+            });
+        }
     };
 
     if (submitted && formData) {
@@ -219,18 +290,45 @@ export default function RegisterPage() {
                                     <FormItem><FormLabel>Email Address</FormLabel><FormControl><Input type="email" placeholder="student@college.edu" {...field} /></FormControl><FormMessage /></FormItem>
                                 )} />
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <FormField name="mobile" control={form.control} render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Mobile Number</FormLabel>
-                                            <FormControl>
-                                                <div className="flex items-center">
-                                                    <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 bg-muted text-sm">+91</span>
-                                                    <Input type="tel" placeholder="9876543210" className="rounded-l-none" {...field} />
-                                                </div>
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )} />
+                                     <FormItem>
+                                        <FormLabel>Mobile Number</FormLabel>
+                                        <div className="flex items-start">
+                                            <FormField
+                                                name="countryCode"
+                                                control={form.control}
+                                                render={({ field }) => (
+                                                    <div className="w-[120px]">
+                                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                            <FormControl>
+                                                                <SelectTrigger className="rounded-r-none border-r-0">
+                                                                    <SelectValue />
+                                                                </SelectTrigger>
+                                                            </FormControl>
+                                                            <SelectContent>
+                                                                <SelectItem value="+91">IN +91</SelectItem>
+                                                                <SelectItem value="+1">US +1</SelectItem>
+                                                                <SelectItem value="+44">UK +44</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                )}
+                                            />
+                                            <FormField
+                                                name="mobile"
+                                                control={form.control}
+                                                render={({ field }) => (
+                                                    <div className="flex-1">
+                                                        <FormControl>
+                                                            <Input type="tel" placeholder="9876543210" className="rounded-l-none" {...field} />
+                                                        </FormControl>
+                                                    </div>
+                                                )}
+                                            />
+                                        </div>
+                                        {(form.formState.errors.mobile || form.formState.errors.countryCode) && 
+                                            <FormMessage className="mt-2">{form.formState.errors.mobile?.message || form.formState.errors.countryCode?.message}</FormMessage>
+                                        }
+                                    </FormItem>
                                     <FormField name="whatsapp" control={form.control} render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>WhatsApp Number</FormLabel>
@@ -254,7 +352,6 @@ export default function RegisterPage() {
                                             <FormControl><SelectTrigger><SelectValue placeholder="Search and select your college" /></SelectTrigger></FormControl>
                                             <SelectContent>
                                                 {colleges.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                                                <SelectItem value="other">Other (Please specify)</SelectItem>
                                             </SelectContent>
                                         </Select>
                                         <FormMessage />
@@ -311,7 +408,7 @@ export default function RegisterPage() {
                                      <FormField name="sportId" control={form.control} render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Sport</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <Select onValueChange={field.onChange} value={field.value}>
                                                 <FormControl><SelectTrigger><SelectValue placeholder={`Select a ${sportType.toLowerCase()} sport`} /></SelectTrigger></FormControl>
                                                 <SelectContent>
                                                     {filteredSports.map(s => <SelectItem key={s.id} value={s.id} disabled={s.slotsLeft === 0}>{s.name} - {s.slotsLeft} slots left</SelectItem>)}
