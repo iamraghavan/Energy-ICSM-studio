@@ -7,8 +7,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import Image from "next/image";
 import { createWorker } from 'tesseract.js';
-import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
-import 'react-phone-number-input/style.css';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,9 +47,9 @@ const formSchema = z.object({
     dob: z.date({ required_error: "Date of birth is required." }),
     gender: z.enum(['male', 'female', 'other'], { required_error: "Please select a gender." }),
     email: z.string().email("Invalid email address."),
-    mobile: z.string().refine(isValidPhoneNumber, { message: "Invalid phone number." }),
+    mobile: z.string().length(10, { message: "Mobile number must be 10 digits." }),
     isWhatsappSame: z.boolean().default(false).optional(),
-    whatsapp: z.string().optional(),
+    whatsapp: z.string().optional().or(z.literal('')),
     
     collegeId: z.string({ required_error: "Please select your college."}),
     otherCollegeName: z.string().optional(),
@@ -88,6 +86,14 @@ const formSchema = z.object({
 }, {
     message: "Team name is required for team events.",
     path: ["teamName"],
+}).refine(data => {
+    if (!data.isWhatsappSame && data.whatsapp) {
+        return data.whatsapp.length === 10;
+    }
+    return true;
+}, {
+    message: "WhatsApp number must be 10 digits.",
+    path: ["whatsapp"],
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -242,15 +248,23 @@ export default function RegisterPage() {
     const onSubmit = async (data: FormData) => {
         const apiFormData = new FormData();
 
-        Object.entries(data).forEach(([key, value]) => {
-            if (key === 'dob' && value instanceof Date) {
+        const submitData = {
+            ...data,
+            mobile: `+91${data.mobile}`,
+            whatsapp: (data.whatsapp) ? `+91${data.whatsapp}` : '',
+        }
+
+
+        Object.entries(submitData).forEach(([key, value]) => {
+            if (key === 'paymentScreenshot' && data.paymentScreenshot) {
+                apiFormData.append(key, data.paymentScreenshot[0]);
+            } else if (key === 'dob' && value instanceof Date) {
                 apiFormData.append(key, value.toISOString());
-            } else if (key === 'paymentScreenshot') {
-                apiFormData.append(key, value[0]);
-            } else if (value !== null && value !== undefined) {
+            } else if (value !== null && value !== undefined && key !== 'paymentScreenshot') {
                 apiFormData.append(key, String(value));
             }
         });
+
 
         try {
             const result = await registerStudent(apiFormData);
@@ -356,13 +370,24 @@ export default function RegisterPage() {
                                         <FormItem>
                                             <FormLabel>Mobile Number</FormLabel>
                                             <FormControl>
-                                            <PhoneInput
-                                                placeholder="Enter phone number"
-                                                defaultCountry="IN"
-                                                international
-                                                withCountryCallingCode
-                                                {...field}
-                                            />
+                                                <div className="relative">
+                                                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                                        <span className="text-muted-foreground">+91</span>
+                                                    </div>
+                                                    <Input
+                                                        placeholder="Enter 10-digit number"
+                                                        type="tel"
+                                                        maxLength={10}
+                                                        {...field}
+                                                        onChange={e => {
+                                                            const { value } = e.target;
+                                                            if (/^\d*$/.test(value)) {
+                                                                field.onChange(value);
+                                                            }
+                                                        }}
+                                                        className="pl-12"
+                                                    />
+                                                </div>
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -371,7 +396,26 @@ export default function RegisterPage() {
                                     <FormField name="whatsapp" control={form.control} render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>WhatsApp Number</FormLabel>
-                                            <FormControl><Input type="tel" disabled={isWhatsappSame} {...field} /></FormControl>
+                                            <FormControl>
+                                                <div className="relative">
+                                                     <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                                        <span className="text-muted-foreground">+91</span>
+                                                    </div>
+                                                    <Input 
+                                                        type="tel" 
+                                                        maxLength={10}
+                                                        disabled={isWhatsappSame} 
+                                                        {...field} 
+                                                        onChange={e => {
+                                                            const { value } = e.target;
+                                                            if (/^\d*$/.test(value)) {
+                                                                field.onChange(value);
+                                                            }
+                                                        }}
+                                                        className="pl-12"
+                                                    />
+                                                </div>
+                                            </FormControl>
                                             <div className="flex items-center space-x-2 pt-2">
                                                 <Checkbox id="isWhatsappSame" checked={isWhatsappSame} onCheckedChange={(checked) => setValue('isWhatsappSame', !!checked)} />
                                                 <label htmlFor="isWhatsappSame" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Same as mobile</label>
