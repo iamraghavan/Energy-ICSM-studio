@@ -158,8 +158,9 @@ export const getRegistrations = async (): Promise<Registration[]> => {
 export const getRegistration = async (id: string): Promise<Registration> => {
     const response = await api.get(`/register/${id}`);
     const responseData = response.data;
-    // The user's JSON response shows the registration object is the root of the response.
-    return responseData;
+    // Handle cases where the data might be the registration object directly,
+    // or nested under a `data` property.
+    return responseData.data || responseData;
 };
 
 export const verifyPayment = async (registrationCode: string, status: 'approved' | 'rejected', remarks: string) => {
