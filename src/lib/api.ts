@@ -13,7 +13,8 @@ export type Registration = {
   id: number;
   name: string;
   email: string;
-  college: { id: number; name: string };
+  college: { id: number; name: string } | null;
+  other_college?: string;
   sport: { id: number; name: string };
   payment_status: 'pending' | 'verified' | 'rejected';
   screenshot_url: string;
