@@ -14,12 +14,14 @@ import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 interface VerifyPaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   registration: Registration;
-  onVerify: (id: string, status: 'verified' | 'rejected') => Promise<void>;
+  onVerify: (registrationCode: string, status: 'approved' | 'rejected', remarks: string) => Promise<void>;
 }
 
 export function VerifyPaymentModal({
@@ -29,14 +31,16 @@ export function VerifyPaymentModal({
   onVerify,
 }: VerifyPaymentModalProps) {
   const [isVerifying, setIsVerifying] = useState(false);
-  const [action, setAction] = useState<'verified' | 'rejected' | null>(null);
+  const [action, setAction] = useState<'approved' | 'rejected' | null>(null);
+  const [remarks, setRemarks] = useState('');
 
-  const handleVerify = async (status: 'verified' | 'rejected') => {
+  const handleVerify = async (status: 'approved' | 'rejected') => {
     setIsVerifying(true);
     setAction(status);
-    await onVerify(registration.id, status);
+    await onVerify(registration.registration_code, status, remarks);
     setIsVerifying(false);
     setAction(null);
+    setRemarks('');
   };
 
   return (
@@ -52,11 +56,28 @@ export function VerifyPaymentModal({
         <div className="flex-grow grid md:grid-cols-2 gap-0 overflow-hidden">
             <ScrollArea className="h-full">
                  <div className="p-6 space-y-6">
+                    <InfoRow label="Registration Code" value={registration.registration_code} isMono />
                     <InfoRow label="Student Name" value={registration.Student.name} />
+                    <InfoRow label="Email" value={registration.Student.email} />
+                    <InfoRow label="Mobile" value={registration.Student.mobile} />
                     <InfoRow label="College" value={registration.Student.other_college} />
                     <InfoRow label="Sport" value={registration.Sport?.name} />
+                    <InfoRow label="Team Name" value={registration.Team?.team_name} />
                     <InfoRow label="Transaction ID" value={registration.Payment?.txn_id} isMono />
+                    <InfoRow label="Amount" value={registration.Payment?.amount ? `₹${registration.Payment.amount}` : 'N/A'} />
                  </div>
+                 {registration.payment_status === 'pending' && (
+                    <div className="p-6 border-t">
+                        <Label htmlFor="remarks">Remarks</Label>
+                        <Textarea 
+                            id="remarks"
+                            placeholder="Add remarks for approval or rejection..."
+                            value={remarks}
+                            onChange={(e) => setRemarks(e.target.value)}
+                            className="mt-2"
+                        />
+                    </div>
+                 )}
             </ScrollArea>
             <div className="bg-muted/50 flex items-center justify-center p-6 border-l overflow-auto h-full">
                  {registration.Payment?.screenshot_url ? (
@@ -87,8 +108,8 @@ export function VerifyPaymentModal({
                   {isVerifying && action === 'rejected' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Reject
               </Button>
-              <Button onClick={() => handleVerify('verified')} disabled={isVerifying}>
-                  {isVerifying && action === 'verified' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button onClick={() => handleVerify('approved')} disabled={isVerifying}>
+                  {isVerifying && action === 'approved' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Approve
               </Button>
             </div>

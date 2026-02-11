@@ -9,8 +9,12 @@ import { format } from 'date-fns';
 import { VerifyPaymentModal } from './VerifyPaymentModal';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 
 export function AllRegistrations() {
+  const params = useParams();
+  const viewId = params.viewId as string;
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,9 +54,9 @@ export function AllRegistrations() {
     setSelectedRegistration(null);
   };
 
-  const handleVerification = async (id: string, status: 'verified' | 'rejected') => {
+  const handleVerification = async (registrationCode: string, status: 'approved' | 'rejected', remarks: string) => {
     try {
-      await verifyPayment(id, status);
+      await verifyPayment(registrationCode, status, remarks);
       toast({
         title: 'Success',
         description: `Registration status updated to ${status}.`,
@@ -68,9 +72,12 @@ export function AllRegistrations() {
     }
   };
   
-  const filteredRegistrations = (status: 'pending' | 'verified' | 'rejected' | 'all') => {
+  const filteredRegistrations = (status: 'pending' | 'verified' | 'rejected' | 'approved' | 'all') => {
       if (status === 'all') return registrations;
       if (!registrations) return [];
+      if (status === 'approved') {
+        return registrations.filter(r => r.payment_status === 'approved' || r.payment_status === 'verified');
+      }
       return registrations.filter(r => r.payment_status === status);
   }
 
@@ -112,7 +119,7 @@ export function AllRegistrations() {
                     <TableCell>
                         <Badge
                         variant={
-                            reg.payment_status === 'verified'
+                            reg.payment_status === 'verified' || reg.payment_status === 'approved'
                             ? 'default'
                             : reg.payment_status === 'rejected'
                             ? 'destructive'
@@ -124,24 +131,20 @@ export function AllRegistrations() {
                         </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                        {reg.payment_status === 'pending' && (
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleVerifyClick(reg)}
-                        >
-                            Verify Payment
-                        </Button>
-                        )}
-                         {reg.payment_status !== 'pending' && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleVerifyClick(reg)}
-                        >
-                            View
-                        </Button>
-                        )}
+                        <div className="flex justify-end gap-2">
+                            {reg.payment_status === 'pending' && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleVerifyClick(reg)}
+                            >
+                                Verify
+                            </Button>
+                            )}
+                            <Button asChild variant="ghost" size="sm">
+                                <Link href={`/console/${viewId}/registrations/${reg.id}`}>Details</Link>
+                            </Button>
+                        </div>
                     </TableCell>
                     </TableRow>
                 ))}
@@ -156,12 +159,12 @@ export function AllRegistrations() {
         <Tabs defaultValue="pending">
             <TabsList>
                 <TabsTrigger value="pending">Pending</TabsTrigger>
-                <TabsTrigger value="verified">Verified</TabsTrigger>
+                <TabsTrigger value="approved">Approved</TabsTrigger>
                 <TabsTrigger value="rejected">Rejected</TabsTrigger>
                 <TabsTrigger value="all">All</TabsTrigger>
             </TabsList>
             <TabsContent value="pending">{renderTable(filteredRegistrations('pending'))}</TabsContent>
-            <TabsContent value="verified">{renderTable(filteredRegistrations('verified'))}</TabsContent>
+            <TabsContent value="approved">{renderTable(filteredRegistrations('approved'))}</TabsContent>
             <TabsContent value="rejected">{renderTable(filteredRegistrations('rejected'))}</TabsContent>
             <TabsContent value="all">{renderTable(filteredRegistrations('all'))}</TabsContent>
         </Tabs>

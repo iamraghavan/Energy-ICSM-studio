@@ -10,20 +10,47 @@ export type ApiSport = {
 };
 
 export type Registration = {
-  id: string;
-  payment_status: 'pending' | 'verified' | 'rejected';
-  created_at: string;
-  Student: {
-    name: string;
-    other_college?: string | null;
-  };
-  Sport: {
-    name: string;
-  } | null;
-  Payment: {
-    txn_id: string;
-    screenshot_url: string;
-  } | null;
+    id: string;
+    registration_code: string;
+    student_id: string;
+    sport_id: number;
+    team_id: string | null;
+    is_captain: boolean;
+    accommodation_needed: boolean;
+    payment_status: 'pending' | 'verified' | 'rejected' | 'approved';
+    status: 'pending' | 'approved' | 'rejected';
+    created_at: string;
+    Student: {
+        id: string;
+        name: string;
+        dob: string;
+        gender: string;
+        email: string;
+        mobile: string;
+        whatsapp: string;
+        city: string;
+        state: string;
+        college_id: string | null;
+        other_college: string | null;
+        department: string;
+        year_of_study: string;
+    };
+    Sport: {
+        id: number;
+        name: string;
+        type: 'Team' | 'Individual';
+        amount: string;
+    } | null;
+    Team: {
+        id: string;
+        team_name: string;
+    } | null;
+    Payment: {
+        id: string;
+        amount: string;
+        txn_id: string;
+        screenshot_url: string;
+    } | null;
 };
 
 
@@ -116,10 +143,16 @@ export const getRegistrations = async (): Promise<Registration[]> => {
     return Array.isArray(responseData) ? responseData : (responseData?.data || []);
 };
 
-export const verifyPayment = async (registrationId: string, status: 'verified' | 'rejected') => {
+export const getRegistration = async (id: string): Promise<Registration> => {
+    const response = await api.get(`/register/${id}`);
+    return response.data;
+};
+
+export const verifyPayment = async (registrationCode: string, status: 'approved' | 'rejected', remarks: string) => {
     const response = await api.post('/admin/verify-payment', {
-        registration_id: registrationId,
+        registration_code: registrationCode,
         status: status,
+        remarks: remarks,
     });
     return response.data;
 };
