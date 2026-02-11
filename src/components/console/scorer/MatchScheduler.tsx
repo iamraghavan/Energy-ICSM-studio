@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getMatchesBySport, createMatch, getTeamsBySport, type ApiMatch, type ApiSport, type ApiTeam } from "@/lib/api";
+import { getMatchesBySport, createMatch, getTeamsBySport, type ApiMatch, type ApiTeam } from "@/lib/api";
 import { MatchCard } from "./MatchCard";
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -67,7 +67,7 @@ export function MatchScheduler({ sportId }: { sportId?: string }) {
         return () => {
             socket.disconnect();
         }
-    }, [sportId]);
+    }, [sportId, toast]);
 
     const onMatchCreated = () => {
         setIsModalOpen(false);
@@ -104,7 +104,7 @@ export function MatchScheduler({ sportId }: { sportId?: string }) {
                     </div>
                      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                         <DialogTrigger asChild>
-                            <Button disabled={!sportId || teams.length < 2}><PlusCircle className="mr-2 h-4 w-4"/>Create Match</Button>
+                            <Button disabled={!sportId || isLoading}><PlusCircle className="mr-2 h-4 w-4"/>Create Match</Button>
                         </DialogTrigger>
                         <CreateMatchDialog onMatchCreated={onMatchCreated} sportId={sportId} teams={teams} />
                     </Dialog>
@@ -159,6 +159,23 @@ function CreateMatchDialog({ onMatchCreated, sportId, teams }: { onMatchCreated:
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Error', description: error.response?.data?.message || 'Failed to create match.' });
         }
+    }
+
+    if (teams.length < 2) {
+        return (
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Cannot Create Match</DialogTitle>
+                    <DialogDescription>
+                        There must be at least two teams registered for this sport to create a match.
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline">Close</Button>
+                    </DialogFooter>
+                </DialogContent>
+        )
     }
 
     return (
