@@ -106,7 +106,7 @@ export function AllRegistrations() {
                     <TableRow key={reg.id}>
                     <TableCell className="font-medium">{reg.name}</TableCell>
                     <TableCell>{reg.college?.name || reg.other_college}</TableCell>
-                    <TableCell>{reg.sport.name}</TableCell>
+                    <TableCell>{reg.sport?.name}</TableCell>
                     <TableCell>{format(new Date(reg.created_at), 'PPP')}</TableCell>
                     <TableCell>
                         <Badge

@@ -15,7 +15,7 @@ export type Registration = {
   email: string;
   college: { id: number; name: string } | null;
   other_college?: string;
-  sport: { id: number; name: string };
+  sport: { id: number; name: string } | null;
   payment_status: 'pending' | 'verified' | 'rejected';
   screenshot_url: string;
   txn_id: string;
