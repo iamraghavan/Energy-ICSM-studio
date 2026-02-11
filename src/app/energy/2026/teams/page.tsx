@@ -1,11 +1,33 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { teams, sports } from "@/lib/data";
-import { ArrowRight } from "lucide-react";
+import { getSports, getTeams } from "@/lib/api";
+import { ArrowRight, Goal, Dribbble, Volleyball, PersonStanding, Waves, Swords, Disc, Trophy, HelpCircle } from "lucide-react";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 
-export default function TeamsPage() {
+const sportIconMap: { [key: string]: React.ElementType } = {
+    'Cricket': Trophy,
+    'Football': Goal,
+    'Basketball': Dribbble,
+    'Volleyball': Volleyball,
+    '100m Dash': PersonStanding,
+    'Athletics (100m)': PersonStanding,
+    'Swimming': Waves,
+    'Fencing': Swords,
+    'Discus Throw': Disc,
+};
+
+const getSportIcon = (sportName: string) => {
+    return sportIconMap[sportName] || HelpCircle;
+};
+
+
+export default async function TeamsPage() {
+    const sportsData = await getSports();
+    const teamsData = await getTeams();
+
+    const sports = sportsData.map(sport => ({ ...sport, icon: getSportIcon(sport.name) }));
+
     return (
         <div className="container py-8">
             <div className="mb-8">
@@ -13,16 +35,16 @@ export default function TeamsPage() {
                 <p className="text-muted-foreground mt-2">Explore all the teams competing in SportZone.</p>
             </div>
             
-            <Tabs defaultValue={sports.find(s => teams.some(t => t.sportId === s.id))?.id || sports[0].id} className="w-full">
+            <Tabs defaultValue={sports.find(s => teamsData.some(t => t.sport_id === s.id))?.id.toString() || sports[0]?.id.toString()} className="w-full">
                 <TabsList className="overflow-x-auto whitespace-nowrap h-auto p-2 justify-start w-full">
                     {sports.map(sport => (
-                        <TabsTrigger key={sport.id} value={sport.id}>{sport.name}</TabsTrigger>
+                        <TabsTrigger key={sport.id} value={sport.id.toString()}>{sport.name}</TabsTrigger>
                     ))}
                 </TabsList>
                 {sports.map(sport => {
-                    const sportTeams = teams.filter(team => team.sportId === sport.id);
+                    const sportTeams = teamsData.filter(team => team.sport_id === sport.id);
                     return (
-                        <TabsContent key={sport.id} value={sport.id}>
+                        <TabsContent key={sport.id} value={sport.id.toString()}>
                             <Card className="mt-4">
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-3">
@@ -39,8 +61,8 @@ export default function TeamsPage() {
                                             {sportTeams.map(team => (
                                                 <Card key={team.id} className="hover:shadow-md transition-shadow">
                                                     <CardHeader>
-                                                        <CardTitle className="font-headline">{team.name}</CardTitle>
-                                                        <CardDescription>{team.college}</CardDescription>
+                                                        <CardTitle className="font-headline">{team.team_name}</CardTitle>
+                                                        <CardDescription>{team.college.name}</CardDescription>
                                                     </CardHeader>
                                                     <CardContent>
                                                         <Button asChild variant="outline" className="w-full">

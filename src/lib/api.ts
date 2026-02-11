@@ -19,6 +19,18 @@ export type ApiTeam = {
   }
 };
 
+export type TeamMember = {
+    id: string; 
+    name: string;
+    College: { name: string; } | null;
+    other_college: string | null;
+};
+
+export type ApiTeamDetails = ApiTeam & {
+    Captain: TeamMember;
+    Members: TeamMember[];
+};
+
 export type ApiMatch = {
     id: string;
     sport_id: number;
@@ -162,7 +174,6 @@ export const getColleges = async (): Promise<College[]> => {
 export const getSports = async (): Promise<ApiSport[]> => {
   const response = await api.get('/sports');
   const responseData = response.data;
-  // Defensively handle cases where the data might be nested or not an array
   return Array.isArray(responseData) ? responseData : responseData?.data || [];
 };
 
@@ -178,7 +189,6 @@ export const registerStudent = async (formData: FormData) => {
 export const getRegistrations = async (): Promise<Registration[]> => {
     const response = await api.get('/register');
     const responseData = response.data;
-    // Defensively handle cases where the data might be nested or not an array
     return Array.isArray(responseData) ? responseData : (responseData?.data || []);
 };
 
@@ -218,14 +228,24 @@ export const deleteUser = async (userId: string) => {
     return response.data;
 };
 
-// Match Management
+// Match & Team Management
 export const getMatches = async (status: 'live' | 'scheduled' | 'completed'): Promise<ApiMatch[]> => {
     const response = await api.get(`/matches?status=${status}`);
     return Array.isArray(response.data) ? response.data : (response.data?.data || []);
 }
 
+export const getTeams = async (): Promise<ApiTeam[]> => {
+    const response = await api.get('/teams');
+    return Array.isArray(response.data) ? response.data : (response.data?.data || []);
+};
+
+export const getTeam = async (id: string): Promise<ApiTeamDetails> => {
+    const response = await api.get(`/teams/${id}`);
+    return response.data.data || response.data;
+}
+
 export const getTeamsBySport = async (sportId: string): Promise<ApiTeam[]> => {
-    const response = await api.get(`/teams?sportId=${sportId}`);
+    const response = await api.get(`/teams/sport/${sportId}`);
     return Array.isArray(response.data) ? response.data : (response.data?.data || []);
 }
 
