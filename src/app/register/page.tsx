@@ -45,8 +45,8 @@ const getSportIcon = (iconName: string) => {
 const countryOptionsRaw = Object.entries(countries).map(([code, country]) => ({
     code,
     name: country.name,
-    value: `+${country.phone.split(',')[0]}`,
-    label: `${country.emoji} +${country.phone.split(',')[0]}`,
+    value: `+${String(country.phone).split(',')[0]}`,
+    label: `${country.emoji} +${String(country.phone).split(',')[0]}`,
   })).filter(c => c.value !== '+undefined');
 
 const countryOptions = Array.from(new Map(countryOptionsRaw.map(item => [item.value, item])).values())
