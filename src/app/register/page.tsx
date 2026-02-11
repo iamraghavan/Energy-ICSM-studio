@@ -6,6 +6,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import Image from "next/image";
+import { countries } from 'countries-list';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,6 +41,17 @@ const sportIconMap: { [key: string]: React.ElementType } = {
 const getSportIcon = (iconName: string) => {
     return sportIconMap[iconName] || HelpCircle;
 };
+
+const countryOptionsRaw = Object.entries(countries).map(([code, country]) => ({
+    code,
+    name: country.name,
+    value: `+${country.phone.split(',')[0]}`,
+    label: `${country.emoji} +${country.phone.split(',')[0]}`,
+  })).filter(c => c.value !== '+undefined');
+
+const countryOptions = Array.from(new Map(countryOptionsRaw.map(item => [item.value, item])).values())
+  .sort((a, b) => a.name.localeCompare(b.name));
+
 
 const formSchema = z.object({
     fullName: z.string().min(3, "Full name must be at least 3 characters."),
@@ -297,20 +309,20 @@ export default function RegisterPage() {
                                                 name="countryCode"
                                                 control={form.control}
                                                 render={({ field }) => (
-                                                    <div className="w-[120px]">
-                                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                            <FormControl>
-                                                                <SelectTrigger className="rounded-r-none border-r-0">
-                                                                    <SelectValue />
-                                                                </SelectTrigger>
-                                                            </FormControl>
-                                                            <SelectContent>
-                                                                <SelectItem value="+91">IN +91</SelectItem>
-                                                                <SelectItem value="+1">US +1</SelectItem>
-                                                                <SelectItem value="+44">UK +44</SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
-                                                    </div>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger className="rounded-r-none border-r-0 w-[140px]">
+                                                                <SelectValue placeholder="Code" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            {countryOptions.map(option => (
+                                                                <SelectItem key={option.code} value={option.value}>
+                                                                    {option.label}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
                                                 )}
                                             />
                                             <FormField
