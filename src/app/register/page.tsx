@@ -245,6 +245,15 @@ export default function RegisterPage() {
         }
     }, [paymentScreenshot, setValue, toast]);
 
+    useEffect(() => {
+        if (collegeId && collegeId !== 'other') {
+            const selectedCollege = colleges.find(c => c.id === collegeId);
+            if (selectedCollege) {
+                setValue('cityState', `${selectedCollege.city}, ${selectedCollege.state}`);
+            }
+        }
+    }, [collegeId, colleges, setValue]);
+
     const onSubmit = async (data: FormData) => {
         const apiFormData = new FormData();
 

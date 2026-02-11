@@ -21,10 +21,17 @@ const api = axios.create({
 });
 
 export const getColleges = async (): Promise<College[]> => {
-  const response = await api.get('/colleges');
-  // Adding a default "Other" option
-  return [...response.data, { id: 'other', name: 'Other (Please specify)' }];
-};
+    const response = await api.get('/colleges');
+    const collegesFromApi: { id: number; name: string; city: string; state: string; }[] = response.data;
+    
+    const formattedColleges: College[] = collegesFromApi.map(college => ({
+        ...college,
+        id: String(college.id),
+    }));
+  
+    // Adding a default "Other" option for manual entry
+    return [...formattedColleges, { id: 'other', name: 'Other (Please specify)', city: '', state: '' }];
+  };
 
 export const getSports = async (): Promise<ApiSport[]> => {
   const response = await api.get('/sports');

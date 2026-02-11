@@ -44,4 +44,6 @@ export type Fixture = {
 export type College = {
     id: string;
     name: string;
+    city: string;
+    state: string;
 };
