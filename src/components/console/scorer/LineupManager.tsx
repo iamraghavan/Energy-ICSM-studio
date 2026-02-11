@@ -137,7 +137,9 @@ export function LineupManager({ sportId }: { sportId?: string }) {
                 const [scheduled, allLive] = await Promise.all([scheduledPromise, livePromise]);
                 
                 const liveForSport = allLive.filter(m => String(m.sport_id) === sportId);
-                setMatches([...scheduled, ...liveForSport]);
+                const allMatches = [...scheduled, ...liveForSport];
+                const uniqueMatches = Array.from(new Map(allMatches.map(item => [item.id, item])).values());
+                setMatches(uniqueMatches);
             } catch (error) {
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch matches for this sport.' });
             } finally {
