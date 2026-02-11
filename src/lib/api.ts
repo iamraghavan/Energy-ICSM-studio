@@ -27,6 +27,7 @@ export type User = {
     username: string;
     email: string;
     role: 'super_admin' | 'sports_head' | 'scorer' | 'committee';
+    assigned_sport_id?: number | null;
 };
 
 const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
