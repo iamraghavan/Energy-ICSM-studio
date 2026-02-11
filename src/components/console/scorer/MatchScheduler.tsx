@@ -161,7 +161,7 @@ function CreateMatchDialog({ onMatchCreated, sportId, teams }: { onMatchCreated:
         }
     }
 
-    if (teams.length < 2) {
+    if (!sportId || teams.length < 2) {
         return (
             <DialogContent>
                 <DialogHeader>
@@ -173,8 +173,9 @@ function CreateMatchDialog({ onMatchCreated, sportId, teams }: { onMatchCreated:
                 <DialogFooter>
                     <DialogClose asChild>
                         <Button variant="outline">Close</Button>
-                    </DialogFooter>
-                </DialogContent>
+                    </DialogClose>
+                </DialogFooter>
+            </DialogContent>
         )
     }
 
