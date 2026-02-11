@@ -1,4 +1,5 @@
 "use client"
+import { useState, useEffect } from "react";
 import {
     Card,
     CardContent,
@@ -11,9 +12,6 @@ import { Bar, BarChart, XAxis, YAxis } from "recharts"
 import { sports, colleges } from "@/lib/data"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 
-const sportWiseData = sports.map(s => ({ name: s.name.length > 10 ? s.name.substring(0,10) + '...' : s.name, count: Math.floor(Math.random() * 50) + 10 }));
-const collegeWiseData = colleges.map(c => ({ name: c.name.split(' ')[0], count: Math.floor(Math.random() * 100) + 20 }));
-
 const chartConfig = {
     count: {
       label: "Count",
@@ -22,6 +20,14 @@ const chartConfig = {
   } satisfies ChartConfig;
 
 export default function DashboardPage() {
+    const [sportWiseData, setSportWiseData] = useState<any[]>([]);
+    const [collegeWiseData, setCollegeWiseData] = useState<any[]>([]);
+
+    useEffect(() => {
+        setSportWiseData(sports.map(s => ({ name: s.name.length > 10 ? s.name.substring(0,10) + '...' : s.name, count: Math.floor(Math.random() * 50) + 10 })));
+        setCollegeWiseData(colleges.map(c => ({ name: c.name.split(' ')[0], count: Math.floor(Math.random() * 100) + 20 })));
+    }, []);
+
     return (
         <>
             <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
