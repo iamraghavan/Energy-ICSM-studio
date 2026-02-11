@@ -62,7 +62,7 @@ export default async function PublicRegistrationDetailsPage({ searchParams }: { 
     }
 
     const { Student, Sport, Team, Payment, registration_code, payment_status, accommodation_needed, is_captain, status, created_at } = registration;
-    const ticketUrl = `${API_BASE_URL}/register/${registration.registration_code}/ticket`;
+    const ticketUrl = `${API_BASE_URL}/register/${registration.id}/ticket`;
 
     return (
         <div className="container py-8 space-y-6">

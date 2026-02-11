@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
 
 function SuccessDetails({ registration }: { registration: Registration }) {
-    const ticketUrl = `${API_BASE_URL}/register/${registration.registration_code}/ticket`;
+    const ticketUrl = `${API_BASE_URL}/register/${registration.id}/ticket`;
     const detailsUrl = `/energy/2026/registration/details?id=${registration.registration_code}&public=yes`;
     
     return (
