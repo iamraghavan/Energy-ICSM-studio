@@ -322,7 +322,7 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
                 title: "Registration Submitted!",
                 description: `We're finalizing your registration. One moment...`,
             });
-            router.push(`/energy/2026/registration/success?id=${result.registrationId}`);
+            router.push(`/energy/2026/registration/success?id=${result.registration_code}`);
         } catch (error: any) {
             console.error("Form submission error:", error);
             const errorMessage = error.response?.data?.error || error.response?.data?.message || "An unknown error occurred. Please try again.";
@@ -619,3 +619,5 @@ function FormSection({ title, children }: { title: string, children: React.React
         </div>
     );
 }
+
+    
