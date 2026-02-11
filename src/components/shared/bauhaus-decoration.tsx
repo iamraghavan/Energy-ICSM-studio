@@ -4,10 +4,16 @@ export function BauhausDecoration({ className }: { className?: string }) {
   return (
     <div
       aria-hidden="true"
-      className={cn("relative h-6 w-6 overflow-hidden", className)}
+      className={cn("grid h-6 w-6 grid-cols-2 grid-rows-2 gap-px", className)}
     >
-      <div className="absolute -left-2 -top-2 h-6 w-6 rounded-full bg-primary opacity-50" />
-      <div className="absolute -bottom-2 -right-2 h-6 w-6 rotate-45 bg-accent opacity-50" />
+      <div className="bg-accent" />
+      <div className="relative flex items-center justify-center bg-primary">
+        <div className="h-2 w-2 rounded-full bg-background" />
+      </div>
+      <div className="bg-destructive" />
+      <div className="relative overflow-hidden bg-background">
+        <div className="absolute -bottom-1 -right-2 h-4 w-4 rotate-45 bg-primary" />
+      </div>
     </div>
   );
 }
