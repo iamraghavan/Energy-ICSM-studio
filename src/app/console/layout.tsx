@@ -3,20 +3,21 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/shared/logo";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { getDecodedToken } from "@/lib/auth";
+import { getUserSession } from "@/lib/auth";
 import { useEffect, useState } from "react";
-import type { DecodedToken } from "@/lib/auth";
+import type { UserSession } from "@/lib/auth";
 
 function ConsoleHeader() {
     const router = useRouter();
-    const [user, setUser] = useState<DecodedToken | null>(null)
+    const [user, setUser] = useState<UserSession | null>(null)
 
     useEffect(() => {
-        setUser(getDecodedToken())
+        setUser(getUserSession())
     }, [])
 
     const handleLogout = () => {
         localStorage.removeItem('jwt_token');
+        localStorage.removeItem('user_role');
         router.push('/auth/session');
     };
 

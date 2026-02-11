@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter, notFound } from 'next/navigation';
-import { getDecodedToken, getRoleForViewId } from '@/lib/auth';
+import { getUserSession, getRoleForViewId } from '@/lib/auth';
 
 import { SuperAdminDashboard } from '@/components/console/SuperAdminDashboard';
 import { SportsHeadDashboard } from '@/components/console/SportsHeadDashboard';
@@ -25,15 +25,15 @@ export default function ConsoleViewPage() {
     const ComponentToRender = useMemo(() => VIEW_MAP[viewId] || null, [viewId]);
 
     useEffect(() => {
-        const tokenData = getDecodedToken();
+        const sessionData = getUserSession();
         const expectedRole = getRoleForViewId(viewId);
 
-        if (!tokenData) {
+        if (!sessionData) {
             router.replace('/auth/session');
             return;
         }
 
-        if (!expectedRole || tokenData.role !== expectedRole) {
+        if (!expectedRole || sessionData.role !== expectedRole) {
             notFound();
             return;
         }

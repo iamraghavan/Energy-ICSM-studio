@@ -1,12 +1,20 @@
 import { jwtDecode } from 'jwt-decode';
 
-export interface DecodedToken {
-    role: 'super_admin' | 'sports_head' | 'scorer' | 'committee';
-    assigned_sport_id?: string;
+// This is what is ACTUALLY inside the JWT token from the backend
+export interface DecodedJwtPayload {
+    id: string;
     iat: number;
     exp: number;
-    sub: string; // user id
 }
+
+// This is the user session object we will use throughout the app
+export interface UserSession {
+    role: 'super_admin' | 'sports_head' | 'scorer' | 'committee';
+    assigned_sport_id?: string;
+    exp: number;
+    id: string;
+}
+
 
 const ROLE_TO_VIEW_ID: Record<string, string> = {
     super_admin: '8f7a2b9c',
@@ -26,21 +34,39 @@ export const getRoleForViewId = (viewId: string): string | undefined => {
     return VIEW_ID_TO_ROLE[viewId];
 }
 
-export const getDecodedToken = (): DecodedToken | null => {
+export const getUserSession = (): UserSession | null => {
     if (typeof window === 'undefined') return null;
+    
     const token = localStorage.getItem('jwt_token');
-    if (!token) return null;
+    const role = localStorage.getItem('user_role') as UserSession['role'] | null;
+
+    if (!token || !role) {
+        localStorage.removeItem('jwt_token');
+        localStorage.removeItem('user_role');
+        return null;
+    }
+
     try {
-        const decoded = jwtDecode<DecodedToken>(token);
+        const decoded = jwtDecode<DecodedJwtPayload>(token);
+        
         // Check if token is expired
         if (Date.now() >= decoded.exp * 1000) {
             localStorage.removeItem('jwt_token');
+            localStorage.removeItem('user_role');
             return null;
         }
-        return decoded;
+
+        // Construct the session object
+        return {
+            id: decoded.id,
+            exp: decoded.exp,
+            role: role,
+        };
+
     } catch (error) {
         console.error("Failed to decode token", error);
         localStorage.removeItem('jwt_token');
+        localStorage.removeItem('user_role');
         return null;
     }
 };
