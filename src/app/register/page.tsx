@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import Image from "next/image";
 import { countries } from 'countries-list';
+import { createWorker } from 'tesseract.js';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,8 +25,8 @@ import type { Sport, College } from "@/lib/types";
 import { Logo } from "@/components/shared/logo";
 import { useToast } from "@/hooks/use-toast";
 
-const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
-const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "application/pdf"];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png"];
 
 const sportIconMap: { [key: string]: React.ElementType } = {
     'Cricket': Trophy,
@@ -77,10 +78,10 @@ const formSchema = z.object({
     transactionId: z.string().min(1, "Transaction ID is required."),
     paymentScreenshot: z.any()
         .refine((files) => files?.length == 1, "Payment screenshot is required.")
-        .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Max file size is 2MB.`)
+        .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Max file size is 5MB.`)
         .refine(
             (files) => ACCEPTED_IMAGE_TYPES.includes(files?.[0]?.type),
-            "Only .jpg, .jpeg, .png and .pdf formats are supported."
+            "Only .jpg, .jpeg and .png formats are supported."
         ),
 }).refine(data => {
     if (data.collegeId === 'other') {
@@ -110,6 +111,7 @@ export default function RegisterPage() {
     const [sports, setSports] = useState<Sport[]>([]);
     const [filteredSports, setFilteredSports] = useState<Sport[]>([]);
     const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+    const [isOcrLoading, setIsOcrLoading] = useState(false);
 
     const form = useForm<FormData>({
         resolver: zodResolver(formSchema),
@@ -175,19 +177,79 @@ export default function RegisterPage() {
     useEffect(() => {
         if (paymentScreenshot && paymentScreenshot.length > 0) {
             const file = paymentScreenshot[0];
-            if (file.type.startsWith("image/")) {
+            if (ACCEPTED_IMAGE_TYPES.includes(file.type)) {
                 const reader = new FileReader();
                 reader.onloadend = () => {
                     setScreenshotPreview(reader.result as string);
                 };
                 reader.readAsDataURL(file);
+
+                const runOcr = async () => {
+                    setIsOcrLoading(true);
+                    toast({
+                        title: 'Analyzing Screenshot...',
+                        description: 'Extracting transaction ID. Please wait.',
+                    });
+                    try {
+                        const worker = await createWorker('eng');
+                        const { data: { text } } = await worker.recognize(file);
+                        
+                        const patterns = [
+                            /(?:Transaction|Ref|Reference|ID|No|Utr)\.?:?\s*([a-zA-Z0-9]{12,})/i,
+                            /(\b\d{12,}\b)/, 
+                        ];
+
+                        let transactionId: string | null = null;
+                        for (const pattern of patterns) {
+                            const match = text.match(pattern);
+                            if (match && match[1]) {
+                                transactionId = match[1];
+                                break;
+                            }
+                        }
+
+                        if (!transactionId) {
+                            const genericMatch = text.match(/\b([a-zA-Z0-9]{12,})\b/);
+                             if (genericMatch && genericMatch[0]) {
+                                transactionId = genericMatch[0];
+                            }
+                        }
+
+                        if (transactionId) {
+                            setValue('transactionId', transactionId, { shouldValidate: true });
+                            toast({
+                                title: "Transaction ID Found!",
+                                description: `We've auto-filled the ID: ${transactionId}`,
+                            });
+                        } else {
+                            toast({
+                                variant: "destructive",
+                                title: "Could not find Transaction ID",
+                                description: "Please enter the Transaction ID manually.",
+                            });
+                        }
+
+                        await worker.terminate();
+                    } catch (error) {
+                        console.error('OCR Error:', error);
+                        toast({
+                            variant: "destructive",
+                            title: "OCR Failed",
+                            description: "Could not read the screenshot. Please enter the ID manually.",
+                        });
+                    } finally {
+                        setIsOcrLoading(false);
+                    }
+                };
+                runOcr();
+
             } else {
                  setScreenshotPreview(null);
             }
         } else {
             setScreenshotPreview(null);
         }
-    }, [paymentScreenshot]);
+    }, [paymentScreenshot, setValue, toast]);
 
     const onSubmit = async (data: FormData) => {
         const apiFormData = new FormData();
@@ -423,7 +485,7 @@ export default function RegisterPage() {
                                             <Select onValueChange={field.onChange} value={field.value}>
                                                 <FormControl><SelectTrigger><SelectValue placeholder={`Select a ${sportType.toLowerCase()} sport`} /></SelectTrigger></FormControl>
                                                 <SelectContent>
-                                                    {filteredSports.map(s => <SelectItem key={s.id} value={s.id} disabled={s.slotsLeft === 0}>{s.name} - {s.slotsLeft} slots left</SelectItem>)}
+                                                    {filteredSports.map(s => <SelectItem key={s.id} value={s.id} disabled={s.slotsLeft === 0}>{s.name} - {s.slotsLeft > 0 ? `${s.slotsLeft} slots left`: 'Slots Full'}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage />
@@ -459,7 +521,20 @@ export default function RegisterPage() {
                                         <Image src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=example@upi" alt="Payment QR Code" width={150} height={150} />
                                     </div>
                                      <FormField name="transactionId" control={form.control} render={({ field }) => (
-                                        <FormItem><FormLabel>Transaction ID</FormLabel><FormControl><Input placeholder="Enter the UPI Transaction ID" {...field} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem>
+                                            <FormLabel className="flex items-center gap-2">
+                                                Transaction ID
+                                                {isOcrLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                                            </FormLabel>
+                                            <FormControl>
+                                                <Input 
+                                                    placeholder={isOcrLoading ? "Reading from screenshot..." : "Enter the UPI Transaction ID"} 
+                                                    {...field} 
+                                                    disabled={isOcrLoading}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
                                     )} />
                                      <FormField control={form.control} name="paymentScreenshot" render={({ field }) => (
                                         <FormItem>
@@ -467,7 +542,7 @@ export default function RegisterPage() {
                                             <FormControl>
                                                 <Input type="file" accept={ACCEPTED_IMAGE_TYPES.join(',')} onChange={(e) => field.onChange(e.target.files)} />
                                             </FormControl>
-                                            <FormDescription>File must be a JPG, PNG, or PDF under 2MB.</FormDescription>
+                                            <FormDescription>File must be a JPG, or PNG under 5MB.</FormDescription>
                                             <FormMessage />
                                         </FormItem>
                                      )} />
@@ -480,9 +555,9 @@ export default function RegisterPage() {
                                 </div>
                              </FormSection>
 
-                            <Button type="submit" className="w-full" disabled={isSubmitting}>
-                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {isSubmitting ? "Processing..." : "Complete Registration"}
+                            <Button type="submit" className="w-full" disabled={isSubmitting || isOcrLoading}>
+                                {(isSubmitting || isOcrLoading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {isSubmitting ? "Processing..." : (isOcrLoading ? 'Analyzing...' : 'Complete Registration')}
                             </Button>
                         </form>
                     </Form>
