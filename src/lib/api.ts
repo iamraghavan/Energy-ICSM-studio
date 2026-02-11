@@ -229,10 +229,15 @@ export const deleteUser = async (userId: string) => {
 };
 
 // Match & Team Management
-export const getMatches = async (status: 'live' | 'scheduled' | 'completed'): Promise<ApiMatch[]> => {
-    const response = await api.get(`/matches?status=${status}`);
+export const getMatchesBySport = async (sportId: string, status: 'scheduled' | 'completed'): Promise<ApiMatch[]> => {
+    const response = await api.get(`/matches/sport/${sportId}?status=${status}`);
     return Array.isArray(response.data) ? response.data : (response.data?.data || []);
-}
+};
+
+export const getLiveMatches = async (): Promise<ApiMatch[]> => {
+    const response = await api.get(`/matches/live`);
+    return Array.isArray(response.data) ? response.data : (response.data?.data || []);
+};
 
 export const getTeams = async (): Promise<ApiTeam[]> => {
     const response = await api.get('/teams');

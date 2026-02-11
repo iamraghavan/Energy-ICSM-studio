@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getMatches, createMatch, getSports, getTeamsBySport, type ApiMatch, type ApiSport, type ApiTeam } from "@/lib/api";
+import { getMatchesBySport, createMatch, getTeamsBySport, type ApiMatch, type ApiSport, type ApiTeam } from "@/lib/api";
 import { MatchCard } from "./MatchCard";
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -13,8 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Loader2, PlusCircle } from 'lucide-react';
-import { io, type Socket } from 'socket.io-client';
+import { Loader2, PlusCircle, CalendarCog } from 'lucide-react';
+import { io } from 'socket.io-client';
 
 const SOCKET_URL = 'https://energy-sports-meet-backend.onrender.com';
 
@@ -30,19 +30,25 @@ const matchFormSchema = z.object({
     path: ["team_b_id"],
 });
 
-export function MatchScheduler() {
+export function MatchScheduler({ sportId }: { sportId?: string }) {
     const [upcomingMatches, setUpcomingMatches] = useState<ApiMatch[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [teams, setTeams] = useState<ApiTeam[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const { toast } = useToast();
 
     const fetchUpcoming = async () => {
+        if (!sportId) return;
         setIsLoading(true);
         try {
-            const data = await getMatches('scheduled');
-            setUpcomingMatches(data);
+            const [matchesData, teamsData] = await Promise.all([
+                getMatchesBySport(sportId, 'scheduled'),
+                getTeamsBySport(sportId)
+            ]);
+            setUpcomingMatches(matchesData);
+            setTeams(teamsData);
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch upcoming matches.' });
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch match data for this sport.' });
         } finally {
             setIsLoading(false);
         }
@@ -50,24 +56,42 @@ export function MatchScheduler() {
 
     useEffect(() => {
         fetchUpcoming();
-        
-        const newSocket = io(SOCKET_URL);
-        newSocket.on('connect', () => {
-            newSocket.emit('join_room', 'live_overview');
-        });
-        
-        newSocket.on('overview_update', (data: { action: 'create' | 'update' | 'delete', match?: ApiMatch, matchId?: string }) => {
-            toast({ title: "Schedule Updated!", description: "The list of matches has been updated." });
+
+        const socket = io(SOCKET_URL);
+        socket.on('connect', () => socket.emit('join_room', 'live_overview'));
+        socket.on('overview_update', (data: any) => {
+            toast({ title: 'Schedule Updated!', description: 'The match list has been updated in real-time.' });
             fetchUpcoming();
         });
 
         return () => {
-            newSocket.disconnect();
+            socket.disconnect();
         }
-    }, [toast]);
+    }, [sportId]);
 
     const onMatchCreated = () => {
         setIsModalOpen(false);
+        fetchUpcoming();
+    }
+
+    const renderContent = () => {
+        if (!sportId) {
+             return (
+                <div className="text-center py-16 text-muted-foreground">
+                    <CalendarCog className="h-12 w-12 mx-auto mb-4" />
+                    <p>Select a sport to schedule matches.</p>
+                </div>
+            )
+        }
+        if (isLoading) {
+            return <div className="space-y-4">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}</div>
+        }
+        if (upcomingMatches.length > 0) {
+            return upcomingMatches.map(match => (
+               <MatchCard key={match.id} match={match} />
+            ))
+        }
+        return <p className="text-muted-foreground text-center py-8">No upcoming matches scheduled for this sport.</p>
     }
 
     return (
@@ -80,85 +104,58 @@ export function MatchScheduler() {
                     </div>
                      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                         <DialogTrigger asChild>
-                            <Button><PlusCircle className="mr-2 h-4 w-4"/>Create Match</Button>
+                            <Button disabled={!sportId || teams.length < 2}><PlusCircle className="mr-2 h-4 w-4"/>Create Match</Button>
                         </DialogTrigger>
-                        <CreateMatchDialog onMatchCreated={onMatchCreated} />
+                        <CreateMatchDialog onMatchCreated={onMatchCreated} sportId={sportId} teams={teams} />
                     </Dialog>
                 </div>
             </CardHeader>
             <CardContent className="space-y-4">
-                {isLoading && [...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
-                {!isLoading && upcomingMatches.length > 0 ? (
-                    upcomingMatches.map(match => (
-                       <MatchCard key={match.id} match={match}>
-                       </MatchCard>
-                    ))
-                ) : (
-                    !isLoading && <p className="text-muted-foreground text-center py-8">No upcoming matches scheduled.</p>
-                )}
+                {renderContent()}
             </CardContent>
         </Card>
     );
 }
 
 
-function CreateMatchDialog({ onMatchCreated }: { onMatchCreated: () => void }) {
-    const [sports, setSports] = useState<ApiSport[]>([]);
-    const [teams, setTeams] = useState<ApiTeam[]>([]);
+function CreateMatchDialog({ onMatchCreated, sportId, teams }: { onMatchCreated: () => void, sportId?: string, teams: ApiTeam[] }) {
     const { toast } = useToast();
     const form = useForm<z.infer<typeof matchFormSchema>>({
         resolver: zodResolver(matchFormSchema),
         defaultValues: {
             referee_name: '',
-            sport_id: '',
+            sport_id: sportId || '',
             start_time: '',
             team_a_id: '',
             team_b_id: '',
             venue: ''
         }
     });
-
-    const sportId = form.watch('sport_id');
-
-    useEffect(() => {
-        const fetchSportsData = async () => {
-            try {
-                const data = await getSports();
-                setSports(data);
-            } catch (error) {
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch sports.' });
-            }
-        };
-        fetchSportsData();
-    }, [toast]);
     
     useEffect(() => {
-        if (sportId) {
-            const fetchTeamsData = async () => {
-                try {
-                    const data = await getTeamsBySport(sportId);
-                    setTeams(data);
-                } catch (error) {
-                    toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch teams for this sport.' });
-                }
-            };
-            fetchTeamsData();
-            form.setValue('team_a_id', '');
-            form.setValue('team_b_id', '');
-        }
-    }, [sportId, toast, form]);
+        form.reset({
+             referee_name: '',
+            sport_id: sportId || '',
+            start_time: '',
+            team_a_id: '',
+            team_b_id: '',
+            venue: ''
+        })
+    }, [sportId, form])
 
 
     const onSubmit = async (values: z.infer<typeof matchFormSchema>) => {
+        if (!sportId) {
+            toast({ variant: 'destructive', title: 'Error', description: 'No sport selected.' });
+            return;
+        }
         try {
             await createMatch({
                 ...values,
-                sport_id: parseInt(values.sport_id),
-                referee_name: values.referee_name || undefined
+                sport_id: parseInt(sportId, 10),
             });
             toast({ title: 'Success', description: 'Match created successfully.' });
             onMatchCreated();
-            form.reset();
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Error', description: error.response?.data?.message || 'Failed to create match.' });
         }
@@ -172,35 +169,22 @@ function CreateMatchDialog({ onMatchCreated }: { onMatchCreated: () => void }) {
             </DialogHeader>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-                    <FormField control={form.control} name="sport_id" render={({ field }) => (
-                        <FormItem><FormLabel>Sport</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl><SelectTrigger><SelectValue placeholder="Select a sport" /></SelectTrigger></FormControl>
-                                <SelectContent>{sports.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}</SelectContent>
+                     <FormField control={form.control} name="team_a_id" render={({ field }) => (
+                        <FormItem><FormLabel>Team A</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl><SelectTrigger><SelectValue placeholder="Select Team A" /></SelectTrigger></FormControl>
+                                <SelectContent>{teams.map(t => <SelectItem key={t.id} value={t.id}>{t.team_name}</SelectItem>)}</SelectContent>
                             </Select><FormMessage />
                         </FormItem>
                     )} />
-
-                    {sportId && (
-                        <>
-                             <FormField control={form.control} name="team_a_id" render={({ field }) => (
-                                <FormItem><FormLabel>Team A</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl><SelectTrigger><SelectValue placeholder="Select Team A" /></SelectTrigger></FormControl>
-                                        <SelectContent>{teams.map(t => <SelectItem key={t.id} value={t.id}>{t.team_name}</SelectItem>)}</SelectContent>
-                                    </Select><FormMessage />
-                                </FormItem>
-                            )} />
-                             <FormField control={form.control} name="team_b_id" render={({ field }) => (
-                                <FormItem><FormLabel>Team B</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl><SelectTrigger><SelectValue placeholder="Select Team B" /></SelectTrigger></FormControl>
-                                        <SelectContent>{teams.map(t => <SelectItem key={t.id} value={t.id}>{t.team_name}</SelectItem>)}</SelectContent>
-                                    </Select><FormMessage />
-                                </FormItem>
-                            )} />
-                        </>
-                    )}
+                     <FormField control={form.control} name="team_b_id" render={({ field }) => (
+                        <FormItem><FormLabel>Team B</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl><SelectTrigger><SelectValue placeholder="Select Team B" /></SelectTrigger></FormControl>
+                                <SelectContent>{teams.map(t => <SelectItem key={t.id} value={t.id}>{t.team_name}</SelectItem>)}</SelectContent>
+                            </Select><FormMessage />
+                        </FormItem>
+                    )} />
                     <FormField control={form.control} name="venue" render={({ field }) => (
                         <FormItem><FormLabel>Venue</FormLabel><FormControl><Input placeholder="e.g. Main Football Ground" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />

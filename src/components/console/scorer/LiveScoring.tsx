@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getMatches, updateScore, postMatchEvent, type ApiMatch } from "@/lib/api";
+import { getLiveMatches, updateScore, postMatchEvent, type ApiMatch } from "@/lib/api";
 import { io, type Socket } from 'socket.io-client';
 import { ArrowLeft, Send } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +27,7 @@ function ScoringInterface({ match, onBack }: { match: ApiMatch, onBack: () => vo
         newSocket.on('match_event', (data) => {
             if (data.matchId === match.id) {
                 setScore(data.score);
-                setEvents(prev => [...prev, data.event]);
+                setEvents(prev => [data.event, ...prev]);
                 toast({ title: "Event Received", description: `Type: ${data.event.event_type}` });
             }
         });
@@ -67,6 +67,10 @@ function ScoringInterface({ match, onBack }: { match: ApiMatch, onBack: () => vo
              toast({ variant: 'destructive', title: 'Error', description: 'Failed to send event.' });
         }
     };
+    
+    const scoreA = (score[match.team_a_id] as any)?.goals ?? score.team_a ?? 0;
+    const scoreB = (score[match.team_b_id] as any)?.goals ?? score.team_b ?? 0;
+
 
     return (
         <Card>
@@ -88,23 +92,20 @@ function ScoringInterface({ match, onBack }: { match: ApiMatch, onBack: () => vo
                     <div className="grid grid-cols-2 gap-4 text-center">
                         <div className="border p-4 rounded-lg">
                             <p className="font-bold text-xl">{match.TeamA.team_name}</p>
-                            <p className="text-4xl font-bold">{(score[match.TeamA.id] as any)?.goals || score.team_a || 0}</p>
+                            <p className="text-4xl font-bold">{scoreA}</p>
                         </div>
                          <div className="border p-4 rounded-lg">
                             <p className="font-bold text-xl">{match.TeamB.team_name}</p>
-                             <p className="text-4xl font-bold">{(score[match.TeamB.id] as any)?.goals || score.team_b || 0}</p>
+                             <p className="text-4xl font-bold">{scoreB}</p>
                         </div>
                     </div>
-                     <pre className="mt-4 bg-muted p-2 rounded-md text-xs overflow-auto">
-                        {JSON.stringify(score, null, 2)}
-                    </pre>
                 </div>
 
                 <div>
                     <h3 className="text-lg font-medium mb-2">Actions (Example: Football)</h3>
                      <div className="grid grid-cols-2 gap-4">
-                        <Button onClick={() => handleGoal(match.TeamA.id)}><Send className="mr-2"/> Goal for {match.TeamA.team_name}</Button>
-                        <Button onClick={() => handleGoal(match.TeamB.id)}><Send className="mr-2"/> Goal for {match.TeamB.team_name}</Button>
+                        <Button onClick={() => handleGoal(match.team_a_id)}><Send className="mr-2"/> Goal for {match.TeamA.team_name}</Button>
+                        <Button onClick={() => handleGoal(match.team_b_id)}><Send className="mr-2"/> Goal for {match.TeamB.team_name}</Button>
                      </div>
                 </div>
 
@@ -114,7 +115,7 @@ function ScoringInterface({ match, onBack }: { match: ApiMatch, onBack: () => vo
                         {events.length === 0 && <p className="text-muted-foreground text-center">No events yet.</p>}
                         {events.map((event, i) => (
                              <div key={i} className="text-sm p-2 bg-muted rounded-md">
-                                <pre>{JSON.stringify(event, null, 2)}</pre>
+                                <pre className="whitespace-pre-wrap">{JSON.stringify(event, null, 2)}</pre>
                             </div>
                         ))}
                     </div>
@@ -137,7 +138,7 @@ export function LiveScoring() {
     const fetchLiveMatches = async () => {
         setIsLoading(true);
         try {
-            const matches = await getMatches('live');
+            const matches = await getLiveMatches();
             setLiveFixtures(matches);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch live matches.' });
