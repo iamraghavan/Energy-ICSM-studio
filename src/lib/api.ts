@@ -34,6 +34,12 @@ export type Registration = {
         other_college: string | null;
         department: string;
         year_of_study: string;
+        College: {
+            id: number;
+            name: string;
+            city: string;
+            state: string;
+        } | null;
     };
     Sport: {
         id: number;
@@ -43,13 +49,19 @@ export type Registration = {
     } | null;
     Team: {
         id: string;
+        sport_id: number;
         team_name: string;
+        captain_id: string;
+        locked: boolean;
     } | null;
     Payment: {
         id: string;
+        registration_id: string;
         amount: string;
         txn_id: string;
         screenshot_url: string;
+        verified_by: string | null;
+        verified_at: string | null;
     } | null;
 };
 
@@ -144,11 +156,10 @@ export const getRegistrations = async (): Promise<Registration[]> => {
 };
 
 export const getRegistration = async (id: string): Promise<Registration> => {
-    const response = await api.get(`/registrations/${id}`);
+    const response = await api.get(`/register/${id}`);
     const responseData = response.data;
-    // Handle cases where the data might be the registration object directly,
-    // or nested under a `data` property.
-    return responseData.data || responseData;
+    // The user's JSON response shows the registration object is the root of the response.
+    return responseData;
 };
 
 export const verifyPayment = async (registrationCode: string, status: 'approved' | 'rejected', remarks: string) => {

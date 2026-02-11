@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { getRegistration, type Registration } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Mail, Phone, User, Building, Milestone, Dribbble, Calendar, Hash, FileText, Users as UsersIcon, Bed } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, User, Building, Milestone, Dribbble, Calendar, Hash, FileText, Users as UsersIcon, Bed, UserCheck, Clock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +27,6 @@ export default function RegistrationDetailsPage() {
         const fetchRegistration = async () => {
             setIsLoading(true);
             try {
-                // The API might return a single object or an array with one object
                 const data = await getRegistration(registrationId);
                 setRegistration(Array.isArray(data) ? data[0] : data);
             } catch (err: any) {
@@ -54,7 +53,7 @@ export default function RegistrationDetailsPage() {
         );
     }
     
-    const { Student, Sport, Team, Payment, registration_code, payment_status, accommodation_needed } = registration;
+    const { Student, Sport, Team, Payment, registration_code, payment_status, accommodation_needed, is_captain, status, created_at } = registration;
 
     return (
         <div className="p-4 sm:p-8 space-y-6">
@@ -76,7 +75,19 @@ export default function RegistrationDetailsPage() {
                     }
                     className="capitalize ml-auto"
                     >
-                    {payment_status}
+                    Payment: {payment_status}
+                </Badge>
+                 <Badge
+                    variant={
+                        status === 'approved'
+                        ? 'default'
+                        : status === 'rejected'
+                        ? 'destructive'
+                        : 'secondary'
+                    }
+                    className="capitalize"
+                    >
+                    Reg: {status}
                 </Badge>
             </div>
             
@@ -85,6 +96,7 @@ export default function RegistrationDetailsPage() {
                     <CardHeader><CardTitle>Student Information</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
                         <InfoDetail icon={User} label="Name" value={Student.name} />
+                        {is_captain && <InfoDetail icon={UserCheck} label="Role" value="Team Captain" />}
                         <InfoDetail icon={Mail} label="Email" value={Student.email} />
                         <InfoDetail icon={Phone} label="Mobile" value={Student.mobile} />
                         <InfoDetail icon={Phone} label="WhatsApp" value={Student.whatsapp} />
@@ -96,7 +108,7 @@ export default function RegistrationDetailsPage() {
                 <Card className="lg:col-span-1">
                     <CardHeader><CardTitle>Academic Details</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
-                        <InfoDetail icon={Building} label="College" value={Student.other_college || 'N/A'} />
+                        <InfoDetail icon={Building} label="College" value={Student.other_college || Student.College?.name || 'N/A'} />
                          <InfoDetail icon={FileText} label="Department" value={Student.department} />
                         <InfoDetail icon={Milestone} label="Year of Study" value={Student.year_of_study} />
                         <InfoDetail icon={Building} label="City" value={Student.city} />
@@ -108,9 +120,11 @@ export default function RegistrationDetailsPage() {
                     <CardHeader><CardTitle>Event & Payment</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
                          <InfoDetail icon={Dribbble} label="Sport" value={Sport?.name || 'N/A'} />
+                         {Sport?.type && <InfoDetail icon={UsersIcon} label="Event Type" value={Sport.type} />}
                          {Team && <InfoDetail icon={UsersIcon} label="Team Name" value={Team.team_name} />}
                          <InfoDetail icon={Hash} label="Transaction ID" value={Payment?.txn_id || 'N/A'} isMono />
                          <InfoDetail label="Amount Paid" value={`₹${Payment?.amount || '0.00'}`} />
+                         <InfoDetail icon={Clock} label="Registered On" value={format(new Date(created_at), 'PPP p')} />
                          <InfoDetail icon={Bed} label="Accommodation" value={accommodation_needed ? "Requested" : "Not Requested"} />
                     </CardContent>
                 </Card>
