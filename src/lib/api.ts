@@ -101,7 +101,9 @@ export const registerStudent = async (formData: FormData) => {
 
 export const getRegistrations = async (): Promise<Registration[]> => {
     const response = await api.get('/register');
-    return response.data.data; // Assuming data is nested under a 'data' key
+    const responseData = response.data;
+    // Defensively handle cases where the data might be nested or not an array
+    return Array.isArray(responseData) ? responseData : (responseData?.data || []);
 };
 
 export const verifyPayment = async (registrationId: number, status: 'verified' | 'rejected') => {
