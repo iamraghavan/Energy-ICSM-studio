@@ -68,7 +68,7 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
       <Card className="w-full max-w-2xl">
         <CardHeader>
-          <CardTitle className="font-headline">SportZone Registration</CardTitle>
+          <CardTitle className="font-headline">CM TROPHY Registration</CardTitle>
           {currentStep < steps.length - 1 && (
             <>
               <CardDescription>Step {currentStep + 1} of {steps.length - 1}: {steps[currentStep].name}</CardDescription>

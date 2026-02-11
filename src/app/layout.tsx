@@ -3,8 +3,8 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'SportZone | Your Ultimate Sports Hub',
-  description: 'The ultimate platform for college sports enthusiasts. Track fixtures, teams, and player stats.',
+  title: 'CM TROPHY 2025',
+  description: 'Tamil Nadu Biggest Sports League',
   icons: {
     icon: '/favicon.ico',
   }
@@ -16,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="dark">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
