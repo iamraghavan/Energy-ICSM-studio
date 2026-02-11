@@ -13,18 +13,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getColleges, getSports, registerStudent, type ApiSport } from "@/lib/api";
-import { CheckCircle, CalendarIcon, Loader2, Trophy, Goal, Dribbble, Volleyball, PersonStanding, Waves, Swords, Disc, HelpCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { CheckCircle, Loader2, Trophy, Goal, Dribbble, Volleyball, PersonStanding, Waves, Swords, Disc, HelpCircle } from "lucide-react";
 import type { Sport, College } from "@/lib/types";
 import { Logo } from "@/components/shared/logo";
 import { useToast } from "@/hooks/use-toast";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Skeleton } from "@/components/ui/skeleton";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png"];
@@ -112,12 +107,6 @@ export default function RegisterPage() {
     const [filteredSports, setFilteredSports] = useState<Sport[]>([]);
     const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
     const [isOcrLoading, setIsOcrLoading] = useState(false);
-    const [isClient, setIsClient] = useState(false);
-    const isMobile = useIsMobile();
-
-    useEffect(() => {
-        setIsClient(true);
-    }, []);
 
     const form = useForm<FormData>({
         resolver: zodResolver(formSchema),
@@ -337,52 +326,25 @@ export default function RegisterPage() {
                                 )} />
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                      <FormField name="dob" control={form.control} render={({ field }) => (
-                                        <FormItem className="flex flex-col">
+                                        <FormItem>
                                             <FormLabel>Date of Birth</FormLabel>
-                                            {!isClient ? (
-                                                <Skeleton className="h-10 w-full" />
-                                            ) : isMobile ? (
-                                                <FormControl>
-                                                    <Input
-                                                        type="date"
-                                                        className="w-full"
-                                                        value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
-                                                        onChange={(e) => {
-                                                            if (e.target.value) {
-                                                                const [year, month, day] = e.target.value.split('-').map(Number);
-                                                                field.onChange(new Date(year, month - 1, day));
-                                                            } else {
-                                                                field.onChange(undefined);
-                                                            }
-                                                        }}
-                                                        max={sixteenYearsAgo.toISOString().split("T")[0]}
-                                                        min="1950-01-01"
-                                                    />
-                                                </FormControl>
-                                            ) : (
-                                                <Popover>
-                                                    <PopoverTrigger asChild>
-                                                        <FormControl>
-                                                            <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                            </Button>
-                                                        </FormControl>
-                                                    </PopoverTrigger>
-                                                    <PopoverContent className="w-auto p-0" align="start">
-                                                        <Calendar
-                                                            mode="single"
-                                                            selected={field.value}
-                                                            onSelect={field.onChange}
-                                                            disabled={(date) => date > sixteenYearsAgo || date < new Date("1950-01-01")}
-                                                            initialFocus
-                                                            captionLayout="dropdown-buttons"
-                                                            fromYear={1950}
-                                                            toYear={sixteenYearsAgo.getFullYear()}
-                                                        />
-                                                    </PopoverContent>
-                                                </Popover>
-                                            )}
+                                            <FormControl>
+                                                <Input
+                                                    type="date"
+                                                    className="w-full"
+                                                    value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
+                                                    onChange={(e) => {
+                                                        if (e.target.value) {
+                                                            const [year, month, day] = e.target.value.split('-').map(Number);
+                                                            field.onChange(new Date(year, month - 1, day));
+                                                        } else {
+                                                            field.onChange(undefined);
+                                                        }
+                                                    }}
+                                                    max={sixteenYearsAgo.toISOString().split("T")[0]}
+                                                    min="1950-01-01"
+                                                />
+                                            </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
