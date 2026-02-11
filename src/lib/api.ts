@@ -88,12 +88,8 @@ export const getColleges = async (): Promise<College[]> => {
 };
 
 export const getSports = async (): Promise<ApiSport[]> => {
-  const response = await fetch(`${API_BASE_URL}/sports`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch sports');
-  }
-  const responseData = await response.json();
-  
+  const response = await api.get('/sports');
+  const responseData = response.data;
   // Defensively handle cases where the data might be nested or not an array
   return Array.isArray(responseData) ? responseData : responseData?.data || [];
 };
