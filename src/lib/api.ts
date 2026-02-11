@@ -9,6 +9,36 @@ export type ApiSport = {
     amount: string;
 };
 
+export type ApiTeam = {
+  id: string;
+  sport_id: number;
+  team_name: string;
+  captain_id: string;
+  college: {
+    name: string;
+  }
+};
+
+export type ApiMatch = {
+    id: string;
+    sport_id: number;
+    team_a_id: string;
+    team_b_id: string;
+    start_time: string;
+    venue: string;
+    referee_name: string | null;
+    status: 'scheduled' | 'live' | 'completed' | 'cancelled';
+    score_details: {
+        team_a: number;
+        team_b: number;
+    };
+    Sport: ApiSport;
+    TeamA: ApiTeam;
+    TeamB: ApiTeam;
+    created_at: string;
+};
+
+
 export type Registration = {
     id: string;
     registration_code: string;
@@ -158,7 +188,6 @@ export const getRegistrations = async (): Promise<Registration[]> => {
 export const getRegistration = async (id: string): Promise<Registration> => {
     const response = await api.get('/register/details', { params: { id }});
     const responseData = response.data;
-    // The API might return the object directly or in an array for a single result.
     return Array.isArray(responseData) ? responseData[0] : responseData;
 };
 
@@ -191,3 +220,39 @@ export const deleteUser = async (userId: string) => {
     const response = await api.delete(`/auth/users/${userId}`);
     return response.data;
 };
+
+// Match Management
+export const getMatches = async (status: 'live' | 'scheduled' | 'completed'): Promise<ApiMatch[]> => {
+    const response = await api.get(`/matches?status=${status}`);
+    return Array.isArray(response.data) ? response.data : (response.data?.data || []);
+}
+
+export const getTeamsBySport = async (sportId: string): Promise<ApiTeam[]> => {
+    const response = await api.get(`/teams?sportId=${sportId}`);
+    return Array.isArray(response.data) ? response.data : (response.data?.data || []);
+}
+
+export const createMatch = async (data: { sport_id: number; team_a_id: string; team_b_id: string; start_time: string; venue: string; }) => {
+    const response = await api.post('/matches', data);
+    return response.data;
+}
+
+export const updateScore = async (matchId: string, scoreDetails: { team_a: number; team_b: number }, status: 'live' | 'completed' | 'scheduled') => {
+    const response = await api.put(`/matches/${matchId}/score`, {
+        score_details: scoreDetails,
+        status: status,
+    });
+    return response.data;
+};
+
+export const getLineup = async (matchId: string): Promise<any> => {
+    // Placeholder for API call
+    console.log(`Fetching lineup for match ${matchId}`);
+    return Promise.resolve({ teamA: [], teamB: [] });
+}
+
+export const manageLineup = async (matchId: string, data: any): Promise<any> => {
+    // Placeholder for API call
+    console.log(`Managing lineup for match ${matchId} with data:`, data);
+    return Promise.resolve({ success: true });
+}
