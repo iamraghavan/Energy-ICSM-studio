@@ -6,8 +6,9 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import Image from "next/image";
-import { countries } from 'countries-list';
 import { createWorker } from 'tesseract.js';
+import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,24 +44,12 @@ const getSportIcon = (iconName: string) => {
     return sportIconMap[iconName] || HelpCircle;
 };
 
-const countryOptionsRaw = Object.entries(countries).map(([code, country]) => ({
-    code,
-    name: country.name,
-    value: `+${String(country.phone).split(',')[0]}`,
-    label: `${country.emoji} +${String(country.phone).split(',')[0]}`,
-  })).filter(c => c.value !== '+undefined');
-
-const countryOptions = Array.from(new Map(countryOptionsRaw.map(item => [item.value, item])).values())
-  .sort((a, b) => a.name.localeCompare(b.name));
-
-
 const formSchema = z.object({
     fullName: z.string().min(3, "Full name must be at least 3 characters."),
     dob: z.date({ required_error: "Date of birth is required." }),
     gender: z.enum(['male', 'female', 'other'], { required_error: "Please select a gender." }),
     email: z.string().email("Invalid email address."),
-    countryCode: z.string(),
-    mobile: z.string().min(8, "Mobile number is required.").max(15, "Invalid mobile number."),
+    mobile: z.string().refine(isValidPhoneNumber, { message: "Invalid phone number." }),
     isWhatsappSame: z.boolean().default(false).optional(),
     whatsapp: z.string().optional(),
     
@@ -120,7 +109,6 @@ export default function RegisterPage() {
             needsAccommodation: false,
             fullName: "",
             email: "",
-            countryCode: "+91",
             mobile: "",
             whatsapp: "",
             collegeId: "",
@@ -168,7 +156,7 @@ export default function RegisterPage() {
     
     useEffect(() => {
         if (isWhatsappSame) {
-            setValue('whatsapp', watch('countryCode') + mobile);
+            setValue('whatsapp', watch('mobile'));
         } else {
             setValue('whatsapp', '');
         }
@@ -263,9 +251,6 @@ export default function RegisterPage() {
                 apiFormData.append(key, String(value));
             }
         });
-
-        // Combine country code and mobile
-        apiFormData.set('mobile', data.countryCode + data.mobile);
 
         try {
             const result = await registerStudent(apiFormData);
@@ -364,45 +349,25 @@ export default function RegisterPage() {
                                     <FormItem><FormLabel>Email Address</FormLabel><FormControl><Input type="email" placeholder="student@college.edu" {...field} /></FormControl><FormMessage /></FormItem>
                                 )} />
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                     <FormItem>
-                                        <FormLabel>Mobile Number</FormLabel>
-                                        <div className="flex items-start">
-                                            <FormField
-                                                name="countryCode"
-                                                control={form.control}
-                                                render={({ field }) => (
-                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                        <FormControl>
-                                                            <SelectTrigger className="rounded-r-none border-r-0 w-[140px]">
-                                                                <SelectValue placeholder="Code" />
-                                                            </SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent>
-                                                            {countryOptions.map(option => (
-                                                                <SelectItem key={option.code} value={option.value}>
-                                                                    {option.label}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                )}
+                                     <FormField
+                                        control={form.control}
+                                        name="mobile"
+                                        render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Mobile Number</FormLabel>
+                                            <FormControl>
+                                            <PhoneInput
+                                                placeholder="Enter phone number"
+                                                defaultCountry="IN"
+                                                international
+                                                withCountryCallingCode
+                                                {...field}
                                             />
-                                            <FormField
-                                                name="mobile"
-                                                control={form.control}
-                                                render={({ field }) => (
-                                                    <div className="flex-1">
-                                                        <FormControl>
-                                                            <Input type="tel" placeholder="9876543210" className="rounded-l-none" {...field} />
-                                                        </FormControl>
-                                                    </div>
-                                                )}
-                                            />
-                                        </div>
-                                        {(form.formState.errors.mobile || form.formState.errors.countryCode) && 
-                                            <FormMessage className="mt-2">{form.formState.errors.mobile?.message || form.formState.errors.countryCode?.message}</FormMessage>
-                                        }
-                                    </FormItem>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                        )}
+                                    />
                                     <FormField name="whatsapp" control={form.control} render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>WhatsApp Number</FormLabel>
