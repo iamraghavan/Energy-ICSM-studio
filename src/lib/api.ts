@@ -1,15 +1,12 @@
 import axios from 'axios';
 import type { College } from './types';
 
-// This is a temporary type definition. The API should ideally return a structured
-// object for sports that doesn't include the React component for the icon.
 export type ApiSport = {
-    id: string;
+    id: number;
     name: string;
     type: 'Team' | 'Individual';
-    slots: number;
-    slotsLeft: number;
-    icon: string; // The API will send the icon name as a string
+    max_players: number;
+    amount: string;
 };
 
 

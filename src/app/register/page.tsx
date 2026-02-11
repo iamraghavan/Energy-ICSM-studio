@@ -17,7 +17,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getColleges, getSports, registerStudent, type ApiSport } from "@/lib/api";
 import { CheckCircle, Loader2, Trophy, Goal, Dribbble, Volleyball, PersonStanding, Waves, Swords, Disc, HelpCircle } from "lucide-react";
-import type { Sport, College } from "@/lib/types";
+import type { College } from "@/lib/types";
 import { Logo } from "@/components/shared/logo";
 import { useToast } from "@/hooks/use-toast";
 
@@ -29,7 +29,7 @@ const sportIconMap: { [key: string]: React.ElementType } = {
     'Football': Goal,
     'Basketball': Dribbble,
     'Volleyball': Volleyball,
-    'Athletics (100m)': PersonStanding,
+    '100m Dash': PersonStanding,
     'Swimming': Waves,
     'Fencing': Swords,
     'Discus Throw': Disc,
@@ -98,15 +98,24 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
+type FormSport = {
+    id: string;
+    name: string;
+    type: "Team" | "Individual";
+    icon: React.ElementType;
+    amount: string;
+};
+
 export default function RegisterPage() {
     const { toast } = useToast();
     const [submitted, setSubmitted] = useState(false);
     const [formData, setFormData] = useState<FormData | null>(null);
     const [colleges, setColleges] = useState<College[]>([]);
-    const [sports, setSports] = useState<Sport[]>([]);
-    const [filteredSports, setFilteredSports] = useState<Sport[]>([]);
+    const [sports, setSports] = useState<FormSport[]>([]);
+    const [filteredSports, setFilteredSports] = useState<FormSport[]>([]);
     const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
     const [isOcrLoading, setIsOcrLoading] = useState(false);
+    const [registrationFee, setRegistrationFee] = useState("0.00");
 
     const form = useForm<FormData>({
         resolver: zodResolver(formSchema),
@@ -132,7 +141,11 @@ export default function RegisterPage() {
             try {
                 const [collegesData, sportsData] = await Promise.all([getColleges(), getSports()]);
                 setColleges(collegesData);
-                const sportsWithIcons = sportsData.map((s: ApiSport) => ({...s, icon: getSportIcon(s.icon)}));
+                const sportsWithIcons = sportsData.map((s: ApiSport) => ({
+                    ...s, 
+                    id: String(s.id),
+                    icon: getSportIcon(s.name)
+                }));
                 setSports(sportsWithIcons);
             } catch (error) {
                 console.error('Failed to fetch initial data', error);
@@ -152,6 +165,18 @@ export default function RegisterPage() {
     const isWhatsappSame = watch('isWhatsappSame');
     const mobile = watch('mobile');
     const paymentScreenshot = watch('paymentScreenshot');
+    const sportId = watch('sportId');
+
+    useEffect(() => {
+        if (sportId) {
+            const selectedSport = sports.find(s => s.id === sportId);
+            if (selectedSport) {
+                setRegistrationFee(parseFloat(selectedSport.amount).toFixed(2));
+            }
+        } else {
+            setRegistrationFee("0.00");
+        }
+    }, [sportId, sports]);
 
     useEffect(() => {
         if (sportType) {
@@ -507,7 +532,7 @@ export default function RegisterPage() {
                                             <Select onValueChange={field.onChange} value={field.value}>
                                                 <FormControl><SelectTrigger><SelectValue placeholder={`Select a ${sportType.toLowerCase()} sport`} /></SelectTrigger></FormControl>
                                                 <SelectContent>
-                                                    {filteredSports.map(s => <SelectItem key={s.id} value={s.id} disabled={s.slotsLeft === 0}>{s.name} - {s.slotsLeft > 0 ? `${s.slotsLeft} slots left`: 'Slots Full'}</SelectItem>)}
+                                                    {filteredSports.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage />
@@ -536,7 +561,7 @@ export default function RegisterPage() {
                                 <div className="space-y-4 rounded-lg border bg-muted/50 p-4">
                                     <div className="flex justify-between items-center">
                                         <p className="font-medium">Registration Fee:</p>
-                                        <p className="font-bold text-lg text-primary">₹150</p>
+                                        <p className="font-bold text-lg text-primary">₹{registrationFee}</p>
                                     </div>
                                     <p className="text-sm text-muted-foreground">Please pay using the QR code below, upload the screenshot, and we will attempt to find the transaction ID for you.</p>
                                     <div className="flex justify-center">
