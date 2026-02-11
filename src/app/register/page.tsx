@@ -282,37 +282,48 @@ export default function RegisterPage() {
     const onSubmit = async (data: FormData) => {
         const apiFormData = new FormData();
 
-        // Manually map and append fields with snake_case
-        apiFormData.append('full_name', data.fullName);
-        apiFormData.append('dob', data.dob.toISOString().split('T')[0]);
+        // Personal Details
+        apiFormData.append('name', data.fullName);
+        apiFormData.append('dob', format(data.dob, 'yyyy-MM-dd'));
         apiFormData.append('gender', data.gender);
         apiFormData.append('email', data.email);
-        apiFormData.append('mobile_number', `+91${data.mobile}`);
+        apiFormData.append('mobile', data.mobile);
         
         const whatsappNumber = data.isWhatsappSame ? data.mobile : data.whatsapp;
         if (whatsappNumber) {
-            apiFormData.append('whatsapp_number', `+91${whatsappNumber}`);
+            apiFormData.append('whatsapp', whatsappNumber);
         }
 
-        apiFormData.append('college_id', data.collegeId);
+        // Academic Details
         if (data.collegeId === 'other' && data.otherCollegeName) {
-            apiFormData.append('other_college_name', data.otherCollegeName);
+            apiFormData.append('college_id', '');
+            apiFormData.append('other_college', data.otherCollegeName);
+        } else {
+            apiFormData.append('college_id', data.collegeId);
         }
         
         apiFormData.append('department', data.department);
         apiFormData.append('year_of_study', data.year);
-        apiFormData.append('city_state', data.cityState);
+    
+        const [city, state] = data.cityState.split(',').map(s => s.trim());
+        if (city) apiFormData.append('city', city);
+        if (state) apiFormData.append('state', state);
+        
+        // Sport Selection
         apiFormData.append('sport_id', data.sportId);
         
-        if (data.sportType === 'Team' && data.teamName) {
-            apiFormData.append('team_name', data.teamName);
+        if (data.sportType === 'Team') {
+            apiFormData.append('create_team', 'true');
+            if (data.teamName) {
+                apiFormData.append('team_name', data.teamName);
+            }
         }
-
-        apiFormData.append('needs_accommodation', String(data.needsAccommodation));
-        apiFormData.append('transaction_id', data.transactionId);
-
+    
+        // Payment
+        apiFormData.append('txn_id', data.transactionId);
+    
         if (data.paymentScreenshot && data.paymentScreenshot.length > 0) {
-            apiFormData.append('payment_screenshot', data.paymentScreenshot[0]);
+            apiFormData.append('screenshot', data.paymentScreenshot[0]);
         }
 
         try {
