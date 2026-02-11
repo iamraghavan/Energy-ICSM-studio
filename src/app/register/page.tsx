@@ -481,26 +481,10 @@ export default function RegisterPage() {
                                         <p className="font-medium">Registration Fee:</p>
                                         <p className="font-bold text-lg text-primary">₹150</p>
                                     </div>
-                                    <p className="text-sm text-muted-foreground">Please pay using the QR code below and enter the Transaction ID.</p>
+                                    <p className="text-sm text-muted-foreground">Please pay using the QR code below, upload the screenshot, and we will attempt to find the transaction ID for you.</p>
                                     <div className="flex justify-center">
                                         <Image src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=example@upi" alt="Payment QR Code" width={150} height={150} />
                                     </div>
-                                     <FormField name="transactionId" control={form.control} render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="flex items-center gap-2">
-                                                Transaction ID
-                                                {isOcrLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-                                            </FormLabel>
-                                            <FormControl>
-                                                <Input 
-                                                    placeholder={isOcrLoading ? "Reading from screenshot..." : "Enter the UPI Transaction ID"} 
-                                                    {...field} 
-                                                    disabled={isOcrLoading}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )} />
                                      <FormField control={form.control} name="paymentScreenshot" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Upload Payment Screenshot</FormLabel>
@@ -517,6 +501,22 @@ export default function RegisterPage() {
                                             <Image src={screenshotPreview} alt="Screenshot preview" width={200} height={400} className="rounded-md border object-contain" />
                                         </div>
                                      )}
+                                     <FormField name="transactionId" control={form.control} render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="flex items-center gap-2">
+                                                Transaction ID
+                                                {isOcrLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                                            </FormLabel>
+                                            <FormControl>
+                                                <Input 
+                                                    placeholder={isOcrLoading ? "Reading from screenshot..." : "Enter the UPI Transaction ID"} 
+                                                    {...field} 
+                                                    disabled={isOcrLoading}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
                                 </div>
                              </FormSection>
 
