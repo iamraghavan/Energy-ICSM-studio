@@ -23,7 +23,7 @@ export default function AuthSessionPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const response = await loginUser({ email, password });
+      const response = await loginUser({ username: email, password });
       const token = response.token;
       if (token) {
         localStorage.setItem('jwt_token', token);
