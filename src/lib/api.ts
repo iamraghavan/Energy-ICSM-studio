@@ -10,17 +10,22 @@ export type ApiSport = {
 };
 
 export type Registration = {
-  id: number;
-  name: string;
-  email: string;
-  college: { id: number; name: string } | null;
-  other_college?: string;
-  sport: { id: number; name: string } | null;
+  id: string;
   payment_status: 'pending' | 'verified' | 'rejected';
-  screenshot_url: string;
-  txn_id: string;
   created_at: string;
+  Student: {
+    name: string;
+    other_college?: string | null;
+  };
+  Sport: {
+    name: string;
+  } | null;
+  Payment: {
+    txn_id: string;
+    screenshot_url: string;
+  } | null;
 };
+
 
 export type User = {
     id: string;
@@ -111,7 +116,7 @@ export const getRegistrations = async (): Promise<Registration[]> => {
     return Array.isArray(responseData) ? responseData : (responseData?.data || []);
 };
 
-export const verifyPayment = async (registrationId: number, status: 'verified' | 'rejected') => {
+export const verifyPayment = async (registrationId: string, status: 'verified' | 'rejected') => {
     const response = await api.post('/admin/verify-payment', {
         registration_id: registrationId,
         status: status,

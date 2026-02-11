@@ -50,7 +50,7 @@ export function AllRegistrations() {
     setSelectedRegistration(null);
   };
 
-  const handleVerification = async (id: number, status: 'verified' | 'rejected') => {
+  const handleVerification = async (id: string, status: 'verified' | 'rejected') => {
     try {
       await verifyPayment(id, status);
       toast({
@@ -70,6 +70,7 @@ export function AllRegistrations() {
   
   const filteredRegistrations = (status: 'pending' | 'verified' | 'rejected' | 'all') => {
       if (status === 'all') return registrations;
+      if (!registrations) return [];
       return registrations.filter(r => r.payment_status === status);
   }
 
@@ -104,9 +105,9 @@ export function AllRegistrations() {
                 <TableBody>
                 {data.map((reg) => (
                     <TableRow key={reg.id}>
-                    <TableCell className="font-medium">{reg.name}</TableCell>
-                    <TableCell>{reg.college?.name || reg.other_college}</TableCell>
-                    <TableCell>{reg.sport?.name}</TableCell>
+                    <TableCell className="font-medium">{reg.Student.name}</TableCell>
+                    <TableCell>{reg.Student.other_college}</TableCell>
+                    <TableCell>{reg.Sport?.name}</TableCell>
                     <TableCell>{format(new Date(reg.created_at), 'PPP')}</TableCell>
                     <TableCell>
                         <Badge

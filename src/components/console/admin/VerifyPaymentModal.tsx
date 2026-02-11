@@ -17,7 +17,7 @@ interface VerifyPaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   registration: Registration;
-  onVerify: (id: number, status: 'verified' | 'rejected') => Promise<void>;
+  onVerify: (id: string, status: 'verified' | 'rejected') => Promise<void>;
 }
 
 export function VerifyPaymentModal({
@@ -43,28 +43,34 @@ export function VerifyPaymentModal({
         <DialogHeader>
           <DialogTitle>Verify Payment</DialogTitle>
           <DialogDescription>
-            Review the payment details for {registration.name}.
+            Review the payment details for {registration.Student.name}.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Student:</span>
-            <span className="font-medium">{registration.name}</span>
+            <span className="font-medium">{registration.Student.name}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Transaction ID:</span>
-            <span className="font-mono text-sm">{registration.txn_id}</span>
+            <span className="font-mono text-sm">{registration.Payment?.txn_id}</span>
           </div>
           <div className="space-y-2">
              <span className="text-sm text-muted-foreground">Screenshot:</span>
-             <div className="relative mt-2 aspect-[9/16] w-full max-w-sm mx-auto rounded-lg border overflow-hidden bg-muted">
-                <Image
-                    src={registration.screenshot_url}
-                    alt="Payment Screenshot"
-                    fill
-                    className="object-contain"
-                />
-             </div>
+              {registration.Payment?.screenshot_url ? (
+                <div className="relative mt-2 aspect-[9/16] w-full max-w-sm mx-auto rounded-lg border overflow-hidden bg-muted">
+                    <Image
+                        src={registration.Payment.screenshot_url}
+                        alt="Payment Screenshot"
+                        fill
+                        className="object-contain"
+                    />
+                </div>
+              ) : (
+                <div className="text-center text-muted-foreground p-4 border rounded-md bg-muted/50">
+                    No screenshot provided.
+                </div>
+              )}
           </div>
         </div>
         <DialogFooter>
