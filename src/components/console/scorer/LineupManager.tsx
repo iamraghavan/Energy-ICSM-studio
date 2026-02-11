@@ -1,11 +1,10 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getMatches, getLineup, manageLineup, type ApiMatch } from '@/lib/api';
+import { getMatchesBySport, getLiveMatches, getLineup, manageLineup, type ApiMatch } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Loader2, Users } from 'lucide-react';
@@ -116,31 +115,83 @@ function TeamColumn({ teamLineup, onPlayerChange }: { teamLineup: TeamLineup, on
     )
 }
 
-export function LineupManager() {
+export function LineupManager({ sportId }: { sportId?: string }) {
     const [matches, setMatches] = useState<ApiMatch[]>([]);
     const [selectedMatch, setSelectedMatch] = useState<ApiMatch | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
 
     useEffect(() => {
+        if (!sportId) {
+            setMatches([]);
+            setSelectedMatch(null);
+            setIsLoading(false);
+            return;
+        }
+
         const fetchMatches = async () => {
             setIsLoading(true);
             try {
-                const scheduled = await getMatches('scheduled');
-                const live = await getMatches('live');
-                setMatches([...scheduled, ...live]);
+                const scheduledPromise = getMatchesBySport(sportId, 'scheduled');
+                const livePromise = getLiveMatches();
+                const [scheduled, allLive] = await Promise.all([scheduledPromise, livePromise]);
+                
+                const liveForSport = allLive.filter(m => String(m.sport_id) === sportId);
+                setMatches([...scheduled, ...liveForSport]);
             } catch (error) {
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch matches.' });
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch matches for this sport.' });
             } finally {
                 setIsLoading(false);
             }
         };
         fetchMatches();
-    }, [toast]);
+    }, [sportId, toast]);
     
     const handleSelectMatch = (matchId: string) => {
         const match = matches.find(m => m.id === matchId);
         setSelectedMatch(match || null);
+    }
+
+    const renderContent = () => {
+         if (!sportId) {
+            return (
+                <div className="text-center py-16 text-muted-foreground">
+                    <Users className="h-12 w-12 mx-auto mb-4" />
+                    <p>Select a sport to manage lineups.</p>
+                </div>
+            )
+        }
+
+        if (isLoading) {
+            return <Skeleton className="h-10 w-full max-w-md mx-auto" />;
+        }
+
+        if (matches.length === 0) {
+            return (
+                <div className="text-center py-16 text-muted-foreground">
+                    <Users className="h-12 w-12 mx-auto mb-4" />
+                    <p>No scheduled or live matches for this sport.</p>
+                </div>
+            )
+        }
+
+        return (
+            <div className="max-w-md mx-auto space-y-4">
+                <Label>Select a Match</Label>
+                <Select onValueChange={handleSelectMatch} value={selectedMatch?.id}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Choose a match to manage lineup" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {matches.map(m => (
+                            <SelectItem key={m.id} value={m.id}>
+                                {m.TeamA.team_name} vs {m.TeamB.team_name} ({m.Sport.name})
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+        )
     }
 
     return (
@@ -150,29 +201,12 @@ export function LineupManager() {
                 <CardDescription>View and manage player lineups for each team.</CardDescription>
             </CardHeader>
             <CardContent>
-                {isLoading ? (
-                    <Skeleton className="h-10 w-full" />
-                ) : (
-                    <div className="max-w-md mx-auto space-y-4">
-                        <Label>Select a Match</Label>
-                        <Select onValueChange={handleSelectMatch} value={selectedMatch?.id}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Choose a match to manage lineup" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {matches.map(m => (
-                                    <SelectItem key={m.id} value={m.id}>
-                                        {m.TeamA.team_name} vs {m.TeamB.team_name} ({m.Sport.name})
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                )}
+                {renderContent()}
                 
                 {selectedMatch ? (
                     <LineupEditor match={selectedMatch} />
                 ) : (
+                    !isLoading && sportId && matches.length > 0 &&
                     <div className="text-center py-16 text-muted-foreground">
                         <Users className="h-12 w-12 mx-auto mb-4" />
                         <p>Select a match to view and manage its lineup.</p>
