@@ -19,7 +19,8 @@ const api = axios.create({
 
 export const getColleges = async (): Promise<College[]> => {
     const response = await api.get('/colleges');
-    const collegesFromApi: { id: number; name: string; city: string; state: string; }[] = response.data;
+    // Defensively handle cases where the data might be nested or not an array
+    const collegesFromApi: { id: number; name: string; city: string; state: string; }[] = Array.isArray(response.data) ? response.data : response.data?.data || [];
     
     const formattedColleges: College[] = collegesFromApi.map(college => ({
         ...college,
@@ -32,7 +33,8 @@ export const getColleges = async (): Promise<College[]> => {
 
 export const getSports = async (): Promise<ApiSport[]> => {
   const response = await api.get('/sports');
-  return response.data;
+  // Defensively handle cases where the data might be nested or not an array
+  return Array.isArray(response.data) ? response.data : response.data?.data || [];
 };
 
 export const registerStudent = async (formData: FormData) => {
