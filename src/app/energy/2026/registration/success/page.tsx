@@ -7,13 +7,18 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Download, ExternalLink, Loader2 } from 'lucide-react';
 import { getRegistration, type Registration } from '@/lib/api';
-import { Skeleton } from '@/components/ui/skeleton';
+import { ShareButton } from '@/components/shared/share-button';
 
 const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
 
 function SuccessDetails({ registration }: { registration: Registration }) {
     const ticketUrl = `${API_BASE_URL}/register/${registration.id}/ticket`;
-    const detailsUrl = `/energy/2026/registration/details?id=${registration.registration_code}&public=yes`;
+    const detailsUrl = `/energy/2026/registration/details?id=${registration.registration_code}`;
+
+    const [absoluteDetailsUrl, setAbsoluteDetailsUrl] = useState('');
+    useEffect(() => {
+        setAbsoluteDetailsUrl(`${window.location.origin}${detailsUrl}`);
+    }, [detailsUrl]);
     
     return (
         <>
@@ -21,7 +26,7 @@ function SuccessDetails({ registration }: { registration: Registration }) {
                 <CheckCircle className="h-16 w-16 text-green-500" />
                 <CardTitle className="text-2xl font-bold font-headline mt-4">Registration Successful!</CardTitle>
                 <CardDescription>
-                    Your registration has been submitted. A confirmation has been sent to your email.
+                    Your registration has been submitted. You can download your ticket or share the details.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -39,21 +44,28 @@ function SuccessDetails({ registration }: { registration: Registration }) {
                         <span className="font-semibold">{registration.Sport?.name}</span>
                     </div>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-2">
+                 <div className="flex flex-col gap-2">
                     <Button asChild className="w-full">
                         <a href={ticketUrl} target="_blank" rel="noopener noreferrer">
                             <Download className="mr-2 h-4 w-4" />
                             Download Ticket
                         </a>
                     </Button>
-                    <Button asChild variant="outline" className="w-full">
-                        <Link href={detailsUrl}>
-                            <ExternalLink className="mr-2 h-4 w-4" />
-                            View Full Details
-                        </Link>
-                    </Button>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                         <Button asChild variant="outline" className="w-full">
+                            <Link href={detailsUrl}>
+                                <ExternalLink className="mr-2 h-4 w-4" />
+                                View Details
+                            </Link>
+                        </Button>
+                        <ShareButton
+                            url={absoluteDetailsUrl}
+                            title={`My registration for ${registration.Sport?.name || 'Energy Sports Meet'}`}
+                            text={`Check out my registration for ${registration.Sport?.name || 'Energy Sports Meet'}!`}
+                        />
+                    </div>
                 </div>
-                <div className="text-center pt-4">
+                <div className="text-center pt-2">
                     <Button asChild variant="link">
                         <Link href="/energy/2026">Back to Home</Link>
                     </Button>

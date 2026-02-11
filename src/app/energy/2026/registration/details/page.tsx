@@ -1,12 +1,18 @@
+'use client';
 import { getRegistration, type Registration } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Mail, Phone, User, Building, Milestone, Dribbble, Calendar, Hash, FileText, Users as UsersIcon, Bed, UserCheck, Clock, Download, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, User, Building, Milestone, Dribbble, Calendar, Hash, FileText, Users as UsersIcon, Bed, UserCheck, Clock, Download, AlertTriangle, Share2, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ShareButton } from '@/components/shared/share-button';
+
 
 const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
 
@@ -23,21 +29,82 @@ function InfoDetail({ icon: Icon, label, value, isMono = false }: { icon?: React
     )
 }
 
-export default async function PublicRegistrationDetailsPage({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined }}) {
-    const registrationId = searchParams.id as string;
-    
-    let registration: Registration | null = null;
-    let error: string | null = null;
+function RegistrationClientActions({ ticketUrl, detailsUrl, registration }: { ticketUrl: string; detailsUrl: string; registration: Registration }) {
+    const [absoluteDetailsUrl, setAbsoluteDetailsUrl] = useState('');
 
-    if (!registrationId) {
-        error = "No registration ID provided.";
-    } else {
-        try {
-            registration = await getRegistration(registrationId);
-        } catch (err) {
-            console.error("Failed to fetch public registration details:", err);
-            error = "Could not find registration details for the provided ID.";
+    useEffect(() => {
+        setAbsoluteDetailsUrl(`${window.location.origin}${detailsUrl}`);
+    }, [detailsUrl]);
+    
+    return (
+        <div className="space-y-2 pt-4">
+             <Button asChild className="w-full">
+                <a href={ticketUrl} target="_blank" rel="noopener noreferrer">
+                    <Download className="mr-2 h-4 w-4" />
+                    Download Ticket
+                </a>
+            </Button>
+            <ShareButton
+                url={absoluteDetailsUrl}
+                title={`Registration for ${registration.Sport?.name || 'Energy Sports Meet'}`}
+                text={`Check out the registration details for ${registration.Student.name} in ${registration.Sport?.name || 'the Energy Sports Meet'}.`}
+            />
+        </div>
+    );
+}
+
+function RegistrationDetailsSkeleton() {
+    return (
+        <div className="container py-8 space-y-6">
+            <div className="flex items-center gap-4">
+                <div>
+                    <Skeleton className="h-7 w-48 mb-2" />
+                    <Skeleton className="h-4 w-64" />
+                </div>
+            </div>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <Card><CardHeader><Skeleton className="h-6 w-32" /></CardHeader><CardContent className="space-y-4">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</CardContent></Card>
+                <Card><CardHeader><Skeleton className="h-6 w-32" /></CardHeader><CardContent className="space-y-4">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</CardContent></Card>
+                <Card><CardHeader><Skeleton className="h-6 w-32" /></CardHeader><CardContent className="space-y-4">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</CardContent></Card>
+            </div>
+        </div>
+    )
+}
+
+
+export default function PublicRegistrationDetailsPage() {
+    const searchParams = useSearchParams();
+    const registrationId = searchParams.get('id');
+
+    const [registration, setRegistration] = useState<Registration | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+     useEffect(() => {
+        if (!registrationId) {
+            setError("No registration ID provided.");
+            setIsLoading(false);
+            return;
         }
+
+        const fetchRegistration = async () => {
+            setIsLoading(true);
+            try {
+                const data = await getRegistration(registrationId);
+                setRegistration(data);
+            } catch (err) {
+                console.error("Failed to fetch public registration details:", err);
+                setError("Could not find registration details for the provided ID.");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchRegistration();
+    }, [registrationId]);
+
+    if(isLoading) {
+        return <RegistrationDetailsSkeleton />;
     }
     
     if (error || !registration) {
@@ -63,6 +130,7 @@ export default async function PublicRegistrationDetailsPage({ searchParams }: { 
 
     const { Student, Sport, Team, Payment, registration_code, payment_status, accommodation_needed, is_captain, status, created_at } = registration;
     const ticketUrl = `${API_BASE_URL}/register/${registration.id}/ticket`;
+    const detailsUrl = `/energy/2026/registration/details?id=${registration.registration_code}`;
 
     return (
         <div className="container py-8 space-y-6">
@@ -132,14 +200,7 @@ export default async function PublicRegistrationDetailsPage({ searchParams }: { 
                          {Team && <InfoDetail icon={UsersIcon} label="Team Name" value={Team.team_name} />}
                          <InfoDetail icon={Clock} label="Registered On" value={format(new Date(created_at), 'PPP p')} />
                          <InfoDetail icon={Bed} label="Accommodation" value={accommodation_needed ? "Requested" : "Not Requested"} />
-                         <div className="pt-4">
-                            <Button asChild className="w-full">
-                                <a href={ticketUrl} target="_blank" rel="noopener noreferrer">
-                                    <Download className="mr-2 h-4 w-4" />
-                                    Download Ticket
-                                </a>
-                            </Button>
-                         </div>
+                         <RegistrationClientActions ticketUrl={ticketUrl} detailsUrl={detailsUrl} registration={registration} />
                     </CardContent>
                 </Card>
 
