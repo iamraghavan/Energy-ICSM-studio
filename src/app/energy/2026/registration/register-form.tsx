@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import Image from "next/image";
 import { createWorker } from 'tesseract.js';
-import { CalendarIcon } from "lucide-react"
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,12 +17,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { registerStudent, type ApiSport } from "@/lib/api";
-import { CheckCircle, Loader2, Trophy, Goal, Dribbble, Volleyball, PersonStanding, Waves, Swords, Disc, HelpCircle } from "lucide-react";
+import { Loader2, Trophy, Goal, Dribbble, Volleyball, PersonStanding, Waves, Swords, Disc, HelpCircle } from "lucide-react";
 import type { College } from "@/lib/types";
 import { Logo } from "@/components/shared/logo";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
-
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png"];
@@ -112,9 +110,7 @@ type FormSport = {
 
 export function RegisterForm({ colleges, sports: apiSports }: { colleges: College[], sports: ApiSport[] }) {
     const { toast } = useToast();
-    const [submitted, setSubmitted] = useState(false);
-    const [formData, setFormData] = useState<FormSchema | null>(null);
-    const [registrationId, setRegistrationId] = useState<string>('');
+    const router = useRouter();
     const [filteredSports, setFilteredSports] = useState<FormSport[]>([]);
     const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
     const [isOcrLoading, setIsOcrLoading] = useState(false);
@@ -286,6 +282,7 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
             year_of_study: data.year,
             sport_id: data.sportId,
             txn_id: data.transactionId,
+            accommodation_needed: data.needsAccommodation
         };
 
         if (data.isWhatsappSame) {
@@ -321,42 +318,17 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
 
         try {
             const result = await registerStudent(apiFormData);
-            console.log("Form submission successful:", result);
-            setFormData(data);
-            setSubmitted(true);
-            setRegistrationId(result.registrationId);
-            toast({
-                title: "Registration Successful!",
-                description: `Your Registration ID is ${result.registrationId}. A confirmation has been sent to your email.`,
+             toast({
+                title: "Registration Submitted!",
+                description: `We're finalizing your registration. One moment...`,
             });
+            router.push(`/energy/2026/registration/success?id=${result.registrationId}`);
         } catch (error: any) {
             console.error("Form submission error:", error);
             const errorMessage = error.response?.data?.error || error.response?.data?.message || "An unknown error occurred. Please try again.";
-            toast({
-                variant: "destructive",
-                title: "Registration Failed",
-                description: errorMessage,
-            });
+            router.push(`/energy/2026/registration/failure?error=${encodeURIComponent(errorMessage)}`);
         }
     };
-
-    if (submitted && formData) {
-        return (
-            <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
-                <Card className="w-full max-w-md">
-                    <CardContent className="pt-6">
-                        <div className="text-center space-y-4 py-8">
-                            <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
-                            <h2 className="text-2xl font-bold font-headline">Registration Successful!</h2>
-                            <p className="text-muted-foreground">Your Registration ID: <span className="font-mono text-primary">{registrationId}</span></p>
-                            <p className="text-muted-foreground text-sm">A confirmation email has been sent to <span className="font-semibold">{formData.email}</span>.</p>
-                            <Button asChild><a href="/energy/2026">Back to Home</a></Button>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-        )
-    }
 
     const { formState: { isSubmitting } } = form;
 
