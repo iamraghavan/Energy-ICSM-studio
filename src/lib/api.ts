@@ -21,6 +21,13 @@ export type Registration = {
   created_at: string;
 };
 
+export type User = {
+    id: string;
+    name: string;
+    username: string;
+    email: string;
+    role: 'super_admin' | 'sports_head' | 'scorer' | 'committee';
+};
 
 const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
 
@@ -111,5 +118,26 @@ export const verifyPayment = async (registrationId: number, status: 'verified' |
         registration_id: registrationId,
         status: status,
     });
+    return response.data;
+};
+
+// User Management
+export const getUsers = async (): Promise<User[]> => {
+    const response = await api.get('/auth/users');
+    return Array.isArray(response.data) ? response.data : (response.data?.data || []);
+};
+
+export const createUser = async (userData: any) => {
+    const response = await api.post('/auth/create-user', userData);
+    return response.data;
+};
+
+export const updateUser = async (userId: string, userData: any) => {
+    const response = await api.put(`/auth/users/${userId}`, userData);
+    return response.data;
+}
+
+export const deleteUser = async (userId: string) => {
+    const response = await api.delete(`/auth/users/${userId}`);
     return response.data;
 };
