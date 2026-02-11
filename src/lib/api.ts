@@ -9,6 +9,19 @@ export type ApiSport = {
     amount: string;
 };
 
+export type Registration = {
+  id: number;
+  name: string;
+  email: string;
+  college: { id: number; name: string };
+  sport: { id: number; name: string };
+  payment_status: 'pending' | 'verified' | 'rejected';
+  screenshot_url: string;
+  txn_id: string;
+  created_at: string;
+};
+
+
 const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
 
 const api = axios.create({
@@ -32,6 +45,7 @@ api.interceptors.response.use(
   (error) => {
     if (typeof window !== 'undefined' && error.response && (error.response.status === 401 || error.response.status === 403)) {
         localStorage.removeItem('jwt_token');
+        localStorage.removeItem('user_role');
         window.location.href = '/auth/session';
     }
     return Promise.reject(error);
@@ -39,8 +53,11 @@ api.interceptors.response.use(
 );
 
 
-export const loginUser = async (credentials: any) => {
-    const response = await api.post('/auth/login', credentials);
+export const loginUser = async (credentials: {username: string, password: string}) => {
+    const response = await api.post('/auth/login', {
+      username: credentials.username,
+      password: credentials.password,
+    });
     return response.data;
 };
 
@@ -80,4 +97,17 @@ export const registerStudent = async (formData: FormData) => {
     },
   });
   return response.data;
+};
+
+export const getRegistrations = async (): Promise<Registration[]> => {
+    const response = await api.get('/register');
+    return response.data.data; // Assuming data is nested under a 'data' key
+};
+
+export const verifyPayment = async (registrationId: number, status: 'verified' | 'rejected') => {
+    const response = await api.post('/admin/verify-payment', {
+        registration_id: registrationId,
+        status: status,
+    });
+    return response.data;
 };
