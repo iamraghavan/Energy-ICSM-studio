@@ -14,6 +14,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Loader2, PlusCircle } from 'lucide-react';
+import { io, type Socket } from 'socket.io-client';
+
+const SOCKET_URL = 'https://energy-sports-meet-backend.onrender.com';
 
 const matchFormSchema = z.object({
     sport_id: z.string().min(1, 'Please select a sport.'),
@@ -21,6 +24,7 @@ const matchFormSchema = z.object({
     team_b_id: z.string().min(1, 'Please select Team B.'),
     start_time: z.string().min(1, 'Please select a date and time.'),
     venue: z.string().min(3, 'Venue must be at least 3 characters.'),
+    referee_name: z.string().optional(),
 }).refine(data => data.team_a_id !== data.team_b_id, {
     message: "Team A and Team B cannot be the same.",
     path: ["team_b_id"],
@@ -46,11 +50,24 @@ export function MatchScheduler() {
 
     useEffect(() => {
         fetchUpcoming();
-    }, []);
+        
+        const newSocket = io(SOCKET_URL);
+        newSocket.on('connect', () => {
+            newSocket.emit('join_room', 'live_overview');
+        });
+        
+        newSocket.on('overview_update', (data: { action: 'create' | 'update' | 'delete', match?: ApiMatch, matchId?: string }) => {
+            toast({ title: "Schedule Updated!", description: "The list of matches has been updated." });
+            fetchUpcoming();
+        });
+
+        return () => {
+            newSocket.disconnect();
+        }
+    }, [toast]);
 
     const onMatchCreated = () => {
         setIsModalOpen(false);
-        fetchUpcoming();
     }
 
     return (
@@ -74,7 +91,6 @@ export function MatchScheduler() {
                 {!isLoading && upcomingMatches.length > 0 ? (
                     upcomingMatches.map(match => (
                        <MatchCard key={match.id} match={match}>
-                           {/* Add Edit/Delete buttons here in the future */}
                        </MatchCard>
                     ))
                 ) : (
@@ -92,6 +108,14 @@ function CreateMatchDialog({ onMatchCreated }: { onMatchCreated: () => void }) {
     const { toast } = useToast();
     const form = useForm<z.infer<typeof matchFormSchema>>({
         resolver: zodResolver(matchFormSchema),
+        defaultValues: {
+            referee_name: '',
+            sport_id: '',
+            start_time: '',
+            team_a_id: '',
+            team_b_id: '',
+            venue: ''
+        }
     });
 
     const sportId = form.watch('sport_id');
@@ -129,10 +153,12 @@ function CreateMatchDialog({ onMatchCreated }: { onMatchCreated: () => void }) {
         try {
             await createMatch({
                 ...values,
-                sport_id: parseInt(values.sport_id)
+                sport_id: parseInt(values.sport_id),
+                referee_name: values.referee_name || undefined
             });
             toast({ title: 'Success', description: 'Match created successfully.' });
             onMatchCreated();
+            form.reset();
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Error', description: error.response?.data?.message || 'Failed to create match.' });
         }
@@ -159,7 +185,7 @@ function CreateMatchDialog({ onMatchCreated }: { onMatchCreated: () => void }) {
                         <>
                              <FormField control={form.control} name="team_a_id" render={({ field }) => (
                                 <FormItem><FormLabel>Team A</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl><SelectTrigger><SelectValue placeholder="Select Team A" /></SelectTrigger></FormControl>
                                         <SelectContent>{teams.map(t => <SelectItem key={t.id} value={t.id}>{t.team_name}</SelectItem>)}</SelectContent>
                                     </Select><FormMessage />
@@ -167,7 +193,7 @@ function CreateMatchDialog({ onMatchCreated }: { onMatchCreated: () => void }) {
                             )} />
                              <FormField control={form.control} name="team_b_id" render={({ field }) => (
                                 <FormItem><FormLabel>Team B</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl><SelectTrigger><SelectValue placeholder="Select Team B" /></SelectTrigger></FormControl>
                                         <SelectContent>{teams.map(t => <SelectItem key={t.id} value={t.id}>{t.team_name}</SelectItem>)}</SelectContent>
                                     </Select><FormMessage />
@@ -177,6 +203,9 @@ function CreateMatchDialog({ onMatchCreated }: { onMatchCreated: () => void }) {
                     )}
                     <FormField control={form.control} name="venue" render={({ field }) => (
                         <FormItem><FormLabel>Venue</FormLabel><FormControl><Input placeholder="e.g. Main Football Ground" {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                     <FormField control={form.control} name="referee_name" render={({ field }) => (
+                        <FormItem><FormLabel>Referee Name (Optional)</FormLabel><FormControl><Input placeholder="e.g. John Smith" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="start_time" render={({ field }) => (
                         <FormItem><FormLabel>Start Date & Time</FormLabel><FormControl><Input type="datetime-local" {...field} /></FormControl><FormMessage /></FormItem>

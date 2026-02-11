@@ -2,53 +2,138 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getMatches, updateScore, type ApiMatch, type ApiTeam } from "@/lib/api";
+import { getMatches, updateScore, postMatchEvent, type ApiMatch } from "@/lib/api";
 import { io, type Socket } from 'socket.io-client';
-import { Plus, Minus, Users, ArrowLeft } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ArrowLeft, Send } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MatchCard } from './MatchCard';
 
 const SOCKET_URL = 'https://energy-sports-meet-backend.onrender.com';
 
-export function LiveScoring() {
-    const [liveFixtures, setLiveFixtures] = useState<ApiMatch[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [selectedMatch, setSelectedMatch] = useState<ApiMatch | null>(null);
-    const [score, setScore] = useState<{ team_a: number, team_b: number }>({ team_a: 0, team_b: 0 });
-    const [socket, setSocket] = useState<Socket | null>(null);
+function ScoringInterface({ match, onBack }: { match: ApiMatch, onBack: () => void }) {
+    const [score, setScore] = useState(match.score_details || {});
+    const [events, setEvents] = useState<any[]>([]);
     const { toast } = useToast();
 
     useEffect(() => {
-        fetchLiveMatches();
-    }, []);
-    
-    useEffect(() => {
-        if (!selectedMatch) return;
-
         const newSocket = io(SOCKET_URL);
-        setSocket(newSocket);
 
         newSocket.on('connect', () => {
-            console.log('Socket connected');
-            newSocket.emit('join_match', selectedMatch.id);
+            newSocket.emit('join_match', match.id);
+        });
+
+        newSocket.on('match_event', (data) => {
+            if (data.matchId === match.id) {
+                setScore(data.score);
+                setEvents(prev => [...prev, data.event]);
+                toast({ title: "Event Received", description: `Type: ${data.event.event_type}` });
+            }
         });
 
         newSocket.on('score_updated', (data) => {
-            if (data.matchId === selectedMatch.id) {
-                console.log('Received score update:', data);
+             if (data.matchId === match.id) {
                 setScore(data.score_details);
             }
-        });
+        })
 
         return () => {
             newSocket.disconnect();
         };
-    }, [selectedMatch]);
+    }, [match.id, toast]);
+
+    const handleEndMatch = async () => {
+        try {
+            await updateScore(match.id, score, 'completed');
+            toast({ title: 'Match Ended', description: 'The match has been moved to completed status.' });
+            onBack();
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to end the match.' });
+        }
+    };
     
+    const handleGoal = async (teamId: string) => {
+        const eventData = {
+            event_type: 'goal',
+            key: 'goals',
+            value: 1,
+            team_id: teamId
+        };
+        try {
+            await postMatchEvent(match.id, eventData);
+            toast({title: "Event Sent!", description: "Goal scored for " + (teamId === match.TeamA.id ? match.TeamA.team_name : match.TeamB.team_name)});
+        } catch (error) {
+             toast({ variant: 'destructive', title: 'Error', description: 'Failed to send event.' });
+        }
+    };
+
+    return (
+        <Card>
+            <CardHeader>
+                <div className="flex items-center gap-4">
+                    <Button variant="outline" size="icon" onClick={onBack}>
+                        <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    <div>
+                        <CardTitle>Live Scoring: {match.Sport.name}</CardTitle>
+                        <CardDescription>{match.TeamA.team_name} vs {match.TeamB.team_name}</CardDescription>
+                    </div>
+                    <Badge className="ml-auto animate-pulse">LIVE</Badge>
+                </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div>
+                    <h3 className="text-lg font-medium text-center mb-4">Scoreboard</h3>
+                    <div className="grid grid-cols-2 gap-4 text-center">
+                        <div className="border p-4 rounded-lg">
+                            <p className="font-bold text-xl">{match.TeamA.team_name}</p>
+                            <p className="text-4xl font-bold">{(score[match.TeamA.id] as any)?.goals || score.team_a || 0}</p>
+                        </div>
+                         <div className="border p-4 rounded-lg">
+                            <p className="font-bold text-xl">{match.TeamB.team_name}</p>
+                             <p className="text-4xl font-bold">{(score[match.TeamB.id] as any)?.goals || score.team_b || 0}</p>
+                        </div>
+                    </div>
+                     <pre className="mt-4 bg-muted p-2 rounded-md text-xs overflow-auto">
+                        {JSON.stringify(score, null, 2)}
+                    </pre>
+                </div>
+
+                <div>
+                    <h3 className="text-lg font-medium mb-2">Actions (Example: Football)</h3>
+                     <div className="grid grid-cols-2 gap-4">
+                        <Button onClick={() => handleGoal(match.TeamA.id)}><Send className="mr-2"/> Goal for {match.TeamA.team_name}</Button>
+                        <Button onClick={() => handleGoal(match.TeamB.id)}><Send className="mr-2"/> Goal for {match.TeamB.team_name}</Button>
+                     </div>
+                </div>
+
+                <div>
+                    <h3 className="text-lg font-medium mb-2">Event Timeline</h3>
+                    <div className="border rounded-lg p-4 h-48 overflow-y-auto space-y-2">
+                        {events.length === 0 && <p className="text-muted-foreground text-center">No events yet.</p>}
+                        {events.map((event, i) => (
+                             <div key={i} className="text-sm p-2 bg-muted rounded-md">
+                                <pre>{JSON.stringify(event, null, 2)}</pre>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+            </CardContent>
+            <CardFooter className="justify-end">
+                <Button variant="destructive" onClick={handleEndMatch}>End Match</Button>
+            </CardFooter>
+        </Card>
+    );
+}
+
+export function LiveScoring() {
+    const [liveFixtures, setLiveFixtures] = useState<ApiMatch[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [selectedMatch, setSelectedMatch] = useState<ApiMatch | null>(null);
+    const { toast } = useToast();
+
     const fetchLiveMatches = async () => {
         setIsLoading(true);
         try {
@@ -61,72 +146,15 @@ export function LiveScoring() {
         }
     }
 
-    const handleSelectMatch = (match: ApiMatch) => {
-        setSelectedMatch(match);
-        setScore(match.score_details || { team_a: 0, team_b: 0 });
-    };
-
-    const handleUpdateScore = async (team: 'team_a' | 'team_b', change: 1 | -1) => {
-        if (!selectedMatch) return;
-
-        const newScore = { ...score, [team]: Math.max(0, score[team] + change) };
-        setScore(newScore); // Optimistic update
-
-        try {
-            await updateScore(selectedMatch.id, newScore, 'live');
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Update Failed', description: 'Failed to sync score with server.' });
-            // Revert score on failure
-            setScore(score);
-        }
-    };
-
-    const handleEndMatch = async () => {
-        if (!selectedMatch) return;
-        try {
-            await updateScore(selectedMatch.id, score, 'completed');
-            toast({ title: 'Match Ended', description: 'The match has been moved to completed status.' });
-            setSelectedMatch(null);
-            fetchLiveMatches();
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to end the match.' });
-        }
-    }
+    useEffect(() => {
+        fetchLiveMatches();
+    }, []);
 
     if (selectedMatch) {
-        return (
-            <Card>
-                <CardHeader>
-                    <div className="flex items-center gap-4">
-                         <Button variant="outline" size="icon" onClick={() => setSelectedMatch(null)}>
-                            <ArrowLeft className="h-4 w-4" />
-                        </Button>
-                        <div>
-                            <CardTitle>Live Scoring: {selectedMatch.Sport.name}</CardTitle>
-                            <CardDescription>{selectedMatch.TeamA.team_name} vs {selectedMatch.TeamB.team_name}</CardDescription>
-                        </div>
-                        <Badge className="ml-auto animate-pulse">LIVE</Badge>
-                    </div>
-                </CardHeader>
-                <CardContent className="grid md:grid-cols-2 gap-8">
-                   <TeamScoreControl 
-                        team={selectedMatch.TeamA}
-                        score={score.team_a} 
-                        onIncrement={() => handleUpdateScore('team_a', 1)}
-                        onDecrement={() => handleUpdateScore('team_a', -1)}
-                    />
-                    <TeamScoreControl 
-                        team={selectedMatch.TeamB}
-                        score={score.team_b} 
-                        onIncrement={() => handleUpdateScore('team_b', 1)}
-                        onDecrement={() => handleUpdateScore('team_b', -1)}
-                    />
-                </CardContent>
-                <CardFooter className="justify-end">
-                    <Button variant="destructive" onClick={handleEndMatch}>End Match</Button>
-                </CardFooter>
-            </Card>
-        );
+        return <ScoringInterface match={selectedMatch} onBack={() => {
+            setSelectedMatch(null);
+            fetchLiveMatches();
+        }} />;
     }
 
     return (
@@ -140,7 +168,7 @@ export function LiveScoring() {
                 {!isLoading && liveFixtures.length > 0 ? (
                     liveFixtures.map(match => (
                        <MatchCard key={match.id} match={match}>
-                           <Button onClick={() => handleSelectMatch(match)}>Start Scoring</Button>
+                           <Button onClick={() => setSelectedMatch(match)}>Start Scoring</Button>
                        </MatchCard>
                     ))
                 ) : (
@@ -149,23 +177,4 @@ export function LiveScoring() {
             </CardContent>
         </Card>
     );
-}
-
-
-function TeamScoreControl({ team, score, onIncrement, onDecrement }: { team: ApiTeam, score: number, onIncrement: () => void, onDecrement: () => void }) {
-    return (
-        <div className="border rounded-lg p-4 flex flex-col items-center gap-4">
-            <h3 className="text-2xl font-bold font-headline">{team.team_name}</h3>
-            <p className="text-6xl font-bold">{score}</p>
-            <div className="flex items-center gap-4">
-                <Button size="icon" variant="outline" onClick={onDecrement}><Minus className="h-4 w-4" /></Button>
-                <Button size="icon" onClick={onIncrement}><Plus className="h-4 w-4" /></Button>
-            </div>
-            <Separator className="my-4" />
-            <h4 className="font-semibold flex items-center gap-2"><Users className="w-5 h-5"/> Lineup</h4>
-            <div className="space-y-3 w-full">
-                <p className="text-sm text-muted-foreground text-center">Lineup data not available.</p>
-            </div>
-        </div>
-    )
 }
