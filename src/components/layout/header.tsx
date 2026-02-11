@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Menu } from 'lucide-react';
 import { Logo } from '@/components/shared/logo';
-import { BauhausDecoration } from '@/components/shared/bauhaus-decoration';
 
 const navLinks = [
   { href: '/energy/2026', label: 'Home' },
@@ -21,8 +20,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card">
       <div className="container flex h-16 items-center justify-between">
-        <Link href="/energy/2026" className="flex items-center gap-3">
-          <BauhausDecoration />
+        <Link href="/energy/2026" className="flex items-center gap-2">
           <Logo />
         </Link>
         
@@ -42,7 +40,6 @@ export function Header() {
             <Button asChild size="sm" className="hidden md:inline-flex">
               <Link href="/energy/2026/registration">Register Now</Link>
             </Button>
-            <BauhausDecoration className="hidden md:flex" />
             
             <Sheet>
             <SheetTrigger asChild>
@@ -52,8 +49,7 @@ export function Header() {
                 </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-full max-w-xs pr-0 pt-12">
-                <Link href="/energy/2026" className="flex items-center space-x-3 px-4">
-                    <BauhausDecoration />
+                <Link href="/energy/2026" className="flex items-center space-x-2 px-4">
                     <Logo />
                 </Link>
                 <div className="flex flex-col space-y-2 pt-6">
@@ -71,7 +67,6 @@ export function Header() {
                         <Button asChild className="flex-grow">
                             <Link href="/energy/2026/registration">Register Now</Link>
                         </Button>
-                        <BauhausDecoration />
                     </div>
                 </div>
                 </div>
