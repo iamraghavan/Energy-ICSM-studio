@@ -156,11 +156,10 @@ export const getRegistrations = async (): Promise<Registration[]> => {
 };
 
 export const getRegistration = async (id: string): Promise<Registration> => {
-    const response = await api.get(`/register/${id}`);
+    const response = await api.get('/register/details', { params: { id }});
     const responseData = response.data;
-    // Handle cases where the data might be the registration object directly,
-    // or nested under a `data` property.
-    return responseData.data || responseData;
+    // The API might return the object directly or in an array for a single result.
+    return Array.isArray(responseData) ? responseData[0] : responseData;
 };
 
 export const verifyPayment = async (registrationCode: string, status: 'approved' | 'rejected', remarks: string) => {

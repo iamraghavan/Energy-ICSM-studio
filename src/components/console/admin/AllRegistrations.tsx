@@ -113,7 +113,7 @@ export function AllRegistrations() {
                 {data.map((reg) => (
                     <TableRow key={reg.id}>
                     <TableCell className="font-medium">{reg.Student.name}</TableCell>
-                    <TableCell>{reg.Student.other_college}</TableCell>
+                    <TableCell>{reg.Student.other_college || reg.Student.College?.name}</TableCell>
                     <TableCell>{reg.Sport?.name}</TableCell>
                     <TableCell>{format(new Date(reg.created_at), 'PPP')}</TableCell>
                     <TableCell>
@@ -142,7 +142,7 @@ export function AllRegistrations() {
                             </Button>
                             )}
                             <Button asChild variant="ghost" size="sm">
-                                <Link href={`/console/${viewId}/registrations/${reg.id}`}>Details</Link>
+                                <Link href={`/console/${viewId}/registrations/${encodeURIComponent(reg.registration_code)}`}>Details</Link>
                             </Button>
                         </div>
                     </TableCell>

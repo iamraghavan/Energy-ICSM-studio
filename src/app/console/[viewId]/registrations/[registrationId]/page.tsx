@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 export default function RegistrationDetailsPage() {
     const params = useParams();
     const router = useRouter();
-    const registrationId = params.registrationId as string;
+    const registrationId = decodeURIComponent(params.registrationId as string);
     
     const [registration, setRegistration] = useState<Registration | null>(null);
     const [isLoading, setIsLoading] = useState(true);
