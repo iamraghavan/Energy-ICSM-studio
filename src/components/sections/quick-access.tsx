@@ -3,13 +3,13 @@ import { Award, Calendar, Handshake, Medal, Users, User, BedDouble } from 'lucid
 import Link from 'next/link';
 
 const quickAccessLinks = [
-    { href: '/sports', label: 'Sports', icon: Award },
-    { href: '/schedule', label: 'Schedule', icon: Calendar },
-    { href: '/fixtures', label: 'Fixtures', icon: Handshake },
-    { href: '/medal-tally', label: 'Medal Tally', icon: Medal },
-    { href: '/teams', label: 'Teams', icon: Users },
-    { href: '/players', label: 'Players', icon: User },
-    { href: '/accommodation', label: 'Accommodation', icon: BedDouble },
+    { href: '/energy/2026/sports', label: 'Sports', icon: Award },
+    { href: '/energy/2026/schedule', label: 'Schedule', icon: Calendar },
+    { href: '/energy/2026/fixtures', label: 'Fixtures', icon: Handshake },
+    { href: '/energy/2026/medals', label: 'Medals', icon: Medal },
+    { href: '/energy/2026/teams', label: 'Teams', icon: Users },
+    { href: '/energy/2026/players', label: 'Players', icon: User },
+    { href: '/energy/2026/accommodation', label: 'Accommodation', icon: BedDouble },
 ];
 
 export function QuickAccess() {

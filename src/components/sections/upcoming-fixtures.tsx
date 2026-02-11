@@ -89,7 +89,7 @@ export function UpcomingFixtures() {
             )}
             <div className="text-center mt-8">
                 <Button asChild>
-                    <Link href="/fixtures">View All Fixtures</Link>
+                    <Link href="/energy/2026/fixtures">View All Fixtures</Link>
                 </Button>
             </div>
         </section>

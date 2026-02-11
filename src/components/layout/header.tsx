@@ -5,22 +5,22 @@ import { Menu } from 'lucide-react';
 import { Logo } from '@/components/shared/logo';
 
 const navLinks = [
-  { href: '/', label: 'Home' },
-  { href: '/schedule', label: 'Schedule' },
-  { href: '/venues', label: 'Venues' },
-  { href: '/sports', label: 'Sports' },
-  { href: '/fixtures', label: 'Fixtures' },
-  { href: '/teams', label: 'Teams' },
-  { href: '/players', label: 'Players' },
-  { href: '/gallery', label: 'Gallery' },
-  { href: '/about', label: 'About' },
+  { href: '/energy/2026', label: 'Home' },
+  { href: '/energy/2026/schedule', label: 'Schedule' },
+  { href: '/energy/2026/venues', label: 'Venues' },
+  { href: '/energy/2026/sports', label: 'Sports' },
+  { href: '/energy/2026/fixtures', label: 'Fixtures' },
+  { href: '/energy/2026/teams', label: 'Teams' },
+  { href: '/energy/2026/players', label: 'Players' },
+  { href: '/energy/2026/gallery', label: 'Gallery' },
+  { href: '/energy/2026/about', label: 'About' },
 ];
 
 export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card">
       <div className="container flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/energy/2026" className="flex items-center gap-2">
           <Logo />
         </Link>
         
@@ -38,7 +38,7 @@ export function Header() {
 
         <div className="flex items-center gap-2">
             <Button asChild size="sm" className="hidden md:inline-flex">
-              <Link href="/register">Register Now</Link>
+              <Link href="/energy/2026/registration">Register Now</Link>
             </Button>
             
             <Sheet>
@@ -49,7 +49,7 @@ export function Header() {
                 </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-full max-w-xs pr-0 pt-12">
-                <Link href="/" className="flex items-center space-x-2 px-4">
+                <Link href="/energy/2026" className="flex items-center space-x-2 px-4">
                     <Logo />
                 </Link>
                 <div className="flex flex-col space-y-2 pt-6">
@@ -64,7 +64,7 @@ export function Header() {
                 ))}
                 <div className='px-4 pt-4'>
                     <Button asChild className="w-full">
-                        <Link href="/register">Register Now</Link>
+                        <Link href="/energy/2026/registration">Register Now</Link>
                     </Button>
                 </div>
                 </div>

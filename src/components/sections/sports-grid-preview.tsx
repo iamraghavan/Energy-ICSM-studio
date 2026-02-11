@@ -27,7 +27,7 @@ export function SportsGridPreview() {
                              <p className="text-sm text-muted-foreground">Type: <span className="font-semibold text-foreground">{sport.type}</span></p>
                            </div>
                             <Button asChild className="w-full mt-auto" variant="outline">
-                                <Link href={`/register?sport=${sport.id}`}>
+                                <Link href={`/energy/2026/registration?sport=${sport.id}`}>
                                     Register <ArrowRight className="ml-2 h-4 w-4" />
                                 </Link>
                             </Button>
@@ -37,7 +37,7 @@ export function SportsGridPreview() {
             </div>
             <div className="text-center mt-8">
                 <Button asChild>
-                    <Link href="/sports">View All Sports</Link>
+                    <Link href="/energy/2026/sports">View All Sports</Link>
                 </Button>
             </div>
         </section>

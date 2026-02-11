@@ -44,7 +44,7 @@ export default function TeamsPage() {
                                                     </CardHeader>
                                                     <CardContent>
                                                         <Button asChild variant="outline" className="w-full">
-                                                            <Link href={`/teams/${team.id}`}>
+                                                            <Link href={`/energy/2026/teams/${team.id}`}>
                                                                 View Roster <ArrowRight className="ml-2 h-4 w-4" />
                                                             </Link>
                                                         </Button>

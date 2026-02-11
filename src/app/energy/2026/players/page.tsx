@@ -31,7 +31,7 @@ export default function PlayersPage() {
                                     </div>
                                 )}
                                 <Button asChild variant="outline" size="sm" className="mt-4 w-full">
-                                    <Link href={`/players/${player.id}`}>
+                                    <Link href={`/energy/2026/players/${player.id}`}>
                                         View Profile <ArrowRight className="ml-2 h-4 w-4" />
                                     </Link>
                                 </Button>

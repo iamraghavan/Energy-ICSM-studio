@@ -27,7 +27,7 @@ export default function SportsPage() {
                              <p className="text-sm text-muted-foreground">Slots Left: <span className="font-semibold text-foreground">{sport.slotsLeft}</span></p>
                            </div>
                             <Button asChild className="w-full mt-auto">
-                                <Link href={`/register?sport=${sport.id}`}>
+                                <Link href={`/energy/2026/registration?sport=${sport.id}`}>
                                     Register Now <ArrowRight className="ml-2 h-4 w-4" />
                                 </Link>
                             </Button>

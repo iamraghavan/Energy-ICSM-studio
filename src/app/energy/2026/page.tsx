@@ -21,10 +21,10 @@ export default function Home() {
         </p>
         <div className="flex gap-4 justify-center">
             <Button asChild size="lg">
-                <Link href="/register">Register as a Player</Link>
+                <Link href="/energy/2026/registration">Register as a Player</Link>
             </Button>
             <Button asChild size="lg" variant="outline">
-                <Link href="/teams">Explore Teams</Link>
+                <Link href="/energy/2026/teams">Explore Teams</Link>
             </Button>
         </div>
       </div>

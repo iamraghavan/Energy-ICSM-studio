@@ -26,10 +26,10 @@ export function Hero() {
         </p>
         <div className="flex flex-col sm:flex-row gap-4 mt-8">
             <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
-                <Link href="/register">Register Now</Link>
+                <Link href="/energy/2026/registration">Register Now</Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="bg-transparent border-accent text-accent hover:bg-accent hover:text-accent-foreground">
-                <Link href="/fixtures">View Fixtures</Link>
+                <Link href="/energy/2026/fixtures">View Fixtures</Link>
             </Button>
         </div>
       </div>

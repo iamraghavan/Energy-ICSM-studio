@@ -36,7 +36,7 @@ export default function TeamDetailsPage({ params }: { params: { id: string } }) 
                              {teamPlayers.length > 0 ? (
                                 <div className="space-y-4">
                                 {teamPlayers.map(player => (
-                                    <Link key={player.id} href={`/players/${player.id}`}>
+                                    <Link key={player.id} href={`/energy/2026/players/${player.id}`}>
                                         <div className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted transition-colors border">
                                             <Avatar className="h-12 w-12">
                                                 <AvatarImage src={player.photoUrl} alt={player.name} data-ai-hint={player.imageHint} />

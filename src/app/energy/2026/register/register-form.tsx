@@ -350,7 +350,7 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
                             <h2 className="text-2xl font-bold font-headline">Registration Successful!</h2>
                             <p className="text-muted-foreground">Your Registration ID: <span className="font-mono text-primary">{registrationId}</span></p>
                             <p className="text-muted-foreground text-sm">A confirmation email has been sent to <span className="font-semibold">{formData.email}</span>.</p>
-                            <Button asChild><a href="/">Back to Home</a></Button>
+                            <Button asChild><a href="/energy/2026">Back to Home</a></Button>
                         </div>
                     </CardContent>
                 </Card>
