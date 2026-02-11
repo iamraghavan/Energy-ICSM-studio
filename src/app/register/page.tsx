@@ -282,23 +282,38 @@ export default function RegisterPage() {
     const onSubmit = async (data: FormData) => {
         const apiFormData = new FormData();
 
-        const submitData = {
-            ...data,
-            mobile: `+91${data.mobile}`,
-            whatsapp: (data.whatsapp) ? `+91${data.whatsapp}` : '',
+        // Manually map and append fields with snake_case
+        apiFormData.append('full_name', data.fullName);
+        apiFormData.append('dob', data.dob.toISOString().split('T')[0]);
+        apiFormData.append('gender', data.gender);
+        apiFormData.append('email', data.email);
+        apiFormData.append('mobile_number', `+91${data.mobile}`);
+        
+        const whatsappNumber = data.isWhatsappSame ? data.mobile : data.whatsapp;
+        if (whatsappNumber) {
+            apiFormData.append('whatsapp_number', `+91${whatsappNumber}`);
         }
 
+        apiFormData.append('college_id', data.collegeId);
+        if (data.collegeId === 'other' && data.otherCollegeName) {
+            apiFormData.append('other_college_name', data.otherCollegeName);
+        }
+        
+        apiFormData.append('department', data.department);
+        apiFormData.append('year_of_study', data.year);
+        apiFormData.append('city_state', data.cityState);
+        apiFormData.append('sport_id', data.sportId);
+        
+        if (data.sportType === 'Team' && data.teamName) {
+            apiFormData.append('team_name', data.teamName);
+        }
 
-        Object.entries(submitData).forEach(([key, value]) => {
-            if (key === 'paymentScreenshot' && data.paymentScreenshot) {
-                apiFormData.append(key, data.paymentScreenshot[0]);
-            } else if (key === 'dob' && value instanceof Date) {
-                apiFormData.append(key, value.toISOString());
-            } else if (value !== null && value !== undefined && key !== 'paymentScreenshot') {
-                apiFormData.append(key, String(value));
-            }
-        });
+        apiFormData.append('needs_accommodation', String(data.needsAccommodation));
+        apiFormData.append('transaction_id', data.transactionId);
 
+        if (data.paymentScreenshot && data.paymentScreenshot.length > 0) {
+            apiFormData.append('payment_screenshot', data.paymentScreenshot[0]);
+        }
 
         try {
             const result = await registerStudent(apiFormData);
@@ -311,10 +326,12 @@ export default function RegisterPage() {
             });
         } catch (error: any) {
             console.error("Form submission error:", error);
+            // Provide a more specific error message from the backend if available
+            const errorMessage = error.response?.data?.error || error.response?.data?.message || "An unknown error occurred. Please try again.";
             toast({
                 variant: "destructive",
                 title: "Registration Failed",
-                description: error.response?.data?.error || "An unknown error occurred. Please try again.",
+                description: errorMessage,
             });
         }
     };
