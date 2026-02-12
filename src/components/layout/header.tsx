@@ -3,11 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Menu } from 'lucide-react';
 import { Logo } from '@/components/shared/logo';
+import { cn } from '@/lib/utils';
 
 const navLinks = [
   { href: '/energy/2026', label: 'Home' },
   { href: '/energy/2026/schedule', label: 'Schedule' },
+  { href: '/energy/2026/sports', label: 'Sports' },
   { href: '/energy/2026/fixtures', label: 'Fixtures' },
+  { href: '/energy/2026/fixtures', label: 'Live', highlighted: true },
   { href: '/energy/2026/teams', label: 'Teams' },
   { href: '/energy/2026/players', label: 'Players' },
   { href: '/energy/2026/gallery', label: 'Gallery' },
@@ -25,11 +28,15 @@ export function Header() {
             <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
                 {navLinks.map((link) => (
                 <Link
-                    key={link.href}
+                    key={link.label}
                     href={link.href}
-                    className="transition-colors hover:text-primary"
+                    className={cn(
+                        "transition-colors hover:text-primary flex items-center",
+                        link.highlighted && "text-accent font-bold"
+                    )}
                 >
                     {link.label}
+                    {link.highlighted && <div className="w-2 h-2 rounded-full bg-accent animate-pulse ml-1.5"></div>}
                 </Link>
                 ))}
             </nav>
@@ -57,11 +64,15 @@ export function Header() {
                 <div className="flex flex-col space-y-2 p-4">
                 {navLinks.map((link) => (
                     <Link
-                    key={`mobile-${link.href}`}
-                    href={link.href}
-                    className="px-4 py-2 rounded-md hover:bg-muted"
+                        key={`mobile-${link.label}`}
+                        href={link.href}
+                        className={cn(
+                            "px-4 py-2 rounded-md hover:bg-muted flex items-center justify-between",
+                            link.highlighted && "font-bold"
+                        )}
                     >
-                    {link.label}
+                        <span className={cn(link.highlighted && "text-accent")}>{link.label}</span>
+                        {link.highlighted && <div className="w-2 h-2 rounded-full bg-accent animate-pulse"></div>}
                     </Link>
                 ))}
                 <div className='pt-4'>
