@@ -6,8 +6,8 @@ export function Hero() {
       <Image
         src="/energy_web_banner.webp"
         alt="Energy Sports Meet"
-        width={720}
-        height={300}
+        width={1920}
+        height={800}
         className="w-full h-auto"
         quality={100}
         priority
