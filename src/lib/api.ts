@@ -13,10 +13,10 @@ export type ApiSport = {
 
 export type ApiTeam = {
   id: string;
-  sport_id: string;
+  sport_id: string | number;
   team_name: string;
   captain_id: string;
-  college: {
+  college?: {
     name: string;
   };
   Captain?: {
@@ -41,34 +41,24 @@ export type ApiTeamDetails = ApiTeam & {
     Members: TeamMember[];
 };
 
-export type ApiMatch = {
-    id: string;
-    sport_id: number;
-    team_a_id: string;
-    team_b_id: string;
-    start_time: string;
-    venue: string;
-    referee_name: string | null;
-    status: 'scheduled' | 'live' | 'completed' | 'cancelled';
-    score_details: any;
-    Sport: ApiSport;
-    TeamA: ApiTeam;
-    TeamB: ApiTeam;
-    created_at: string;
-};
-
-
 export type Registration = {
     id: string;
     registration_code: string;
     student_id: string;
-    sport_id: number;
     team_id: string | null;
     is_captain: boolean;
     accommodation_needed: boolean;
     payment_status: 'pending' | 'verified' | 'rejected' | 'approved';
     status: 'pending' | 'approved' | 'rejected';
     created_at: string;
+    college_name: string;
+    college_city: string;
+    college_state: string;
+    pd_name?: string | null;
+    pd_whatsapp?: string | null;
+    college_email?: string | null;
+    college_contact?: string | null;
+    total_amount?: string;
     Student: {
         id: string;
         name: string;
@@ -86,12 +76,7 @@ export type Registration = {
             state: string;
         } | null;
     };
-    Sport: {
-        id: number;
-        name: string;
-        type: 'Team' | 'Individual';
-        amount: string;
-    } | null;
+    Sports: ApiSport[];
     Team: {
         id: string;
         sport_id: number;
@@ -121,8 +106,6 @@ export type User = {
 };
 
 const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
-const SOCKET_URL = 'https://energy-sports-meet-backend.onrender.com';
-
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -143,10 +126,9 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (typeof window !== 'undefined' && error.response && (error.response.status === 401 || error.response.status === 403)) {
+    if (typeof window !== 'undefined' && error.response && error.response.status === 401) {
         localStorage.removeItem('jwt_token');
-        localStorage.removeItem('user_role');
-        window.location.href = '/auth/session';
+        window.location.href = '/login';
     }
     return Promise.reject(error);
   }
@@ -198,15 +180,13 @@ export const getRegistrations = async (): Promise<Registration[]> => {
 
 export const getRegistration = async (id: string): Promise<Registration> => {
     const response = await api.get('/register/details', { params: { id }});
-    const responseData = response.data;
-    return Array.isArray(responseData) ? responseData[0] : (responseData.data || responseData);
+    return response.data;
 };
 
-export const verifyPayment = async (registrationCode: string, status: 'approved' | 'rejected', remarks: string) => {
+export const verifyPayment = async (registrationCode: string, status: 'approved' | 'rejected') => {
     const response = await api.post('/admin/verify-payment', {
         registration_code: registrationCode,
         status: status,
-        remarks: remarks,
     });
     return response.data;
 };
@@ -233,13 +213,8 @@ export const deleteUser = async (userId: string) => {
 };
 
 // Match & Team Management
-export const getMatchesBySport = async (sportId: string, status: 'scheduled' | 'completed'): Promise<ApiMatch[]> => {
-    const response = await api.get(`/matches/sport/${sportId}?status=${status}`);
-    return Array.isArray(response.data) ? response.data : (response.data?.data || []);
-};
-
-export const getLiveMatches = async (): Promise<ApiMatch[]> => {
-    const response = await api.get(`/matches/live`);
+export const getMatchesBySport = async (sportId: string): Promise<ApiMatch[]> => {
+    const response = await api.get(`/matches/sport/${sportId}`);
     return Array.isArray(response.data) ? response.data : (response.data?.data || []);
 };
 
@@ -251,77 +226,4 @@ export const getTeam = async (id: string): Promise<ApiTeamDetails> => {
 export const getTeamsBySport = async (sportId: string): Promise<ApiTeam[]> => {
     const response = await api.get(`/teams/sport/${sportId}`);
     return Array.isArray(response.data) ? response.data : (response.data?.data || []);
-}
-
-export const createMatch = async (data: { sport_id: number; team_a_id: string; team_b_id: string; start_time: string; venue: string; referee_name?: string; }) => {
-    const response = await api.post('/matches', data);
-    return response.data;
-}
-
-export const updateScore = async (matchId: string, scoreDetails: any, status: 'live' | 'completed' | 'scheduled') => {
-    const response = await api.put(`/matches/${matchId}/score`, {
-        score_details: scoreDetails,
-        status: status,
-    });
-    return response.data;
-};
-
-export const postMatchEvent = async (matchId: string, eventData: any) => {
-    const response = await api.post(`/matches/${matchId}/event`, eventData);
-    return response.data;
-};
-
-export const getLineup = async (matchId: string): Promise<any> => {
-    const response = await api.get(`/matches/${matchId}/lineup`);
-    return response.data.data || response.data;
-};
-
-export const manageLineup = async (matchId: string, lineupData: { action: 'add' | 'remove', student_id: string, team_id: string, is_substitute?: boolean }) => {
-    const response = await api.post(`/matches/${matchId}/lineup`, lineupData);
-    return response.data;
-};
-
-
-// Sports Management
-export const createSport = async (sportData: any) => {
-    const response = await api.post('/sports', sportData);
-    return response.data;
-};
-
-export const updateSport = async (sportId: number, sportData: any) => {
-    const response = await api.put(`/sports/${sportId}`, sportData);
-    return response.data;
-}
-
-export const deleteSport = async (sportId: number) => {
-    const response = await api.delete(`/sports/${sportId}`);
-    return response.data;
-}
-
-// College Management
-export const getCollegesAdmin = async (): Promise<(Omit<College, 'id'> & {id: number})[]> => {
-    const response = await api.get('/colleges');
-    const responseData = response.data;
-    return Array.isArray(responseData) ? responseData : responseData?.data || [];
-};
-
-export const createCollege = async (collegeData: { name: string, city: string, state: string }) => {
-    const response = await api.post('/colleges', collegeData);
-    return response.data;
-};
-
-export const bulkCreateColleges = async (collegesData: { name: string, city: string, state: string }[]) => {
-    const response = await api.post('/colleges/bulk', collegesData);
-    return response.data;
-};
-
-
-export const updateCollege = async (collegeId: number, collegeData: any) => {
-    const response = await api.put(`/colleges/${collegeId}`, collegeData);
-    return response.data;
-}
-
-export const deleteCollege = async (collegeId: number) => {
-    const response = await api.delete(`/colleges/${collegeId}`);
-    return response.data;
 }
