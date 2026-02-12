@@ -99,6 +99,8 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
     const mobile = watch('mobile');
     const isPd = watch('isPd');
     const paymentScreenshot = watch('paymentScreenshot');
+    const fullName = watch('fullName');
+    const whatsapp = watch('whatsapp');
 
     // Filter sports based on selected categories
     useEffect(() => {
@@ -157,6 +159,15 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
         }
     }, [isWhatsappSame, mobile, setValue]);
     
+    // Auto-fill PD details
+    useEffect(() => {
+        if (isPd) {
+            setValue('pdName', fullName);
+            const whatsappNumber = isWhatsappSame ? mobile : whatsapp;
+            setValue('pdWhatsapp', whatsappNumber);
+        }
+    }, [isPd, fullName, mobile, isWhatsappSame, whatsapp, setValue]);
+
     useEffect(() => {
         setIsClient(true);
     }, []);
@@ -437,8 +448,8 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                                 {isPd && (
                                     <div className="space-y-4 pt-4">
                                         <div className="grid md:grid-cols-2 gap-4">
-                                            <FormField name="pdName" control={control} render={({ field }) => (<FormItem><FormLabel>PD Name</FormLabel><FormControl><Input placeholder="Name of the Physical Director" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                            <FormField name="pdWhatsapp" control={control} render={({ field }) => (<FormItem><FormLabel>PD WhatsApp</FormLabel><FormControl><Input type="tel" placeholder="WhatsApp number for coordination" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField name="pdName" control={control} render={({ field }) => (<FormItem><FormLabel>PD Name</FormLabel><FormControl><Input placeholder="Name of the Physical Director" {...field} readOnly /></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField name="pdWhatsapp" control={control} render={({ field }) => (<FormItem><FormLabel>PD WhatsApp</FormLabel><FormControl><Input type="tel" placeholder="WhatsApp number for coordination" {...field} readOnly /></FormControl><FormMessage /></FormItem>)} />
                                         </div>
                                          <div className="grid md:grid-cols-2 gap-4">
                                             <FormField name="collegeEmail" control={control} render={({ field }) => (<FormItem><FormLabel>College Office Email</FormLabel><FormControl><Input type="email" placeholder="Official college email" {...field} /></FormControl><FormMessage /></FormItem>)} />
