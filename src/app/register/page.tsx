@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation';
 
-export default function OldRegisterPage() {
-    redirect('/registration');
-    return null;
+export default function Page() {
+    redirect('/energy/2026/register');
 }

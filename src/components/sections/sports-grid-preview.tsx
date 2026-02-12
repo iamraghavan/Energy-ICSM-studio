@@ -17,7 +17,7 @@ export function SportsGridPreview({ sports }: { sports: ApiSport[] }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {featuredSports.map((sport) => {
                     return (
-                       <Link href="/sports" key={sport.id}>
+                       <Link href="/energy/2026/sports" key={sport.id}>
                             <Card className="group relative overflow-hidden text-center transition-all duration-300 hover:shadow-lg hover:-translate-y-1 h-full">
                                 <CardContent className="flex flex-col items-center justify-center p-6 min-h-[150px]">
                                     <CardTitle className="mb-2 font-headline text-2xl">{sport.name}</CardTitle>
@@ -33,7 +33,7 @@ export function SportsGridPreview({ sports }: { sports: ApiSport[] }) {
             </div>
             <div className="text-center mt-12">
                 <Button asChild size="lg">
-                    <Link href="/sports">View All Sports</Link>
+                    <Link href="/energy/2026/sports">View All Sports</Link>
                 </Button>
             </div>
         </section>

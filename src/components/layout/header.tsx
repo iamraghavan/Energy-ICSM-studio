@@ -6,15 +6,15 @@ import { Logo } from '@/components/shared/logo';
 import { cn } from '@/lib/utils';
 
 const navLinks = [
-  { href: '/', label: 'Home' },
-  { href: '/schedule', label: 'Schedule' },
-  { href: '/sports', label: 'Sports' },
-  { href: '/teams', label: 'Teams' },
-  { href: '/live', label: 'Live' },
-  { href: '/gallery', label: 'Gallery' },
-  { href: '/instructions', label: 'General Instructions' },
-  { href: '/rules', label: 'Important Rules' },
-  { href: '/about', label: 'About' },
+  { href: '/energy/2026', label: 'Home' },
+  { href: '/energy/2026/schedule', label: 'Schedule' },
+  { href: '/energy/2026/sports', label: 'Sports' },
+  { href: '/energy/2026/teams', label: 'Teams' },
+  { href: '/energy/2026/live', label: 'Live' },
+  { href: '/energy/2026/gallery', label: 'Gallery' },
+  { href: '/energy/2026/instructions', label: 'General Instructions' },
+  { href: '/energy/2026/rules', label: 'Important Rules' },
+  { href: '/energy/2026/about', label: 'About' },
 ];
 
 export function Header() {
@@ -22,7 +22,7 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b bg-background text-foreground">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-6">
-            <Link href="/" className="flex items-center gap-2">
+            <Link href="/energy/2026" className="flex items-center gap-2">
                 <Logo />
             </Link>
             <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
@@ -43,7 +43,7 @@ export function Header() {
 
         <div className="flex items-center gap-3">
             <Button asChild size="sm" className="hidden md:inline-flex">
-              <Link href="/registration">Register</Link>
+              <Link href="/energy/2026/registration">Register</Link>
             </Button>
             
             <Sheet>
@@ -55,7 +55,7 @@ export function Header() {
             </SheetTrigger>
             <SheetContent side="left" className="w-full max-w-xs p-0">
                  <div className="p-4 border-b">
-                    <Link href="/" className="flex items-center space-x-2">
+                    <Link href="/energy/2026" className="flex items-center space-x-2">
                         <Logo />
                     </Link>
                 </div>
@@ -73,7 +73,7 @@ export function Header() {
                 ))}
                 <div className='pt-4'>
                     <Button asChild className="w-full">
-                        <Link href="/registration">Register Now</Link>
+                        <Link href="/energy/2026/registration">Register Now</Link>
                     </Button>
                 </div>
                 </div>

@@ -71,7 +71,7 @@ function SuccessDetails({ registration }: { registration: Registration }) {
                 </div>
                 <div className="text-center pt-2">
                     <Button asChild variant="link">
-                        <Link href="/">Back to Home</Link>
+                        <Link href="/energy/2026">Back to Home</Link>
                     </Button>
                 </div>
             </CardContent>
@@ -125,7 +125,7 @@ function SuccessPageContent() {
                 </CardDescription>
                  <div className="pt-4">
                     <Button asChild variant="link">
-                        <Link href="/">Back to Home</Link>
+                        <Link href="/energy/2026">Back to Home</Link>
                     </Button>
                 </div>
             </CardHeader>

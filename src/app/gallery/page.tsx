@@ -1,22 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 
-export const metadata: Metadata = {
-  title: 'Event Gallery',
-  description: 'View photos from the ENERGY 2026 inter-college sports meet.',
-};
-
-export default function GalleryPage() {
-    return (
-        <div className="container py-8">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline">Event Gallery</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-muted-foreground">A gallery of photos from the event. This page is under construction.</p>
-                </CardContent>
-            </Card>
-        </div>
-    );
+export default function Page() {
+    redirect('/energy/2026/gallery');
 }
