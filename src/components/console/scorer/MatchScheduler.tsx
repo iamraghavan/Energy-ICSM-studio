@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Loader2, PlusCircle, CalendarCog } from 'lucide-react';
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = 'https://energy-sports-meet-backend.onrender.com';
+const SOCKET_URL = 'https://api.egspgroup.in';
 
 const matchFormSchema = z.object({
     sport_id: z.string().min(1, 'Please select a sport.'),
@@ -144,7 +144,7 @@ function CreateMatchDialog({ onMatchCreated, sportId, teams }: { onMatchCreated:
     }, [sportId, form])
 
 
-    const onSubmit = async (values: z.infer<typeof matchFormSchema>) => {
+    const onSubmit = async (values: z.infer<typeof matchFormSchema>>) => {
         if (!sportId) {
             toast({ variant: 'destructive', title: 'Error', description: 'No sport selected.' });
             return;

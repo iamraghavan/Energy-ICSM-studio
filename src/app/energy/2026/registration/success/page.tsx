@@ -9,7 +9,7 @@ import { CheckCircle, Download, ExternalLink, Loader2 } from 'lucide-react';
 import { getRegistration, type Registration } from '@/lib/api';
 import { ShareButton } from '@/components/shared/share-button';
 
-const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
+const API_BASE_URL = 'https://api.egspgroup.in/api/v1';
 
 function SuccessDetails({ registration }: { registration: Registration }) {
     const ticketUrl = `${API_BASE_URL}/register/${registration.id}/ticket`;
