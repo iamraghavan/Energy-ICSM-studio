@@ -22,7 +22,7 @@ export function Logo({
   }
 
   return (
-    <div className={cn('relative h-12 w-36', className)}>
+    <div className={cn('relative h-14 w-40', className)}>
       <Image
         src="/Energy_college_logo.png"
         alt="Energy Sports Meet Logo"
