@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { getSportIcon } from "@/lib/icons";
 import { Badge } from "@/components/ui/badge";
 
 export default async function SportsPage() {
@@ -30,16 +29,13 @@ export default async function SportsPage() {
                     <h2 className="text-3xl font-bold font-headline mb-6 text-center">{category} Sports</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {sportsByCategory[category].map((sport) => {
-                            const SportIcon = getSportIcon(sport.name);
                             return (
                                 <Card key={sport.id} className="group relative flex flex-col overflow-hidden text-center transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-                                    <CardContent className="flex flex-1 flex-col items-center p-6">
-                                        <div className="mb-4 rounded-full bg-primary/10 p-4 transition-transform duration-300 group-hover:scale-110 group-hover:bg-primary/20">
-                                            <SportIcon className="h-10 w-10 text-primary" />
-                                        </div>
-                                        <CardTitle className="mb-2 font-headline text-xl">{sport.name}</CardTitle>
-                                        
-                                        <div className="w-full space-y-3 text-sm mt-4">
+                                    <CardHeader className="pt-6">
+                                        <CardTitle className="font-headline text-2xl min-h-[3rem] flex items-center justify-center">{sport.name}</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="flex flex-1 flex-col justify-center p-6 pt-0">
+                                        <div className="w-full space-y-3 text-sm">
                                             <div className="flex justify-between border-t pt-3">
                                                 <span className="text-muted-foreground">Type</span>
                                                 <Badge variant="secondary">{sport.type}</Badge>

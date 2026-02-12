@@ -1,9 +1,8 @@
 import { type ApiSport } from "@/lib/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { getSportIcon } from "@/lib/icons";
 
 export function SportsGridPreview({ sports }: { sports: ApiSport[] }) {
     const uniqueSports = Array.from(new Map(sports.map(item => [item.name, item])).values());
@@ -17,15 +16,11 @@ export function SportsGridPreview({ sports }: { sports: ApiSport[] }) {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {featuredSports.map((sport) => {
-                    const SportIcon = getSportIcon(sport.name);
                     return (
                        <Link href="/energy/2026/sports" key={sport.id}>
                             <Card className="group relative overflow-hidden text-center transition-all duration-300 hover:shadow-lg hover:-translate-y-1 h-full">
-                                <CardContent className="flex flex-col items-center justify-center p-6">
-                                    <div className="mb-4 rounded-full bg-primary/10 p-4 transition-transform duration-300 group-hover:scale-110 group-hover:bg-primary/20">
-                                         <SportIcon className="h-10 w-10 text-primary" />
-                                    </div>
-                                    <CardTitle className="mb-2 font-headline text-xl">{sport.name}</CardTitle>
+                                <CardContent className="flex flex-col items-center justify-center p-6 min-h-[150px]">
+                                    <CardTitle className="mb-2 font-headline text-2xl">{sport.name}</CardTitle>
                                     <p className="text-sm text-muted-foreground">{sport.type}</p>
                                 </CardContent>
                                 <div className="absolute inset-0 bg-black/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex items-center justify-center">
