@@ -3,7 +3,6 @@ import Link from 'next/link';
 const quickAccessLinks = [
     { href: '/energy/2026/sports', label: 'Sports' },
     { href: '/energy/2026/schedule', label: 'Schedule' },
-    { href: '/energy/2026/fixtures', label: 'Fixtures' },
     { href: '/energy/2026/medals', label: 'Medals' },
     { href: '/energy/2026/teams', label: 'Teams' },
     { href: '/energy/2026/players', label: 'Players' },

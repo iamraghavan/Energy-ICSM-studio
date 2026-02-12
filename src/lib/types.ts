@@ -29,18 +29,6 @@ export type Team = {
     players: Player[];
 };
 
-export type Fixture = {
-    id: string;
-    sportId: string;
-    teamAId: string;
-    teamBId: string;
-    dateTime: Date;
-    venue: string;
-    status: 'Upcoming' | 'Live' | 'Completed';
-    scoreA?: number;
-    scoreB?: number;
-};
-
 export type College = {
     id: string;
     name: string;

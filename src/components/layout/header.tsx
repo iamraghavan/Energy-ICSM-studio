@@ -9,8 +9,6 @@ const navLinks = [
   { href: '/energy/2026', label: 'Home' },
   { href: '/energy/2026/schedule', label: 'Schedule' },
   { href: '/energy/2026/sports', label: 'Sports' },
-  { href: '/energy/2026/fixtures', label: 'Fixtures' },
-  { href: '/energy/2026/fixtures', label: 'Live', highlighted: true },
   { href: '/energy/2026/teams', label: 'Teams' },
   { href: '/energy/2026/players', label: 'Players' },
   { href: '/energy/2026/gallery', label: 'Gallery' },
@@ -31,12 +29,10 @@ export function Header() {
                     key={link.label}
                     href={link.href}
                     className={cn(
-                        "transition-colors hover:text-primary flex items-center",
-                        link.highlighted && "text-destructive font-bold"
+                        "transition-colors hover:text-primary flex items-center"
                     )}
                 >
                     {link.label}
-                    {link.highlighted && <div className="w-2 h-2 rounded-full bg-destructive animate-pulse ml-1.5"></div>}
                 </Link>
                 ))}
             </nav>
@@ -67,12 +63,10 @@ export function Header() {
                         key={`mobile-${link.label}`}
                         href={link.href}
                         className={cn(
-                            "px-4 py-2 rounded-md hover:bg-muted flex items-center justify-between",
-                            link.highlighted && "font-bold"
+                            "px-4 py-2 rounded-md hover:bg-muted flex items-center justify-between"
                         )}
                     >
-                        <span className={cn(link.highlighted && "text-destructive")}>{link.label}</span>
-                        {link.highlighted && <div className="w-2 h-2 rounded-full bg-destructive animate-pulse"></div>}
+                        <span className={cn()}>{link.label}</span>
                     </Link>
                 ))}
                 <div className='pt-4'>

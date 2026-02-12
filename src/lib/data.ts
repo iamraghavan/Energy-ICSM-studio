@@ -1,4 +1,4 @@
-import type { Sport, Team, Player, Fixture, College } from './types';
+import type { Sport, Team, Player, College } from './types';
 import { Goal as Football, Dribbble as Basketball, Volleyball, PersonStanding, Waves, Swords, Disc, Trophy } from 'lucide-react';
 
 export const sports: Sport[] = [
@@ -34,12 +34,4 @@ export const teams: Team[] = [
     { id: 'T4', name: 'VIT Spartans', sportId: '2', college: 'Vellore Institute of Technology', players: [] },
     { id: 'T5', name: 'Loyola Hoopers', sportId: '3', college: 'Loyola College', players: [] },
     { id: 'T6', name: 'MCC Volleyers', sportId: '4', college: 'Madras Christian College', players: [] },
-];
-
-
-export const fixtures: Fixture[] = [
-    { id: 'F1', sportId: '1', teamAId: 'T1', teamBId: 'T2', dateTime: new Date(new Date().getTime() + 2 * 24 * 60 * 60 * 1000), venue: 'Main Cricket Ground', status: 'Upcoming' },
-    { id: 'F2', sportId: '2', teamAId: 'T3', teamBId: 'T4', dateTime: new Date(new Date().getTime() + 3 * 24 * 60 * 60 * 1000), venue: 'Football Stadium', status: 'Upcoming' },
-    { id: 'F3', sportId: '1', teamAId: 'T1', teamBId: 'T2', dateTime: new Date(), venue: 'Main Cricket Ground', status: 'Live', scoreA: 89, scoreB: 72 },
-    { id: 'F4', sportId: '3', teamAId: 'T5', teamBId: 'T6', dateTime: new Date(new Date().getTime() - 1 * 24 * 60 * 60 * 1000), venue: 'Indoor Arena', status: 'Completed', scoreA: 102, scoreB: 95 },
 ];

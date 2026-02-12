@@ -1,7 +1,6 @@
 import { Hero } from '@/components/sections/hero';
 import { QuickAccess } from '@/components/sections/quick-access';
 import { SportsGridPreview } from '@/components/sections/sports-grid-preview';
-import { UpcomingFixtures } from '@/components/sections/upcoming-fixtures';
 import { Button } from '@/components/ui/button';
 import { getSports } from '@/lib/api';
 import Link from 'next/link';
@@ -15,7 +14,6 @@ export default async function Home() {
       <QuickAccess />
       <div className="container py-16 space-y-16">
         <SportsGridPreview sports={sports} />
-        <UpcomingFixtures />
       </div>
        <div className="container py-16 text-center">
         <h2 className="text-3xl font-bold font-headline mb-4">Ready to Join the Action?</h2>
