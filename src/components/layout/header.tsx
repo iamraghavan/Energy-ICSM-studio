@@ -32,11 +32,11 @@ export function Header() {
                     href={link.href}
                     className={cn(
                         "transition-colors hover:text-primary flex items-center",
-                        link.highlighted && "text-accent font-bold"
+                        link.highlighted && "text-destructive font-bold"
                     )}
                 >
                     {link.label}
-                    {link.highlighted && <div className="w-2 h-2 rounded-full bg-accent animate-pulse ml-1.5"></div>}
+                    {link.highlighted && <div className="w-2 h-2 rounded-full bg-destructive animate-pulse ml-1.5"></div>}
                 </Link>
                 ))}
             </nav>
@@ -71,8 +71,8 @@ export function Header() {
                             link.highlighted && "font-bold"
                         )}
                     >
-                        <span className={cn(link.highlighted && "text-accent")}>{link.label}</span>
-                        {link.highlighted && <div className="w-2 h-2 rounded-full bg-accent animate-pulse"></div>}
+                        <span className={cn(link.highlighted && "text-destructive")}>{link.label}</span>
+                        {link.highlighted && <div className="w-2 h-2 rounded-full bg-destructive animate-pulse"></div>}
                     </Link>
                 ))}
                 <div className='pt-4'>
