@@ -21,6 +21,10 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet" />
+        <script
+          src={`https://maps.googleapis.com/maps/api/js?key=AIzaSyDMpsaQdxiJnnvp8aLJLi8p11P1LgP2O74&libraries=places&callback=Function.prototype`}
+          async
+        ></script>
       </head>
       <body className="font-body antialiased" suppressHydrationWarning={true}>
         {children}

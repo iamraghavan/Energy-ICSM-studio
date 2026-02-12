@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -117,6 +117,9 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
     const [registrationFee, setRegistrationFee] = useState("0.00");
     const [isClient, setIsClient] = useState(false);
 
+    const cityStateInputRef = useRef<HTMLInputElement | null>(null);
+    const autocompleteRef = useRef<any>(null);
+
     useEffect(() => {
         setIsClient(true);
     }, []);
@@ -149,7 +152,7 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
         }
     });
 
-    const { watch, setValue } = form;
+    const { watch, setValue, getValues } = form;
     const sportType = watch('sportType');
     const collegeId = watch('collegeId');
     const isWhatsappSame = watch('isWhatsappSame');
@@ -261,17 +264,50 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
     }, [paymentScreenshot, setValue, toast]);
 
     useEffect(() => {
-        if (collegeId && collegeId !== 'other') {
+        if (!isClient || !window.google || !cityStateInputRef.current) return;
+        if (autocompleteRef.current) return;
+
+        autocompleteRef.current = new window.google.maps.places.Autocomplete(
+            cityStateInputRef.current,
+            { types: ["(cities)"], componentRestrictions: { country: "in" } }
+        );
+        autocompleteRef.current.setFields(["address_components", "formatted_address"]);
+        
+        const handlePlaceSelect = () => {
+            const place = autocompleteRef.current.getPlace();
+            if (place && place.address_components) {
+                const city = place.address_components.find((c: any) => c.types.includes('locality'))?.long_name;
+                const state = place.address_components.find((c: any) => c.types.includes('administrative_area_level_1'))?.long_name;
+
+                if (city && state) {
+                    setValue('cityState', `${city}, ${state}`, { shouldValidate: true });
+                } else if (city) {
+                    setValue('cityState', city, { shouldValidate: true });
+                } else if (place.formatted_address) {
+                    setValue('cityState', place.formatted_address, { shouldValidate: true });
+                }
+            }
+        };
+
+        autocompleteRef.current.addListener("place_changed", handlePlaceSelect);
+
+        return () => {
+            if (autocompleteRef.current) {
+                window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+            }
+        };
+    }, [isClient, setValue]);
+
+    useEffect(() => {
+        if (collegeId && collegeId !== 'other' && !getValues('cityState')) {
             const selectedCollege = colleges.find(c => c.id === collegeId);
             if (selectedCollege) {
                 setValue('cityState', `${selectedCollege.city}, ${selectedCollege.state}`);
             }
         }
-    }, [collegeId, colleges, setValue]);
+    }, [collegeId, colleges, setValue, getValues]);
 
     const onSubmit = async (data: FormSchema) => {
-        const apiFormData = new FormData();
-        
         const snakeCaseData: { [key: string]: any } = {
             name: data.fullName,
             dob: format(data.dob, 'yyyy-MM-dd'),
@@ -306,11 +342,8 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
             snakeCaseData.team_name = data.teamName;
         }
 
-        for (const key in snakeCaseData) {
-            if (snakeCaseData[key] !== undefined && snakeCaseData[key] !== null) {
-                apiFormData.append(key, snakeCaseData[key]);
-            }
-        }
+        const apiFormData = new FormData();
+        apiFormData.append('student_data', JSON.stringify(snakeCaseData));
 
         if (data.paymentScreenshot && data.paymentScreenshot.length > 0) {
             apiFormData.append('screenshot', data.paymentScreenshot[0]);
@@ -497,7 +530,20 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
                                         </FormItem>
                                     )} />
                                     <FormField name="cityState" control={form.control} render={({ field }) => (
-                                        <FormItem><FormLabel>City/State</FormLabel><FormControl><Input placeholder="e.g. Chennai, Tamil Nadu" {...field} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem>
+                                            <FormLabel>City/State</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    placeholder="e.g. Chennai, Tamil Nadu"
+                                                    {...field}
+                                                    ref={(el) => {
+                                                        field.ref(el);
+                                                        cityStateInputRef.current = el;
+                                                    }}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
                                     )} />
                                 </div>
                             </FormSection>
@@ -619,5 +665,3 @@ function FormSection({ title, children }: { title: string, children: React.React
         </div>
     );
 }
-
-    
