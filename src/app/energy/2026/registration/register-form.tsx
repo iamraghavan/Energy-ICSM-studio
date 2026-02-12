@@ -4,19 +4,16 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format } from "date-fns";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { createWorker } from 'tesseract.js';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { registerStudent, type ApiSport } from "@/lib/api";
-import { Loader2 } from "lucide-react";
+import { Loader2, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 
@@ -25,20 +22,12 @@ const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "applicati
 
 const formSchema = z.object({
     fullName: z.string().min(3, "Full name must be at least 3 characters."),
-    dob: z.date({ required_error: "Date of birth is required." }).refine((date) => {
-        const sixteenYearsAgo = new Date();
-        sixteenYearsAgo.setFullYear(sixteenYearsAgo.getFullYear() - 16);
-        return date <= sixteenYearsAgo;
-    }, { message: "You must be at least 16 years old." }),
-    gender: z.enum(['male', 'female', 'other'], { required_error: "Please select a gender." }),
     email: z.string().email("Invalid email address."),
     mobile: z.string().length(10, { message: "Mobile number must be 10 digits." }),
     isWhatsappSame: z.boolean().default(false).optional(),
     whatsapp: z.string().optional().or(z.literal('')),
     
     collegeName: z.string().min(3, "College name must be at least 3 characters."),
-    department: z.string().min(2, "Department is required."),
-    year: z.enum(['I', 'II', 'III', 'IV', 'PG-I', 'PG-II'], { required_error: "Please select your year of study." }),
     cityState: z.string().min(2, "City/State is required."),
     
     selected_sport_ids: z.array(z.string()).min(1, "Please select at least one sport."),
@@ -94,7 +83,6 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
             mobile: "",
             whatsapp: "",
             collegeName: "",
-            department: "",
             cityState: "",
             selected_sport_ids: [],
             teamName: "",
@@ -234,8 +222,6 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
         
         // Append all fields as per API guide
         formData.append('name', data.fullName);
-        formData.append('dob', format(data.dob, 'yyyy-MM-dd'));
-        formData.append('gender', data.gender);
         formData.append('email', data.email);
         formData.append('mobile', data.mobile);
         formData.append('whatsapp', data.isWhatsappSame ? data.mobile : data.whatsapp || '');
@@ -245,9 +231,6 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
         if(state) formData.append('state', state || city); // If no state, use city
 
         formData.append('other_college', data.collegeName);
-        
-        formData.append('department', data.department);
-        formData.append('year_of_study', data.year);
         
         formData.append('selected_sport_ids', data.selected_sport_ids.join(','));
         
@@ -289,9 +272,6 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
         const sport = apiSports.find(s => s.id.toString() === id);
         return sport?.type === 'Team';
     });
-    
-    const sixteenYearsAgo = new Date();
-    sixteenYearsAgo.setFullYear(sixteenYearsAgo.getFullYear() - 16);
 
     return (
         <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
@@ -308,43 +288,8 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                             
                             <FormSection title="Personal Details">
                                 <div className="grid md:grid-cols-2 gap-4">
-                                <FormField name="fullName" control={control} render={({ field }) => (
-                                    <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="Enter your full name" {...field} /></FormControl><FormMessage /></FormItem>
-                                )} />
-                                <FormField name="dob" control={control} render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Date of Birth</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                type="date" className="w-full"
-                                                value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
-                                                onChange={(e) => {
-                                                    if (e.target.value) {
-                                                        const date = new Date(e.target.value);
-                                                        const offset = date.getTimezoneOffset() * 60000;
-                                                        field.onChange(new Date(date.getTime() + offset));
-                                                    } else { field.onChange(undefined); }
-                                                }}
-                                                max={isClient ? sixteenYearsAgo.toISOString().split("T")[0] : undefined}
-                                                min="1950-01-01"
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                                </div>
-                                <div className="grid md:grid-cols-2 gap-4">
-                                    <FormField name="gender" control={control} render={({ field }) => (
-                                        <FormItem><FormLabel>Gender</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <FormControl><SelectTrigger><SelectValue placeholder="Select your gender" /></SelectTrigger></FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="male">Male</SelectItem>
-                                                    <SelectItem value="female">Female</SelectItem>
-                                                    <SelectItem value="other">Other</SelectItem>
-                                                </SelectContent>
-                                            </Select><FormMessage />
-                                        </FormItem>
+                                    <FormField name="fullName" control={control} render={({ field }) => (
+                                        <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="Enter your full name" {...field} /></FormControl><FormMessage /></FormItem>
                                     )} />
                                     <FormField name="email" control={control} render={({ field }) => (
                                         <FormItem><FormLabel>Email Address</FormLabel><FormControl><Input type="email" placeholder="student@college.edu" {...field} /></FormControl><FormMessage /></FormItem>
@@ -371,20 +316,9 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                             </FormSection>
 
                             <FormSection title="Academic Details">
-                                <FormField name="collegeName" control={control} render={({ field }) => (
-                                    <FormItem><FormLabel>College Name</FormLabel><FormControl><Input placeholder="Enter your college name" {...field} /></FormControl><FormMessage /></FormItem>
-                                )} />
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <FormField name="department" control={control} render={({ field }) => (
-                                        <FormItem><FormLabel>Department</FormLabel><FormControl><Input placeholder="e.g. CSE, Mechanical" {...field} /></FormControl><FormMessage /></FormItem>
-                                    )} />
-                                    <FormField name="year" control={control} render={({ field }) => (
-                                        <FormItem><FormLabel>Year of Study</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <FormControl><SelectTrigger><SelectValue placeholder="Select year" /></SelectTrigger></FormControl>
-                                                <SelectContent>{['I', 'II', 'III', 'IV', 'PG-I', 'PG-II'].map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
-                                            </Select><FormMessage />
-                                        </FormItem>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <FormField name="collegeName" control={control} render={({ field }) => (
+                                        <FormItem><FormLabel>College Name</FormLabel><FormControl><Input placeholder="Enter your college name" {...field} /></FormControl><FormMessage /></FormItem>
                                     )} />
                                     <FormField name="cityState" control={control} render={({ field }) => (
                                         <FormItem><FormLabel>City/State</FormLabel>
@@ -439,7 +373,12 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                                                                             id={`sport-${sport.id}`}
                                                                         />
                                                                     </FormControl>
-                                                                    <Label htmlFor={`sport-${sport.id}`} className="flex flex-col items-center justify-center p-4 border-2 rounded-lg cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors data-[state=checked]:border-primary data-[state=checked]:bg-primary/10">
+                                                                    <Label htmlFor={`sport-${sport.id}`} className="relative flex flex-col items-center justify-center p-4 border-2 rounded-lg cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors data-[state=checked]:border-primary data-[state=checked]:bg-primary/10">
+                                                                        {field.value?.includes(sport.id.toString()) && (
+                                                                            <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-0.5">
+                                                                                <Check className="h-3 w-3" />
+                                                                            </div>
+                                                                        )}
                                                                         <p className="font-semibold text-center">{sport.name}</p>
                                                                         <p className="text-sm text-muted-foreground">₹{sport.amount}</p>
                                                                     </Label>
