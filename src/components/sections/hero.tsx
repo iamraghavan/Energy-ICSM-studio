@@ -7,11 +7,10 @@ export function Hero() {
     <section className="relative w-full h-[60vh] md:h-[70vh] flex items-center justify-center text-white">
       <div className="absolute inset-0">
         <Image
-          src="https://picsum.photos/seed/football-game/1800/1200"
+          src="/energy_web_banner.webp"
           alt="Energy Sports Meet"
           fill
           className="object-cover"
-          data-ai-hint="football soccer match"
           priority
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />

@@ -40,7 +40,7 @@ export function DashboardSidebar() {
         <TooltipProvider>
             <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
                 <Link href="/energy/2026" className="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:w-8 md:text-base">
-                    <Logo className="!text-accent !text-xl"/>
+                    <Logo isIcon />
                     <span className="sr-only">Energy</span>
                 </Link>
                 {navLinks.map(link => {

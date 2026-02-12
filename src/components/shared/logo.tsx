@@ -1,9 +1,34 @@
-import { cn } from "@/lib/utils";
+import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
-export function Logo({ className }: { className?: string }) {
+export function Logo({
+  className,
+  isIcon = false,
+}: {
+  className?: string;
+  isIcon?: boolean;
+}) {
+  if (isIcon) {
+    return (
+      <div className={cn('relative h-6 w-6', className)}>
+        <Image
+          src="/Energy_college_logo.png"
+          alt="Energy Sports Meet Logo"
+          fill
+          className="object-contain"
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className={cn("font-headline text-2xl font-bold text-primary", className)}>
-      Energy
+    <div className={cn('relative h-10 w-28', className)}>
+      <Image
+        src="/Energy_college_logo.png"
+        alt="Energy Sports Meet Logo"
+        fill
+        className="object-contain"
+      />
     </div>
   );
 }
