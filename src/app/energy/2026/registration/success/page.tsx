@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -75,7 +75,7 @@ function SuccessDetails({ registration }: { registration: Registration }) {
     )
 }
 
-export default function RegistrationSuccessPage() {
+function SuccessPageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const registrationId = searchParams.get('id');
@@ -102,30 +102,55 @@ export default function RegistrationSuccessPage() {
             });
     }, [registrationId, router]);
 
+    if (isLoading) {
+        return (
+            <div className="p-8 text-center space-y-4">
+                <Loader2 className="h-12 w-12 mx-auto animate-spin text-primary" />
+                <p className="text-muted-foreground">Finalizing your registration...</p>
+            </div>
+        );
+    }
+    
+    if (error) {
+         return (
+             <CardHeader className="text-center items-center">
+                <CheckCircle className="h-16 w-16 text-green-500" />
+                <CardTitle className="text-2xl font-bold font-headline mt-4">Registration Submitted!</CardTitle>
+                <CardDescription>
+                    Your registration code is <span className="font-mono">{registrationId}</span>. You will receive a confirmation email shortly.
+                </CardDescription>
+                 <div className="pt-4">
+                    <Button asChild variant="link">
+                        <Link href="/energy/2026">Back to Home</Link>
+                    </Button>
+                </div>
+            </CardHeader>
+        );
+    }
+    
+    if (registration) {
+        return <SuccessDetails registration={registration} />;
+    }
+
+    return null;
+}
+
+function LoadingSkeleton() {
+    return (
+        <div className="p-8 text-center space-y-4">
+            <Loader2 className="h-12 w-12 mx-auto animate-spin text-primary" />
+            <p className="text-muted-foreground">Loading...</p>
+        </div>
+    );
+}
+
+export default function RegistrationSuccessPage() {
     return (
         <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
             <Card className="w-full max-w-md">
-                {isLoading && (
-                    <div className="p-8 text-center space-y-4">
-                        <Loader2 className="h-12 w-12 mx-auto animate-spin text-primary" />
-                        <p className="text-muted-foreground">Finalizing your registration...</p>
-                    </div>
-                )}
-                {error && !isLoading && (
-                     <CardHeader className="text-center items-center">
-                        <CheckCircle className="h-16 w-16 text-green-500" />
-                        <CardTitle className="text-2xl font-bold font-headline mt-4">Registration Submitted!</CardTitle>
-                        <CardDescription>
-                            Your registration code is <span className="font-mono">{registrationId}</span>. You will receive a confirmation email shortly.
-                        </CardDescription>
-                         <div className="pt-4">
-                            <Button asChild variant="link">
-                                <Link href="/energy/2026">Back to Home</Link>
-                            </Button>
-                        </div>
-                    </CardHeader>
-                )}
-                {registration && !isLoading && <SuccessDetails registration={registration} />}
+                <Suspense fallback={<LoadingSkeleton />}>
+                    <SuccessPageContent />
+                </Suspense>
             </Card>
         </div>
     );
