@@ -64,8 +64,6 @@ export type Registration = {
     Student: {
         id: string;
         name: string;
-        dob: string;
-        gender: string;
         email: string;
         mobile: string;
         whatsapp: string;
@@ -73,8 +71,6 @@ export type Registration = {
         state: string;
         college_id: string | null;
         other_college: string | null;
-        department: string;
-        year_of_study: string;
         College: {
             id: number;
             name: string;

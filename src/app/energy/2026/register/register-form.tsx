@@ -4,256 +4,175 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format } from "date-fns";
 import Image from "next/image";
-import { createWorker } from 'tesseract.js';
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { registerStudent, type ApiSport } from "@/lib/api";
-import { Loader2, Trophy, Goal, Dribbble, Volleyball, PersonStanding, Waves, Swords, Disc, HelpCircle } from "lucide-react";
-import type { College } from "@/lib/types";
-import { Logo } from "@/components/shared/logo";
+import { Loader2, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Label } from "@/components/ui/label";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png"];
-
-const sportIconMap: { [key: string]: React.ElementType } = {
-    'Cricket': Trophy,
-    'Football': Goal,
-    'Basketball': Dribbble,
-    'Volleyball': Volleyball,
-    '100m Dash': PersonStanding,
-    'Swimming': Waves,
-    'Fencing': Swords,
-    'Discus Throw': Disc,
-};
-
-const getSportIcon = (iconName: string) => {
-    return sportIconMap[iconName] || HelpCircle;
-};
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "application/pdf"];
 
 const formSchema = z.object({
     fullName: z.string().min(3, "Full name must be at least 3 characters."),
-    dob: z.date({ required_error: "Date of birth is required." }).refine((date) => {
-        const sixteenYearsAgo = new Date();
-        sixteenYearsAgo.setFullYear(sixteenYearsAgo.getFullYear() - 16);
-        return date <= sixteenYearsAgo;
-    }, { message: "You must be at least 16 years old." }),
-    gender: z.enum(['male', 'female', 'other'], { required_error: "Please select a gender." }),
     email: z.string().email("Invalid email address."),
     mobile: z.string().length(10, { message: "Mobile number must be 10 digits." }),
     isWhatsappSame: z.boolean().default(false).optional(),
     whatsapp: z.string().optional().or(z.literal('')),
     
-    collegeId: z.string({ required_error: "Please select your college."}),
-    otherCollegeName: z.string().optional(),
-    department: z.string().min(2, "Department is required."),
-    year: z.enum(['I', 'II', 'III', 'IV', 'PG-I', 'PG-II'], { required_error: "Please select your year of study." }),
+    collegeName: z.string().min(3, "College name must be at least 3 characters."),
     cityState: z.string().min(2, "City/State is required."),
     
-    sportType: z.enum(['Individual', 'Team'], { required_error: "Please select an event type." }),
-    sportId: z.string({ required_error: "Please select a sport." }),
+    selected_sport_ids: z.array(z.string()).min(1, "Please select at least one sport."),
     teamName: z.string().optional(),
 
-    needsAccommodation: z.boolean().default(false),
+    isPd: z.boolean().default(false),
+    pdName: z.string().optional(),
+    pdWhatsapp: z.string().optional(),
+    collegeEmail: z.string().optional(),
+    collegeContact: z.string().optional(),
+
     paymentScreenshot: z.any()
         .refine((files) => files?.length == 1, "Payment screenshot is required.")
         .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Max file size is 5MB.`)
         .refine(
             (files) => ACCEPTED_IMAGE_TYPES.includes(files?.[0]?.type),
-            "Only .jpg, .jpeg and .png formats are supported."
+            "Only .jpg, .jpeg, .png, and .pdf formats are supported."
         ),
     transactionId: z.string().min(1, "Transaction ID is required."),
 }).refine(data => {
-    if (data.collegeId === 'other') {
-        return !!data.otherCollegeName && data.otherCollegeName.length > 2;
+    if (data.isPd) {
+        return !!data.pdName && !!data.pdWhatsapp && !!data.collegeEmail && !!data.collegeContact;
     }
     return true;
 }, {
-    message: "Please enter your college name.",
-    path: ["otherCollegeName"],
-}).refine(data => {
-    if (data.sportType === 'Team') {
-        return !!data.teamName && data.teamName.length > 2;
-    }
-    return true;
-}, {
-    message: "Team name is required for team events.",
-    path: ["teamName"],
-}).refine(data => {
-    if (!data.isWhatsappSame && data.whatsapp) {
-        return data.whatsapp.length === 10;
-    }
-    return true;
-}, {
-    message: "WhatsApp number must be 10 digits.",
-    path: ["whatsapp"],
+    message: "Please fill all Physical Director details.",
+    path: ["pdName"], // Show error on first PD field
 });
 
 type FormSchema = z.infer<typeof formSchema>;
 
-type FormSport = {
-    id: string;
-    name: string;
-    type: "Team" | "Individual";
-    icon: React.ElementType;
-    amount: string;
-};
-
-export function RegisterForm({ colleges, sports: apiSports }: { colleges: College[], sports: ApiSport[] }) {
+export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
     const { toast } = useToast();
     const router = useRouter();
-    const [filteredSports, setFilteredSports] = useState<FormSport[]>([]);
-    const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
-    const [isOcrLoading, setIsOcrLoading] = useState(false);
-    const [registrationFee, setRegistrationFee] = useState("0.00");
     const [isClient, setIsClient] = useState(false);
+    
+    const [selectedCategories, setSelectedCategories] = useState<string[]>(['Boys', 'Girls']);
+    const [filteredSports, setFilteredSports] = useState<ApiSport[]>([]);
+
+    const [totalAmount, setTotalAmount] = useState(0);
+    const [qrCodeUrl, setQrCodeUrl] = useState('');
+    const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
 
     const cityStateInputRef = useRef<HTMLInputElement | null>(null);
     const autocompleteRef = useRef<any>(null);
-
-    useEffect(() => {
-        setIsClient(true);
-    }, []);
-    
-    const sports = useMemo(() => {
-        if (!apiSports) return [];
-        return apiSports.map((s) => ({
-            ...s, 
-            id: String(s.id),
-            icon: getSportIcon(s.name)
-        }));
-    }, [apiSports]);
 
     const form = useForm<FormSchema>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             isWhatsappSame: false,
-            needsAccommodation: false,
             fullName: "",
             email: "",
             mobile: "",
             whatsapp: "",
-            collegeId: "",
-            otherCollegeName: "",
-            department: "",
+            collegeName: "",
             cityState: "",
-            sportId: "",
+            selected_sport_ids: [],
             teamName: "",
             transactionId: "",
+            isPd: false,
         }
     });
 
-    const { watch, setValue, getValues } = form;
-    const sportType = watch('sportType');
-    const collegeId = watch('collegeId');
+    const { watch, setValue, getValues, control, formState: { isSubmitting } } = form;
+
+    const selectedSportIds = watch('selected_sport_ids', []);
     const isWhatsappSame = watch('isWhatsappSame');
     const mobile = watch('mobile');
+    const isPd = watch('isPd');
     const paymentScreenshot = watch('paymentScreenshot');
-    const sportId = watch('sportId');
 
+    // Filter sports based on selected categories
     useEffect(() => {
-        if (sportId) {
-            const selectedSport = sports.find(s => s.id === sportId);
-            if (selectedSport) {
-                setRegistrationFee(parseFloat(selectedSport.amount).toFixed(2));
-            }
-        } else {
-            setRegistrationFee("0.00");
-        }
-    }, [sportId, sports]);
+        const filtered = apiSports.filter(sport => selectedCategories.includes(sport.category));
+        setFilteredSports(filtered);
 
-    useEffect(() => {
-        if (sportType) {
-            setFilteredSports(sports.filter(s => s.type === sportType));
-            setValue('sportId', ''); // Reset sport selection
+        // Also deselect any sports that are no longer visible
+        const currentSelected = getValues('selected_sport_ids');
+        const filteredSportIds = new Set(filtered.map(s => s.id.toString()));
+        const newSelected = currentSelected.filter(id => filteredSportIds.has(id));
+
+        if (newSelected.length !== currentSelected.length) {
+            setValue('selected_sport_ids', newSelected, { shouldValidate: true });
         }
-    }, [sportType, setValue, sports]);
+    }, [selectedCategories, apiSports, setValue, getValues]);
     
+    const sportsByCategory = useMemo(() => {
+        return filteredSports.reduce((acc, sport) => {
+            const category = sport.category;
+            if (!acc[category]) {
+                acc[category] = [];
+            }
+            acc[category].push(sport);
+            return acc;
+        }, {} as Record<string, ApiSport[]>);
+    }, [filteredSports]);
+
+
+    // Calculate total amount
+    useEffect(() => {
+        const amount = selectedSportIds.reduce((sum, sportId) => {
+            const sport = apiSports.find(s => s.id.toString() === sportId);
+            return sum + (sport ? parseFloat(sport.amount) : 0);
+        }, 0);
+        setTotalAmount(amount);
+    }, [selectedSportIds, apiSports]);
+
+    // Generate QR code URL
+    useEffect(() => {
+        if (totalAmount > 0) {
+            const upiId = "EGSPILLAYENGG@dbs";
+            const payeeName = "EGS Pillay Institutions";
+            const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${totalAmount.toFixed(2)}&cu=INR`;
+            setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiUrl)}`);
+        } else {
+            setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=Please-select-a-sport`);
+        }
+    }, [totalAmount]);
+    
+    // Auto-fill WhatsApp number
     useEffect(() => {
         if (isWhatsappSame) {
-            setValue('whatsapp', watch('mobile'));
+            setValue('whatsapp', mobile);
         } else {
             setValue('whatsapp', '');
         }
-    }, [isWhatsappSame, mobile, setValue, watch]);
+    }, [isWhatsappSame, mobile, setValue]);
+    
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
 
+    // OCR for transaction ID
     useEffect(() => {
         if (paymentScreenshot && paymentScreenshot.length > 0) {
             const file = paymentScreenshot[0];
             if (ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    setScreenshotPreview(reader.result as string);
-                };
-                reader.readAsDataURL(file);
-
-                const runOcr = async () => {
-                    setIsOcrLoading(true);
-                    toast({
-                        title: 'Analyzing Screenshot...',
-                        description: 'Extracting transaction ID. Please wait.',
-                    });
-                    try {
-                        const worker = await createWorker('eng');
-                        const { data: { text } } = await worker.recognize(file);
-                        
-                        const patterns = [
-                            /(?:Transaction|Ref|Reference|ID|No|Utr)\.?:?\s*([a-zA-Z0-9]{12,})/i,
-                            /(\b\d{12,}\b)/, 
-                        ];
-
-                        let transactionId: string | null = null;
-                        for (const pattern of patterns) {
-                            const match = text.match(pattern);
-                            if (match && match[1]) {
-                                transactionId = match[1];
-                                break;
-                            }
-                        }
-
-                        if (!transactionId) {
-                            const genericMatch = text.match(/\b([a-zA-Z0-9]{12,})\b/);
-                             if (genericMatch && genericMatch[0]) {
-                                transactionId = genericMatch[0];
-                            }
-                        }
-
-                        if (transactionId) {
-                            setValue('transactionId', transactionId, { shouldValidate: true });
-                            toast({
-                                title: "Transaction ID Found!",
-                                description: `We've auto-filled the ID: ${transactionId}`,
-                            });
-                        } else {
-                            toast({
-                                variant: "destructive",
-                                title: "Could not find Transaction ID",
-                                description: "Please enter the Transaction ID manually.",
-                            });
-                        }
-
-                        await worker.terminate();
-                    } catch (error) {
-                        console.error('OCR Error:', error);
-                        toast({
-                            variant: "destructive",
-                            title: "OCR Failed",
-                            description: "Could not read the screenshot. Please enter the ID manually.",
-                        });
-                    } finally {
-                        setIsOcrLoading(false);
-                    }
-                };
-                runOcr();
+                // For PDF, we can't show a preview easily, so just show filename
+                if (file.type === 'application/pdf') {
+                    setScreenshotPreview(`PDF: ${file.name}`);
+                } else {
+                    const reader = new FileReader();
+                    reader.onloadend = () => setScreenshotPreview(reader.result as string);
+                    reader.readAsDataURL(file);
+                }
 
             } else {
                  setScreenshotPreview(null);
@@ -263,15 +182,13 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
         }
     }, [paymentScreenshot, setValue, toast]);
 
+
+    // Google Places Autocomplete
     useEffect(() => {
-        if (!isClient || !cityStateInputRef.current) {
-            return;
-        }
+        if (!isClient || !cityStateInputRef.current) return;
 
         const initAutocomplete = () => {
-            if (autocompleteRef.current) return;
-            if (!(window as any).google?.maps?.places) {
-                 // If google object is not available, try again after a short delay
+            if (autocompleteRef.current || !(window as any).google?.maps?.places) {
                 setTimeout(initAutocomplete, 100);
                 return;
             }
@@ -282,386 +199,284 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
             );
             autocompleteRef.current.setFields(["address_components", "formatted_address"]);
             
-            const handlePlaceSelect = () => {
+            autocompleteRef.current.addListener("place_changed", () => {
                 const place = autocompleteRef.current.getPlace();
-                if (place && place.address_components) {
-                    const city = place.address_components.find((c: any) => c.types.includes('locality'))?.long_name;
-                    const state = place.address_components.find((c: any) => c.types.includes('administrative_area_level_1'))?.long_name;
-
-                    if (city && state) {
-                        setValue('cityState', `${city}, ${state}`, { shouldValidate: true });
-                    } else if (city) {
-                        setValue('cityState', city, { shouldValidate: true });
-                    } else if (place.formatted_address) {
-                        setValue('cityState', place.formatted_address, { shouldValidate: true });
-                    }
+                if (place?.formatted_address) {
+                    setValue('cityState', place.formatted_address, { shouldValidate: true });
                 }
-            };
-
-            autocompleteRef.current.addListener("place_changed", handlePlaceSelect);
+            });
         }
         
         initAutocomplete();
 
         return () => {
-            if (autocompleteRef.current) {
-                // The google object might not be available during cleanup in some fast refresh scenarios
-                if ((window as any).google?.maps?.event) {
-                    (window as any).google.maps.event.clearInstanceListeners(autocompleteRef.current);
-                }
+            if (autocompleteRef.current && (window as any).google?.maps?.event) {
+                (window as any).google.maps.event.clearInstanceListeners(autocompleteRef.current);
             }
         };
     }, [isClient, setValue]);
 
-    useEffect(() => {
-        if (collegeId && collegeId !== 'other' && !getValues('cityState')) {
-            const selectedCollege = colleges.find(c => c.id === collegeId);
-            if (selectedCollege) {
-                setValue('cityState', `${selectedCollege.city}, ${selectedCollege.state}`);
-            }
-        }
-    }, [collegeId, colleges, setValue, getValues]);
 
     const onSubmit = async (data: FormSchema) => {
-        const apiFormData = new FormData();
-
-        apiFormData.append('name', data.fullName);
-        apiFormData.append('dob', format(data.dob, 'yyyy-MM-dd'));
-        apiFormData.append('gender', data.gender);
-        apiFormData.append('email', data.email);
-        apiFormData.append('mobile', data.mobile);
-        apiFormData.append('department', data.department);
-        apiFormData.append('year_of_study', data.year);
-        apiFormData.append('sport_id', data.sportId);
-        apiFormData.append('txn_id', data.transactionId);
-        apiFormData.append('accommodation_needed', String(data.needsAccommodation));
-
-        if (data.isWhatsappSame) {
-            apiFormData.append('whatsapp', data.mobile);
-        } else if (data.whatsapp) {
-            apiFormData.append('whatsapp', data.whatsapp);
-        }
-
-        if (data.collegeId === 'other') {
-            if (data.otherCollegeName) {
-                apiFormData.append('other_college', data.otherCollegeName);
-            }
-        } else {
-            apiFormData.append('college_id', data.collegeId);
-        }
-
+        const formData = new FormData();
+        
+        // Append all fields as per API guide
+        formData.append('name', data.fullName);
+        formData.append('email', data.email);
+        formData.append('mobile', data.mobile);
+        formData.append('whatsapp', data.isWhatsappSame ? data.mobile : data.whatsapp || '');
+        
         const [city, state] = data.cityState.split(',').map(s => s.trim());
-        if(city) apiFormData.append('city', city);
-        if(state) apiFormData.append('state', state);
+        if(city) formData.append('city', city);
+        if(state) formData.append('state', state || city); // If no state, use city
 
-        if (data.sportType === 'Team' && data.teamName) {
-            apiFormData.append('create_team', 'true');
-            apiFormData.append('team_name', data.teamName);
+        formData.append('other_college', data.collegeName);
+        
+        formData.append('selected_sport_ids', data.selected_sport_ids.join(','));
+        
+        const hasTeamSport = data.selected_sport_ids.some(id => apiSports.find(s => s.id.toString() === id)?.type === 'Team');
+        if (hasTeamSport && data.teamName) {
+             formData.append('create_team', 'true');
+             formData.append('team_name', data.teamName);
         }
+
+        if (data.isPd) {
+            if(data.pdName) formData.append('pd_name', data.pdName);
+            if(data.pdWhatsapp) formData.append('pd_whatsapp', data.pdWhatsapp);
+            if(data.collegeEmail) formData.append('college_email', data.collegeEmail);
+            if(data.collegeContact) formData.append('college_contact', data.collegeContact);
+        }
+
+        formData.append('accommodation_needed', 'false');
+        formData.append('txn_id', data.transactionId);
 
         if (data.paymentScreenshot && data.paymentScreenshot.length > 0) {
-            apiFormData.append('screenshot', data.paymentScreenshot[0]);
+            formData.append('screenshot', data.paymentScreenshot[0]);
         }
 
         try {
-            const result = await registerStudent(apiFormData);
-             toast({
+            const result = await registerStudent(formData);
+            toast({
                 title: "Registration Submitted!",
                 description: `We're finalizing your registration. One moment...`,
             });
             router.push(`/energy/2026/registration/success?id=${result.registration_code}`);
         } catch (error: any) {
             console.error("Form submission error:", error);
-            const errorMessage = error.response?.data?.error || error.response?.data?.details || error.response?.data?.message || "An unknown error occurred. Please try again.";
+            const errorMessage = error.response?.data?.error || error.response?.data?.message || "An unknown error occurred. Please try again.";
             router.push(`/energy/2026/registration/failure?error=${encodeURIComponent(errorMessage)}`);
         }
     };
-
-    const { formState: { isSubmitting } } = form;
-
-    const sixteenYearsAgo = new Date();
-    sixteenYearsAgo.setFullYear(sixteenYearsAgo.getFullYear() - 16);
+    
+    const hasSelectedTeamSport = watch('selected_sport_ids', []).some(id => {
+        const sport = apiSports.find(s => s.id.toString() === id);
+        return sport?.type === 'Team';
+    });
 
     return (
         <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
-            <Card className="w-full max-w-2xl my-8">
-                <CardHeader className="text-center">
-                    <div className="mx-auto">
-                        <Logo />
-                    </div>
-                    <CardTitle className="font-headline text-3xl mt-4">Energy Sports Meet 2026 Registration</CardTitle>
-                    <CardDescription>Join the ultimate inter-college showdown!</CardDescription>
+            <Card className="w-full max-w-4xl my-8">
+                <CardHeader className="text-center bg-primary/5 p-6 rounded-t-lg">
+                    <h1 className="font-headline text-2xl md:text-3xl font-bold text-primary">Chevalier Dr.G.S.Pillay Memorial Tournament</h1>
+                    <h2 className="font-headline text-xl md:text-2xl font-semibold">ENERGY - 2026</h2>
+                    <p className="text-muted-foreground">AN INTER-COLLEGE SPORTS MEET</p>
+                    <p className="text-sm mt-2">Organized by the Department of Physical Education, E.G.S. Pillay Group of Institutions, Nagapattinam.</p>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-4 md:p-8">
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-
-                            {/* Personal Information */}
+                            
                             <FormSection title="Personal Details">
-                                <FormField name="fullName" control={form.control} render={({ field }) => (
-                                    <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="Enter your full name" {...field} /></FormControl><FormMessage /></FormItem>
-                                )} />
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                     <FormField name="dob" control={form.control} render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Date of Birth</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="date"
-                                                    className="w-full"
-                                                    value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
-                                                    onChange={(e) => {
-                                                        if (e.target.value) {
-                                                            const date = new Date(e.target.value);
-                                                            const userTimezoneOffset = date.getTimezoneOffset() * 60000;
-                                                            field.onChange(new Date(date.getTime() + userTimezoneOffset));
-                                                        } else {
-                                                            field.onChange(undefined);
-                                                        }
-                                                    }}
-                                                    max={isClient ? sixteenYearsAgo.toISOString().split("T")[0] : undefined}
-                                                    min="1950-01-01"
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    <FormField name="fullName" control={control} render={({ field }) => (
+                                        <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="Enter your full name" {...field} /></FormControl><FormMessage /></FormItem>
                                     )} />
-                                    <FormField name="gender" control={form.control} render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Gender</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <FormControl><SelectTrigger><SelectValue placeholder="Select your gender" /></SelectTrigger></FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="male">Male</SelectItem>
-                                                    <SelectItem value="female">Female</SelectItem>
-                                                    <SelectItem value="other">Other</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
+                                    <FormField name="email" control={control} render={({ field }) => (
+                                        <FormItem><FormLabel>Email Address</FormLabel><FormControl><Input type="email" placeholder="student@college.edu" {...field} /></FormControl><FormMessage /></FormItem>
                                     )} />
                                 </div>
-                                <FormField name="email" control={form.control} render={({ field }) => (
-                                    <FormItem><FormLabel>Email Address</FormLabel><FormControl><Input type="email" placeholder="student@college.edu" {...field} /></FormControl><FormMessage /></FormItem>
-                                )} />
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                     <FormField
-                                        control={form.control}
-                                        name="mobile"
-                                        render={({ field }) => (
+                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                     <FormField control={control} name="mobile" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Mobile Number</FormLabel>
-                                            <FormControl>
-                                                <div className="relative">
-                                                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                                        <span className="text-muted-foreground">+91</span>
-                                                    </div>
-                                                    <Input
-                                                        placeholder="Enter 10-digit number"
-                                                        type="tel"
-                                                        maxLength={10}
-                                                        {...field}
-                                                        onChange={e => {
-                                                            const { value } = e.target;
-                                                            if (/^\d*$/.test(value)) {
-                                                                field.onChange(value);
-                                                            }
-                                                        }}
-                                                        className="pl-12"
-                                                    />
-                                                </div>
-                                            </FormControl>
+                                            <FormControl><div className="relative"><div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><span className="text-muted-foreground">+91</span></div><Input placeholder="Enter 10-digit number" type="tel" maxLength={10} {...field} onChange={e => /^\d*$/.test(e.target.value) && field.onChange(e.target.value)} className="pl-12" /></div></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                         )}
                                     />
-                                    <FormField name="whatsapp" control={form.control} render={({ field }) => (
+                                    <FormField name="whatsapp" control={control} render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>WhatsApp Number</FormLabel>
-                                            <FormControl>
-                                                <div className="relative">
-                                                     <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                                        <span className="text-muted-foreground">+91</span>
-                                                    </div>
-                                                    <Input 
-                                                        type="tel" 
-                                                        maxLength={10}
-                                                        disabled={isWhatsappSame} 
-                                                        {...field} 
-                                                        onChange={e => {
-                                                            const { value } = e.target;
-                                                            if (/^\d*$/.test(value)) {
-                                                                field.onChange(value);
-                                                            }
-                                                        }}
-                                                        className="pl-12"
-                                                    />
-                                                </div>
-                                            </FormControl>
-                                            <div className="flex items-center space-x-2 pt-2">
-                                                <Checkbox id="isWhatsappSame" checked={isWhatsappSame} onCheckedChange={(checked) => setValue('isWhatsappSame', !!checked)} />
-                                                <label htmlFor="isWhatsappSame" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Same as mobile</label>
-                                            </div>
+                                            <FormControl><div className="relative"><div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><span className="text-muted-foreground">+91</span></div><Input type="tel" maxLength={10} disabled={isWhatsappSame} {...field} onChange={e => /^\d*$/.test(e.target.value) && field.onChange(e.target.value)} className="pl-12" /></div></FormControl>
+                                            <div className="flex items-center space-x-2 pt-2"><Checkbox id="isWhatsappSame" checked={isWhatsappSame} onCheckedChange={(checked) => setValue('isWhatsappSame', !!checked)} /><label htmlFor="isWhatsappSame" className="text-sm font-medium leading-none">Same as mobile</label></div>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
                                 </div>
                             </FormSection>
 
-                            {/* Academic Details */}
                             <FormSection title="Academic Details">
-                                <FormField name="collegeId" control={form.control} render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>College Name</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Search and select your college" /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                {colleges.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                                {collegeId === 'other' && (
-                                     <FormField name="otherCollegeName" control={form.control} render={({ field }) => (
-                                        <FormItem><FormLabel>Enter Your College Name</FormLabel><FormControl><Input placeholder="Your college name" {...field} /></FormControl><FormMessage /></FormItem>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <FormField name="collegeName" control={control} render={({ field }) => (
+                                        <FormItem><FormLabel>College Name</FormLabel><FormControl><Input placeholder="Enter your college name" {...field} /></FormControl><FormMessage /></FormItem>
                                     )} />
-                                )}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <FormField name="department" control={form.control} render={({ field }) => (
-                                        <FormItem><FormLabel>Department</FormLabel><FormControl><Input placeholder="e.g. CSE" {...field} /></FormControl><FormMessage /></FormItem>
-                                    )} />
-                                    <FormField name="year" control={form.control} render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Year of Study</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <FormControl><SelectTrigger><SelectValue placeholder="Select year" /></SelectTrigger></FormControl>
-                                                <SelectContent>
-                                                    {['I', 'II', 'III', 'IV', 'PG-I', 'PG-II'].map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )} />
-                                    <FormField name="cityState" control={form.control} render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>City/State</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    placeholder="e.g. Chennai, Tamil Nadu"
-                                                    {...field}
-                                                    ref={(el) => {
-                                                        field.ref(el);
-                                                        cityStateInputRef.current = el;
-                                                    }}
-                                                />
-                                            </FormControl>
+                                    <FormField name="cityState" control={control} render={({ field }) => (
+                                        <FormItem><FormLabel>City/State</FormLabel>
+                                            <FormControl><Input placeholder="e.g. Chennai, Tamil Nadu" {...field} ref={(el) => { field.ref(el); cityStateInputRef.current = el; }} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
                                 </div>
                             </FormSection>
                             
-                             {/* Sport Selection */}
-                             <FormSection title="Sport Selection">
-                                <FormField name="sportType" control={form.control} render={({ field }) => (
-                                    <FormItem className="space-y-3">
-                                        <FormLabel>Event Type</FormLabel>
-                                        <FormControl>
-                                            <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4">
-                                                <FormItem className="flex items-center space-x-3 space-y-0">
-                                                    <FormControl><RadioGroupItem value="Individual" /></FormControl>
-                                                    <FormLabel className="font-normal">Individual Event</FormLabel>
-                                                </FormItem>
-                                                <FormItem className="flex items-center space-x-3 space-y-0">
-                                                    <FormControl><RadioGroupItem value="Team" /></FormControl>
-                                                    <FormLabel className="font-normal">Team Event</FormLabel>
-                                                </FormItem>
-                                            </RadioGroup>
-                                        </FormControl>
-                                        <FormMessage />
+                            <FormSection title="Sport Selection">
+                                <div className="space-y-3">
+                                    <Label>Category Preference</Label>
+                                    <div className="flex gap-4 items-center">
+                                        {['Boys', 'Girls'].map(category => (
+                                            <FormItem key={category} className="flex flex-row items-start space-x-3 space-y-0">
+                                                <FormControl>
+                                                    <Checkbox
+                                                        checked={selectedCategories.includes(category)}
+                                                        onCheckedChange={(checked) => {
+                                                            setSelectedCategories(prev => 
+                                                                checked ? [...prev, category] : prev.filter(c => c !== category)
+                                                            );
+                                                        }}
+                                                    />
+                                                </FormControl>
+                                                <Label className="font-normal">{category} Category</Label>
+                                            </FormItem>
+                                        ))}
+                                    </div>
+                                </div>
+                                
+                                <FormField control={control} name="selected_sport_ids" render={({ field }) => (
+                                    <FormItem>
+                                        <div className="space-y-6">
+                                            {Object.keys(sportsByCategory).sort().map(category => (
+                                                <div key={category}>
+                                                    <h4 className="text-md font-semibold text-muted-foreground pb-2">{category} Sports</h4>
+                                                    {sportsByCategory[category].length > 0 ? (
+                                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                                            {sportsByCategory[category].map((sport) => (
+                                                                <FormItem key={sport.id} className="rounded-lg">
+                                                                    <FormControl>
+                                                                        <Checkbox
+                                                                            checked={field.value?.includes(sport.id.toString())}
+                                                                            onCheckedChange={(checked) => {
+                                                                                return checked
+                                                                                ? field.onChange([...(field.value || []), sport.id.toString()])
+                                                                                : field.onChange(field.value?.filter((value) => value !== sport.id.toString()))
+                                                                            }}
+                                                                            className="sr-only"
+                                                                            id={`sport-${sport.id}`}
+                                                                        />
+                                                                    </FormControl>
+                                                                    <Label htmlFor={`sport-${sport.id}`} className="relative flex flex-col items-center justify-center p-4 border-2 rounded-lg cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors data-[state=checked]:border-primary data-[state=checked]:bg-primary/10">
+                                                                        {field.value?.includes(sport.id.toString()) && (
+                                                                            <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-0.5">
+                                                                                <Check className="h-3 w-3" />
+                                                                            </div>
+                                                                        )}
+                                                                        <p className="font-semibold text-center">{sport.name}</p>
+                                                                        <p className="text-sm text-muted-foreground">₹{sport.amount}</p>
+                                                                    </Label>
+                                                                </FormItem>
+                                                            ))}
+                                                        </div>
+                                                    ) : <p className="text-muted-foreground col-span-full text-center">No sports available for this category.</p>}
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <FormMessage className="pt-2"/>
                                     </FormItem>
-                                )} />
-                                {sportType && (
-                                     <FormField name="sportId" control={form.control} render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Sport</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
-                                                <FormControl><SelectTrigger><SelectValue placeholder={`Select a ${sportType.toLowerCase()} sport`} /></SelectTrigger></FormControl>
-                                                <SelectContent>
-                                                    {filteredSports.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )} />
-                                )}
-                                {sportType === 'Team' && (
-                                    <FormField name="teamName" control={form.control} render={({ field }) => (
-                                        <FormItem><FormLabel>Team Name</FormLabel><FormControl><Input placeholder="Enter your team name" {...field} /></FormControl><FormMessage /></FormItem>
-                                    )} />
-                                )}
-                             </FormSection>
+                                )}/>
 
-                             {/* Accommodation & Payment */}
-                             <FormSection title="Accommodation & Payment">
-                                <FormField control={form.control} name="needsAccommodation" render={({ field }) => (
+                                {hasSelectedTeamSport && (
+                                    <FormField name="teamName" control={control} render={({ field }) => (
+                                        <FormItem><FormLabel>Team Name</FormLabel><FormControl><Input placeholder="Enter your team name for all team events" {...field} /></FormControl><FormMessage /></FormItem>
+                                    )} />
+                                )}
+                            </FormSection>
+
+                             <FormSection title="Physical Director (PD) Information">
+                                <FormField control={control} name="isPd" render={({ field }) => (
                                     <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                                         <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                                         <div className="space-y-1 leading-none">
-                                            <FormLabel>I require accommodation during the event.</FormLabel>
-                                            <FormDescription>Note: Accommodation charges may apply separately.</FormDescription>
+                                            <FormLabel>I am a Physical Director / managing a college-wide entry.</FormLabel>
+                                            <FormDescription>Select this to provide your contact details for event coordination.</FormDescription>
                                         </div>
                                     </FormItem>
                                 )} />
-                                
+                                {isPd && (
+                                    <div className="space-y-4 pt-4">
+                                        <div className="grid md:grid-cols-2 gap-4">
+                                            <FormField name="pdName" control={control} render={({ field }) => (<FormItem><FormLabel>PD Name</FormLabel><FormControl><Input placeholder="Name of the Physical Director" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField name="pdWhatsapp" control={control} render={({ field }) => (<FormItem><FormLabel>PD WhatsApp</FormLabel><FormControl><Input type="tel" placeholder="WhatsApp number for coordination" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                        </div>
+                                         <div className="grid md:grid-cols-2 gap-4">
+                                            <FormField name="collegeEmail" control={control} render={({ field }) => (<FormItem><FormLabel>College Office Email</FormLabel><FormControl><Input type="email" placeholder="Official college email" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField name="collegeContact" control={control} render={({ field }) => (<FormItem><FormLabel>College Contact No.</FormLabel><FormControl><Input type="tel" placeholder="Landline or official contact" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                        </div>
+                                    </div>
+                                )}
+                             </FormSection>
+
+                             <FormSection title="Payment Details">
                                 <div className="space-y-4 rounded-lg border bg-muted/50 p-4">
-                                    <div className="flex justify-between items-center">
-                                        <p className="font-medium">Registration Fee:</p>
-                                        <p className="font-bold text-lg text-primary">₹{registrationFee}</p>
+                                    <div className="flex justify-between items-center font-bold text-lg">
+                                        <p>Total Amount:</p>
+                                        <p className="text-primary">₹{totalAmount.toFixed(2)}</p>
                                     </div>
-                                    <p className="text-sm text-muted-foreground">Please pay using the QR code below, upload the screenshot, and we will attempt to find the transaction ID for you.</p>
+
+                                    {selectedSportIds.length > 0 && (
+                                        <div className="space-y-1">
+                                            <p className="text-sm font-medium">Selected Sports:</p>
+                                            <ul className="list-disc list-inside text-sm text-muted-foreground">
+                                                {selectedSportIds.map(id => {
+                                                    const sport = apiSports.find(s => s.id.toString() === id);
+                                                    return <li key={id}>{sport?.name} ({sport?.category}) - ₹{sport?.amount}</li>
+                                                })}
+                                            </ul>
+                                        </div>
+                                    )}
+
+                                    <p className="text-sm text-muted-foreground">Please pay the total amount using the QR code below and enter the transaction details.</p>
                                     <div className="flex justify-center">
-                                        <Image src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=example@upi" alt="Payment QR Code" width={150} height={150} />
+                                        {totalAmount > 0 ? (
+                                            <Image src={qrCodeUrl} alt="Payment QR Code" width={150} height={150} />
+                                        ) : (
+                                            <div className="w-[150px] h-[150px] flex items-center justify-center bg-background border rounded-md">
+                                                <p className="text-xs text-muted-foreground text-center p-2">Select a sport to generate QR code</p>
+                                            </div>
+                                        )}
                                     </div>
-                                     <FormField control={form.control} name="paymentScreenshot" render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Upload Payment Screenshot</FormLabel>
-                                            <FormControl>
-                                                <Input type="file" accept={ACCEPTED_IMAGE_TYPES.join(',')} onChange={(e) => field.onChange(e.target.files)} />
-                                            </FormControl>
-                                            <FormDescription>File must be a JPG, or PNG under 5MB.</FormDescription>
+                                     <FormField control={control} name="paymentScreenshot" render={({ field }) => (
+                                        <FormItem><FormLabel>Upload Payment Screenshot</FormLabel>
+                                            <FormControl><Input type="file" accept={ACCEPTED_IMAGE_TYPES.join(',')} onChange={(e) => field.onChange(e.target.files)} /></FormControl>
+                                            <FormDescription>File must be JPG, PNG, or PDF, under 5MB.</FormDescription>
                                             <FormMessage />
                                         </FormItem>
                                      )} />
                                      {screenshotPreview && (
-                                        <div className="mt-4">
-                                            <p className="text-sm font-medium mb-2">Screenshot Preview:</p>
-                                            <Image src={screenshotPreview} alt="Screenshot preview" width={200} height={400} className="rounded-md border object-contain" />
+                                        <div className="mt-4"><p className="text-sm font-medium mb-2">Screenshot Preview:</p>
+                                         {screenshotPreview.startsWith('PDF:') ? <p className="font-mono text-sm p-2 bg-background rounded-md border">{screenshotPreview}</p> : <Image src={screenshotPreview} alt="Screenshot preview" width={200} height={400} className="rounded-md border object-contain" />}
                                         </div>
                                      )}
-                                     <FormField name="transactionId" control={form.control} render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="flex items-center gap-2">
-                                                Transaction ID
-                                                {isOcrLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-                                            </FormLabel>
-                                            <FormControl>
-                                                <Input 
-                                                    placeholder={isOcrLoading ? "Reading from screenshot..." : "Enter the UPI Transaction ID"} 
-                                                    {...field} 
-                                                    disabled={isOcrLoading}
-                                                />
-                                            </FormControl>
+                                     <FormField name="transactionId" control={control} render={({ field }) => (
+                                        <FormItem><FormLabel>Transaction ID</FormLabel>
+                                            <FormControl><Input placeholder="Enter the UPI Transaction ID" {...field} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
                                 </div>
                              </FormSection>
 
-                            <Button type="submit" className="w-full" disabled={isSubmitting || isOcrLoading}>
-                                {(isSubmitting || isOcrLoading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {isSubmitting ? "Processing..." : (isOcrLoading ? 'Analyzing...' : 'Complete Registration')}
+                            <Button type="submit" className="w-full" disabled={isSubmitting}>
+                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {isSubmitting ? "Processing..." : 'Register Now'}
                             </Button>
                         </form>
                     </Form>
@@ -674,8 +489,8 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
 function FormSection({ title, children }: { title: string, children: React.ReactNode }) {
     return (
         <div className="space-y-4">
-            <h3 className="text-lg font-semibold font-headline border-b pb-2">{title}</h3>
-            <div className="space-y-4">{children}</div>
+            <h3 className="text-xl font-semibold font-headline border-b pb-2">{title}</h3>
+            <div className="space-y-4 pt-4">{children}</div>
         </div>
     );
 }
