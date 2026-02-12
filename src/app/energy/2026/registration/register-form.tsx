@@ -6,6 +6,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import Tesseract from 'tesseract.js';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,7 +55,7 @@ const formSchema = z.object({
     return true;
 }, {
     message: "Please fill all Physical Director details.",
-    path: ["collegeEmail"], // Show error on first editable PD field
+    path: ["collegeEmail"],
 });
 
 type FormSchema = z.infer<typeof formSchema>;
@@ -70,6 +71,8 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
     const [totalAmount, setTotalAmount] = useState(0);
     const [qrCodeUrl, setQrCodeUrl] = useState('');
     const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+    const [isOcrRunning, setIsOcrRunning] = useState(false);
+
 
     const cityStateInputRef = useRef<HTMLInputElement | null>(null);
     const autocompleteRef = useRef<any>(null);
@@ -172,7 +175,7 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
         setIsClient(true);
     }, []);
 
-    // Screenshot preview
+    // Screenshot preview and OCR for transaction ID
     useEffect(() => {
         if (paymentScreenshot && paymentScreenshot.length > 0) {
             const file = paymentScreenshot[0];
@@ -183,6 +186,55 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                     const reader = new FileReader();
                     reader.onloadend = () => setScreenshotPreview(reader.result as string);
                     reader.readAsDataURL(file);
+
+                    const runOcr = async () => {
+                        setIsOcrRunning(true);
+                        toast({
+                            title: 'Scanning Screenshot...',
+                            description: 'Attempting to read the transaction ID.',
+                        });
+                        try {
+                            const { data: { text } } = await Tesseract.recognize(file, 'eng');
+                            
+                            const upiIdRegex = /(?:\bRef No\.?|Transaction ID|UPI Transaction ID|ID)\s*:?\s*([a-zA-Z0-9]{12,35})/i;
+                            const numberRegex = /\b\d{12,}\b/; // Look for a 12+ digit number, common for UPI IDs
+                            
+                            let match = text.match(upiIdRegex);
+
+                            if (match && match[1]) {
+                                setValue('transactionId', match[1], { shouldValidate: true });
+                                toast({
+                                    title: 'Transaction ID Found!',
+                                    description: `Extracted: ${match[1]}. Please verify.`,
+                                });
+                            } else {
+                                match = text.match(numberRegex);
+                                if (match && match[0]) {
+                                    setValue('transactionId', match[0], { shouldValidate: true });
+                                    toast({
+                                        title: 'Potential Transaction ID Found',
+                                        description: `Please verify this ID: ${match[0]}`,
+                                    });
+                                } else {
+                                    toast({
+                                        variant: 'destructive',
+                                        title: 'Could Not Find ID',
+                                        description: 'Please enter the transaction ID manually.',
+                                    });
+                                }
+                            }
+                        } catch (err) {
+                            console.error("OCR Error:", err);
+                            toast({
+                                variant: 'destructive',
+                                title: 'OCR Failed',
+                                description: 'Could not read the image. Please enter ID manually.',
+                            });
+                        } finally {
+                            setIsOcrRunning(false);
+                        }
+                    };
+                    runOcr();
                 }
             } else {
                  setScreenshotPreview(null);
@@ -190,7 +242,8 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
         } else {
             setScreenshotPreview(null);
         }
-    }, [paymentScreenshot]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [paymentScreenshot, setValue]);
 
 
     // Google Places Autocomplete
@@ -513,7 +566,12 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                                      )}
                                      <FormField name="transactionId" control={control} render={({ field }) => (
                                         <FormItem><FormLabel>Transaction ID</FormLabel>
-                                            <FormControl><Input placeholder="Enter the UPI Transaction ID" {...field} /></FormControl>
+                                            <FormControl>
+                                                <div className="relative">
+                                                     <Input placeholder="Enter the UPI Transaction ID" {...field} disabled={isOcrRunning} />
+                                                     {isOcrRunning && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin" />}
+                                                </div>
+                                            </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
