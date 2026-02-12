@@ -15,6 +15,7 @@ const navLinks = [
   { href: '/energy/2026/instructions', label: 'General Instructions' },
   { href: '/energy/2026/rules', label: 'Important Rules' },
   { href: '/energy/2026/about', label: 'About' },
+  { href: '/energy/2026/contact', label: 'Contact' },
 ];
 
 export function Header() {
