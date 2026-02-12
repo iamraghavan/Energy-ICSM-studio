@@ -264,36 +264,51 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
     }, [paymentScreenshot, setValue, toast]);
 
     useEffect(() => {
-        if (!isClient || !(window as any).google || !cityStateInputRef.current) return;
-        if (autocompleteRef.current) return;
+        if (!isClient || !cityStateInputRef.current) {
+            return;
+        }
 
-        autocompleteRef.current = new (window as any).google.maps.places.Autocomplete(
-            cityStateInputRef.current,
-            { types: ["(cities)"], componentRestrictions: { country: "in" } }
-        );
-        autocompleteRef.current.setFields(["address_components", "formatted_address"]);
-        
-        const handlePlaceSelect = () => {
-            const place = autocompleteRef.current.getPlace();
-            if (place && place.address_components) {
-                const city = place.address_components.find((c: any) => c.types.includes('locality'))?.long_name;
-                const state = place.address_components.find((c: any) => c.types.includes('administrative_area_level_1'))?.long_name;
-
-                if (city && state) {
-                    setValue('cityState', `${city}, ${state}`, { shouldValidate: true });
-                } else if (city) {
-                    setValue('cityState', city, { shouldValidate: true });
-                } else if (place.formatted_address) {
-                    setValue('cityState', place.formatted_address, { shouldValidate: true });
-                }
+        const initAutocomplete = () => {
+            if (autocompleteRef.current) return;
+            if (!(window as any).google?.maps?.places) {
+                 // If google object is not available, try again after a short delay
+                setTimeout(initAutocomplete, 100);
+                return;
             }
-        };
 
-        autocompleteRef.current.addListener("place_changed", handlePlaceSelect);
+            autocompleteRef.current = new (window as any).google.maps.places.Autocomplete(
+                cityStateInputRef.current!,
+                { types: ["(cities)"], componentRestrictions: { country: "in" } }
+            );
+            autocompleteRef.current.setFields(["address_components", "formatted_address"]);
+            
+            const handlePlaceSelect = () => {
+                const place = autocompleteRef.current.getPlace();
+                if (place && place.address_components) {
+                    const city = place.address_components.find((c: any) => c.types.includes('locality'))?.long_name;
+                    const state = place.address_components.find((c: any) => c.types.includes('administrative_area_level_1'))?.long_name;
+
+                    if (city && state) {
+                        setValue('cityState', `${city}, ${state}`, { shouldValidate: true });
+                    } else if (city) {
+                        setValue('cityState', city, { shouldValidate: true });
+                    } else if (place.formatted_address) {
+                        setValue('cityState', place.formatted_address, { shouldValidate: true });
+                    }
+                }
+            };
+
+            autocompleteRef.current.addListener("place_changed", handlePlaceSelect);
+        }
+        
+        initAutocomplete();
 
         return () => {
             if (autocompleteRef.current) {
-                (window as any).google.maps.event.clearInstanceListeners(autocompleteRef.current);
+                // The google object might not be available during cleanup in some fast refresh scenarios
+                if ((window as any).google?.maps?.event) {
+                    (window as any).google.maps.event.clearInstanceListeners(autocompleteRef.current);
+                }
             }
         };
     }, [isClient, setValue]);
