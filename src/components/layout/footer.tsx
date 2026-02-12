@@ -3,14 +3,9 @@ import { Logo } from '@/components/shared/logo';
 
 export function Footer() {
   return (
-    <footer className="border-t bg-primary text-primary-foreground">
-      <div className="container py-12">
-        <div className="text-center">
-            <Logo className="text-accent inline-block"/>
-        </div>
-        <div className="mt-4 text-center text-sm text-primary-foreground/80">
+    <footer className="border-t bg-muted/40">
+      <div className="container py-8 text-center text-sm text-muted-foreground">
           © {new Date().getFullYear()} Energy Sports Meet. All rights reserved.
-        </div>
       </div>
     </footer>
   );
