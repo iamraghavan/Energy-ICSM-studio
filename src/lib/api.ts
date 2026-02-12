@@ -4,6 +4,7 @@ import type { College } from './types';
 export type ApiSport = {
     id: number;
     name: string;
+    category: 'Boys' | 'Girls';
     type: 'Team' | 'Individual';
     min_players?: number;
     max_players: number;

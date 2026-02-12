@@ -14,11 +14,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { registerStudent, type ApiSport } from "@/lib/api";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Label } from "@/components/ui/label";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "application/pdf"];
@@ -41,7 +41,6 @@ const formSchema = z.object({
     year: z.enum(['I', 'II', 'III', 'IV', 'PG-I', 'PG-II'], { required_error: "Please select your year of study." }),
     cityState: z.string().min(2, "City/State is required."),
     
-    genderCategory: z.enum(['Boys', 'Girls'], { required_error: "Please select a category." }),
     selected_sport_ids: z.array(z.string()).min(1, "Please select at least one sport."),
     teamName: z.string().optional(),
 
@@ -75,7 +74,10 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
     const { toast } = useToast();
     const router = useRouter();
     const [isClient, setIsClient] = useState(false);
+    
+    const [selectedCategories, setSelectedCategories] = useState<string[]>(['Boys', 'Girls']);
     const [filteredSports, setFilteredSports] = useState<ApiSport[]>([]);
+
     const [totalAmount, setTotalAmount] = useState(0);
     const [qrCodeUrl, setQrCodeUrl] = useState('');
     const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
@@ -104,33 +106,37 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
     const { watch, setValue, getValues, control, formState: { isSubmitting } } = form;
 
     const selectedSportIds = watch('selected_sport_ids', []);
-    const genderCategory = watch('genderCategory');
     const isWhatsappSame = watch('isWhatsappSame');
     const mobile = watch('mobile');
     const isPd = watch('isPd');
     const paymentScreenshot = watch('paymentScreenshot');
 
-
-    // Filter sports based on gender category
+    // Filter sports based on selected categories
     useEffect(() => {
-        if (genderCategory) {
-            // This is a simple filter logic. In a real app, sports might have a 'gender' property.
-            const filtered = apiSports.filter(sport => {
-                const sportNameLower = sport.name.toLowerCase();
-                if (genderCategory === 'Boys') {
-                    return !sportNameLower.includes('(girls)');
-                }
-                if (genderCategory === 'Girls') {
-                    return !sportNameLower.includes('(boys)');
-                }
-                return true;
-            });
-            setFilteredSports(filtered);
-        } else {
-            setFilteredSports([]);
+        const filtered = apiSports.filter(sport => selectedCategories.includes(sport.category));
+        setFilteredSports(filtered);
+
+        // Also deselect any sports that are no longer visible
+        const currentSelected = getValues('selected_sport_ids');
+        const filteredSportIds = new Set(filtered.map(s => s.id.toString()));
+        const newSelected = currentSelected.filter(id => filteredSportIds.has(id));
+
+        if (newSelected.length !== currentSelected.length) {
+            setValue('selected_sport_ids', newSelected, { shouldValidate: true });
         }
-        setValue('selected_sport_ids', []); // Reset selection on category change
-    }, [genderCategory, apiSports, setValue]);
+    }, [selectedCategories, apiSports, setValue, getValues]);
+    
+    const sportsByCategory = useMemo(() => {
+        return filteredSports.reduce((acc, sport) => {
+            const category = sport.category;
+            if (!acc[category]) {
+                acc[category] = [];
+            }
+            acc[category].push(sport);
+            return acc;
+        }, {} as Record<string, ApiSport[]>);
+    }, [filteredSports]);
+
 
     // Calculate total amount
     useEffect(() => {
@@ -297,13 +303,6 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                     <p className="text-sm mt-2">Organized by the Department of Physical Education, E.G.S. Pillay Group of Institutions, Nagapattinam.</p>
                 </CardHeader>
                 <CardContent className="p-4 md:p-8">
-                    <div className="text-center mb-6 space-y-1 p-4 border rounded-lg bg-background">
-                         <p className="text-sm text-muted-foreground"><strong className="text-foreground">Event Date:</strong> To be announced</p>
-                         <p className="text-sm text-muted-foreground"><strong className="text-destructive">Last date for registration:</strong> 8 days Before the Event Date</p>
-                         <p className="text-sm text-muted-foreground"><strong className="text-foreground">Venue:</strong> College Indoor Stadium and Ground, Nagapattinam.</p>
-                         <p className="text-sm text-muted-foreground"><strong className="text-foreground">Participants:</strong> College Men & Women from colleges in Delta Region.</p>
-                    </div>
-
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                             
@@ -397,43 +396,60 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                             </FormSection>
                             
                             <FormSection title="Sport Selection">
-                                <FormField name="genderCategory" control={control} render={({ field }) => (
-                                    <FormItem className="space-y-3"><FormLabel>Category Preference</FormLabel>
-                                        <FormControl>
-                                            <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4">
-                                                <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="Boys" /></FormControl><FormLabel className="font-normal">Boys Category</FormLabel></FormItem>
-                                                <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="Girls" /></FormControl><FormLabel className="font-normal">Girls Category</FormLabel></FormItem>
-                                            </RadioGroup>
-                                        </FormControl><FormMessage />
-                                    </FormItem>
-                                )} />
+                                <div className="space-y-3">
+                                    <Label>Category Preference</Label>
+                                    <div className="flex gap-4 items-center">
+                                        {['Boys', 'Girls'].map(category => (
+                                            <FormItem key={category} className="flex flex-row items-start space-x-3 space-y-0">
+                                                <FormControl>
+                                                    <Checkbox
+                                                        checked={selectedCategories.includes(category)}
+                                                        onCheckedChange={(checked) => {
+                                                            setSelectedCategories(prev => 
+                                                                checked ? [...prev, category] : prev.filter(c => c !== category)
+                                                            );
+                                                        }}
+                                                    />
+                                                </FormControl>
+                                                <Label className="font-normal">{category} Category</Label>
+                                            </FormItem>
+                                        ))}
+                                    </div>
+                                </div>
                                 
                                 <FormField control={control} name="selected_sport_ids" render={({ field }) => (
                                     <FormItem>
-                                        {genderCategory && (
-                                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                                {filteredSports.length > 0 ? filteredSports.map((sport) => (
-                                                    <FormItem key={sport.id} className="rounded-lg">
-                                                        <FormControl>
-                                                             <Checkbox
-                                                                checked={field.value?.includes(sport.id.toString())}
-                                                                onCheckedChange={(checked) => {
-                                                                    return checked
-                                                                    ? field.onChange([...(field.value || []), sport.id.toString()])
-                                                                    : field.onChange(field.value?.filter((value) => value !== sport.id.toString()))
-                                                                }}
-                                                                className="sr-only"
-                                                                id={`sport-${sport.id}`}
-                                                            />
-                                                        </FormControl>
-                                                        <Label htmlFor={`sport-${sport.id}`} className="flex flex-col items-center justify-center p-4 border-2 rounded-lg cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors data-[state=checked]:border-primary data-[state=checked]:bg-primary/10">
-                                                            <p className="font-semibold text-center">{sport.name}</p>
-                                                            <p className="text-sm text-muted-foreground">₹{sport.amount}</p>
-                                                        </Label>
-                                                    </FormItem>
-                                                )) : <p className="text-muted-foreground col-span-full text-center">No sports available for this category.</p>}
-                                            </div>
-                                        )}
+                                        <div className="space-y-6">
+                                            {Object.keys(sportsByCategory).sort().map(category => (
+                                                <div key={category}>
+                                                    <h4 className="text-md font-semibold text-muted-foreground pb-2">{category} Sports</h4>
+                                                    {sportsByCategory[category].length > 0 ? (
+                                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                                            {sportsByCategory[category].map((sport) => (
+                                                                <FormItem key={sport.id} className="rounded-lg">
+                                                                    <FormControl>
+                                                                        <Checkbox
+                                                                            checked={field.value?.includes(sport.id.toString())}
+                                                                            onCheckedChange={(checked) => {
+                                                                                return checked
+                                                                                ? field.onChange([...(field.value || []), sport.id.toString()])
+                                                                                : field.onChange(field.value?.filter((value) => value !== sport.id.toString()))
+                                                                            }}
+                                                                            className="sr-only"
+                                                                            id={`sport-${sport.id}`}
+                                                                        />
+                                                                    </FormControl>
+                                                                    <Label htmlFor={`sport-${sport.id}`} className="flex flex-col items-center justify-center p-4 border-2 rounded-lg cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors data-[state=checked]:border-primary data-[state=checked]:bg-primary/10">
+                                                                        <p className="font-semibold text-center">{sport.name}</p>
+                                                                        <p className="text-sm text-muted-foreground">₹{sport.amount}</p>
+                                                                    </Label>
+                                                                </FormItem>
+                                                            ))}
+                                                        </div>
+                                                    ) : <p className="text-muted-foreground col-span-full text-center">No sports available for this category.</p>}
+                                                </div>
+                                            ))}
+                                        </div>
                                         <FormMessage className="pt-2"/>
                                     </FormItem>
                                 )}/>
@@ -482,7 +498,7 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                                             <ul className="list-disc list-inside text-sm text-muted-foreground">
                                                 {selectedSportIds.map(id => {
                                                     const sport = apiSports.find(s => s.id.toString() === id);
-                                                    return <li key={id}>{sport?.name} - ₹{sport?.amount}</li>
+                                                    return <li key={id}>{sport?.name} ({sport?.category}) - ₹{sport?.amount}</li>
                                                 })}
                                             </ul>
                                         </div>
