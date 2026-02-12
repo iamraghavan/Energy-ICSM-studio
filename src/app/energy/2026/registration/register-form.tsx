@@ -54,7 +54,7 @@ const formSchema = z.object({
     return true;
 }, {
     message: "Please fill all Physical Director details.",
-    path: ["pdName"], // Show error on first PD field
+    path: ["collegeEmail"], // Show error on first editable PD field
 });
 
 type FormSchema = z.infer<typeof formSchema>;
@@ -93,11 +93,14 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
 
     const { watch, setValue, getValues, control, formState: { isSubmitting } } = form;
 
-    const selectedSportIds = watch('selected_sport_ids', []);
+    const selectedSportIds = watch('selected_sport_ids');
+    const collegeName = watch('collegeName');
     const isWhatsappSame = watch('isWhatsappSame');
     const mobile = watch('mobile');
     const isPd = watch('isPd');
     const paymentScreenshot = watch('paymentScreenshot');
+    const fullName = watch('fullName');
+    const whatsapp = watch('whatsapp');
 
     // Filter sports based on selected categories
     useEffect(() => {
@@ -156,16 +159,24 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
         }
     }, [isWhatsappSame, mobile, setValue]);
     
+    // Auto-fill PD details
+    useEffect(() => {
+        if (isPd) {
+            setValue('pdName', fullName);
+            const whatsappNumber = isWhatsappSame ? mobile : whatsapp;
+            setValue('pdWhatsapp', whatsappNumber);
+        }
+    }, [isPd, fullName, mobile, isWhatsappSame, whatsapp, setValue]);
+
     useEffect(() => {
         setIsClient(true);
     }, []);
 
-    // OCR for transaction ID
+    // Screenshot preview
     useEffect(() => {
         if (paymentScreenshot && paymentScreenshot.length > 0) {
             const file = paymentScreenshot[0];
             if (ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-                // For PDF, we can't show a preview easily, so just show filename
                 if (file.type === 'application/pdf') {
                     setScreenshotPreview(`PDF: ${file.name}`);
                 } else {
@@ -173,14 +184,13 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                     reader.onloadend = () => setScreenshotPreview(reader.result as string);
                     reader.readAsDataURL(file);
                 }
-
             } else {
                  setScreenshotPreview(null);
             }
         } else {
             setScreenshotPreview(null);
         }
-    }, [paymentScreenshot, setValue, toast]);
+    }, [paymentScreenshot]);
 
 
     // Google Places Autocomplete
@@ -216,11 +226,38 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
         };
     }, [isClient, setValue]);
 
+    // Auto-generate team name
+    useEffect(() => {
+        const firstTeamSport = selectedSportIds
+            .map(id => apiSports.find(s => s.id.toString() === id))
+            .find(sport => sport?.type === 'Team');
+
+        if (firstTeamSport && collegeName) {
+            const sportNameSuffixes: Record<string, string> = {
+                'Cricket': 'Strikers',
+                'Football': 'Kickers',
+                'Basketball': 'Hoopers',
+                'Volleyball': 'Spikers',
+                'Kabaddi': 'Raiders',
+                'Badminton': 'Shuttlers',
+                'Chess': 'Masters',
+                'Table Tennis': 'Paddlers',
+            };
+            
+            const collegePrefix = collegeName.split(' ')[0].replace(/[^a-zA-Z0-9]/g, '');
+            const suffix = sportNameSuffixes[firstTeamSport.name] || firstTeamSport.name;
+            const newTeamName = `${collegePrefix} ${suffix}`;
+
+            setValue('teamName', newTeamName);
+        } else {
+            setValue('teamName', '');
+        }
+    }, [selectedSportIds, collegeName, apiSports, setValue]);
+
 
     const onSubmit = async (data: FormSchema) => {
         const formData = new FormData();
         
-        // Append all fields as per API guide
         formData.append('name', data.fullName);
         formData.append('email', data.email);
         formData.append('mobile', data.mobile);
@@ -228,7 +265,7 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
         
         const [city, state] = data.cityState.split(',').map(s => s.trim());
         if(city) formData.append('city', city);
-        if(state) formData.append('state', state || city); // If no state, use city
+        if(state) formData.append('state', state || city);
 
         formData.append('other_college', data.collegeName);
         
@@ -395,7 +432,16 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
 
                                 {hasSelectedTeamSport && (
                                     <FormField name="teamName" control={control} render={({ field }) => (
-                                        <FormItem><FormLabel>Team Name</FormLabel><FormControl><Input placeholder="Enter your team name for all team events" {...field} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem>
+                                            <FormLabel>Team Name</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Auto-generated based on college and sport" {...field} readOnly />
+                                            </FormControl>
+                                            <FormDescription>
+                                                This is automatically generated. If you have multiple team entries, please submit them as separate registrations.
+                                            </FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
                                     )} />
                                 )}
                             </FormSection>
@@ -413,8 +459,8 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                                 {isPd && (
                                     <div className="space-y-4 pt-4">
                                         <div className="grid md:grid-cols-2 gap-4">
-                                            <FormField name="pdName" control={control} render={({ field }) => (<FormItem><FormLabel>PD Name</FormLabel><FormControl><Input placeholder="Name of the Physical Director" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                            <FormField name="pdWhatsapp" control={control} render={({ field }) => (<FormItem><FormLabel>PD WhatsApp</FormLabel><FormControl><Input type="tel" placeholder="WhatsApp number for coordination" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField name="pdName" control={control} render={({ field }) => (<FormItem><FormLabel>PD Name</FormLabel><FormControl><Input placeholder="Name of the Physical Director" {...field} readOnly /></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField name="pdWhatsapp" control={control} render={({ field }) => (<FormItem><FormLabel>PD WhatsApp</FormLabel><FormControl><Input type="tel" placeholder="WhatsApp number for coordination" {...field} readOnly /></FormControl><FormMessage /></FormItem>)} />
                                         </div>
                                          <div className="grid md:grid-cols-2 gap-4">
                                             <FormField name="collegeEmail" control={control} render={({ field }) => (<FormItem><FormLabel>College Office Email</FormLabel><FormControl><Input type="email" placeholder="Official college email" {...field} /></FormControl><FormMessage /></FormItem>)} />
