@@ -9,8 +9,9 @@ import {
   } from "@/components/ui/card"
 import { Users, Package, CreditCard, BedDouble } from "lucide-react"
 import { Bar, BarChart, XAxis, YAxis } from "recharts"
-import { sports, colleges } from "@/lib/data"
+import { colleges } from "@/lib/data"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
+import { getSports, type ApiSport } from "@/lib/api";
 
 const chartConfig = {
     count: {
@@ -24,7 +25,10 @@ export default function DashboardPage() {
     const [collegeWiseData, setCollegeWiseData] = useState<any[]>([]);
 
     useEffect(() => {
-        setSportWiseData(sports.map(s => ({ name: s.name.length > 10 ? s.name.substring(0,10) + '...' : s.name, count: Math.floor(Math.random() * 50) + 10 })));
+        getSports().then(apiSports => {
+            const uniqueSports = Array.from(new Map(apiSports.map(s => [s.name, s])).values());
+            setSportWiseData(uniqueSports.map(s => ({ name: s.name.length > 10 ? s.name.substring(0,10) + '...' : s.name, count: Math.floor(Math.random() * 50) + 10 })));
+        });
         setCollegeWiseData(colleges.map(c => ({ name: c.name.split(' ')[0], count: Math.floor(Math.random() * 100) + 20 })));
     }, []);
 

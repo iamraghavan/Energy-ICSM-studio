@@ -3,24 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { User, Trophy as TrophyIcon, HelpCircle, Goal, Dribbble, Volleyball, PersonStanding, Waves, Swords, Disc, Trophy } from "lucide-react";
+import { User, Trophy as TrophyIcon } from "lucide-react";
 import Image from "next/image";
-
-const sportIconMap: { [key: string]: React.ElementType } = {
-    'Cricket': Trophy,
-    'Football': Goal,
-    'Basketball': Dribbble,
-    'Volleyball': Volleyball,
-    '100m Dash': PersonStanding,
-    'Athletics (100m)': PersonStanding,
-    'Swimming': Waves,
-    'Fencing': Swords,
-    'Discus Throw': Disc,
-};
-
-const getSportIcon = (sportName: string) => {
-    return sportIconMap[sportName] || HelpCircle;
-};
+import { getSportIcon } from "@/lib/icons";
 
 export default async function TeamDetailsPage({ params }: { params: { id: string } }) {
     const team = await getTeam(params.id).catch(() => null);
@@ -31,7 +16,7 @@ export default async function TeamDetailsPage({ params }: { params: { id: string
 
     const allSportsData = await getSports();
     const sport = allSportsData.find(s => s.id === team.sport_id);
-    const SportIcon = sport ? getSportIcon(sport.name) : HelpCircle;
+    const SportIcon = sport ? getSportIcon(sport.name) : getSportIcon('');
     
     const teamPlayers = team.Members || [];
 

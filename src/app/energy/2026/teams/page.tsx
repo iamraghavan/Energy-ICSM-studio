@@ -1,25 +1,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getSports, getTeams } from "@/lib/api";
-import { ArrowRight, Goal, Dribbble, Volleyball, PersonStanding, Waves, Swords, Disc, Trophy, HelpCircle } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
-
-const sportIconMap: { [key: string]: React.ElementType } = {
-    'Cricket': Trophy,
-    'Football': Goal,
-    'Basketball': Dribbble,
-    'Volleyball': Volleyball,
-    '100m Dash': PersonStanding,
-    'Athletics (100m)': PersonStanding,
-    'Swimming': Waves,
-    'Fencing': Swords,
-    'Discus Throw': Disc,
-};
-
-const getSportIcon = (sportName: string) => {
-    return sportIconMap[sportName] || HelpCircle;
-};
+import { getSportIcon } from "@/lib/icons";
 
 
 export default async function TeamsPage() {
