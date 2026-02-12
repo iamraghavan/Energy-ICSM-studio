@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export default async function SportsPage() {
     const sports = await getSports().catch(() => []);
@@ -26,7 +27,10 @@ export default async function SportsPage() {
             <div className="space-y-12">
             {Object.keys(sportsByCategory).sort().map(category => (
                 <div key={category}>
-                    <h2 className="text-3xl font-bold font-headline mb-6 text-center">{category} Sports</h2>
+                    <h2 className={cn(
+                        "text-3xl font-bold font-headline mb-6 text-center",
+                        category === 'Boys' ? 'text-primary' : 'text-destructive'
+                    )}>{category} Sports</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {sportsByCategory[category].map((sport) => {
                             return (
