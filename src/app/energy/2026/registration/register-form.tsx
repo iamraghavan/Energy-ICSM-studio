@@ -18,9 +18,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { registerStudent, type ApiSport } from "@/lib/api";
 import { Loader2 } from "lucide-react";
-import type { College } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { Skeleton } from "@/components/ui/skeleton";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "application/pdf"];
@@ -38,8 +36,7 @@ const formSchema = z.object({
     isWhatsappSame: z.boolean().default(false).optional(),
     whatsapp: z.string().optional().or(z.literal('')),
     
-    collegeId: z.string({ required_error: "Please select your college."}),
-    otherCollegeName: z.string().optional(),
+    collegeName: z.string().min(3, "College name must be at least 3 characters."),
     department: z.string().min(2, "Department is required."),
     year: z.enum(['I', 'II', 'III', 'IV', 'PG-I', 'PG-II'], { required_error: "Please select your year of study." }),
     cityState: z.string().min(2, "City/State is required."),
@@ -63,14 +60,6 @@ const formSchema = z.object({
         ),
     transactionId: z.string().min(1, "Transaction ID is required."),
 }).refine(data => {
-    if (data.collegeId === 'other') {
-        return !!data.otherCollegeName && data.otherCollegeName.length > 2;
-    }
-    return true;
-}, {
-    message: "Please enter your college name.",
-    path: ["otherCollegeName"],
-}).refine(data => {
     if (data.isPd) {
         return !!data.pdName && !!data.pdWhatsapp && !!data.collegeEmail && !!data.collegeContact;
     }
@@ -82,7 +71,7 @@ const formSchema = z.object({
 
 type FormSchema = z.infer<typeof formSchema>;
 
-export function RegisterForm({ colleges, sports: apiSports }: { colleges: College[], sports: ApiSport[] }) {
+export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
     const { toast } = useToast();
     const router = useRouter();
     const [isClient, setIsClient] = useState(false);
@@ -102,8 +91,7 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
             email: "",
             mobile: "",
             whatsapp: "",
-            collegeId: "",
-            otherCollegeName: "",
+            collegeName: "",
             department: "",
             cityState: "",
             selected_sport_ids: [],
@@ -117,7 +105,6 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
 
     const selectedSportIds = watch('selected_sport_ids', []);
     const genderCategory = watch('genderCategory');
-    const collegeId = watch('collegeId');
     const isWhatsappSame = watch('isWhatsappSame');
     const mobile = watch('mobile');
     const isPd = watch('isPd');
@@ -174,16 +161,6 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
             setValue('whatsapp', '');
         }
     }, [isWhatsappSame, mobile, setValue]);
-    
-    // Auto-fill City/State from college
-    useEffect(() => {
-        if (collegeId && collegeId !== 'other' && !getValues('cityState')) {
-            const selectedCollege = colleges.find(c => c.id === collegeId);
-            if (selectedCollege) {
-                setValue('cityState', `${selectedCollege.city}, ${selectedCollege.state}`);
-            }
-        }
-    }, [collegeId, colleges, setValue, getValues]);
     
     useEffect(() => {
         setIsClient(true);
@@ -261,11 +238,7 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
         if(city) formData.append('city', city);
         if(state) formData.append('state', state || city); // If no state, use city
 
-        if (data.collegeId === 'other') {
-            if (data.otherCollegeName) formData.append('other_college', data.otherCollegeName);
-        } else {
-            formData.append('college_id', data.collegeId);
-        }
+        formData.append('other_college', data.collegeName);
         
         formData.append('department', data.department);
         formData.append('year_of_study', data.year);
@@ -399,19 +372,9 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
                             </FormSection>
 
                             <FormSection title="Academic Details">
-                                <FormField name="collegeId" control={control} render={({ field }) => (
-                                    <FormItem><FormLabel>College Name</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Search and select your college" /></SelectTrigger></FormControl>
-                                            <SelectContent>{colleges.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-                                        </Select><FormMessage />
-                                    </FormItem>
+                                <FormField name="collegeName" control={control} render={({ field }) => (
+                                    <FormItem><FormLabel>College Name</FormLabel><FormControl><Input placeholder="Enter your college name" {...field} /></FormControl><FormMessage /></FormItem>
                                 )} />
-                                {collegeId === 'other' && (
-                                     <FormField name="otherCollegeName" control={control} render={({ field }) => (
-                                        <FormItem><FormLabel>Enter Your College Name</FormLabel><FormControl><Input placeholder="Your college name" {...field} /></FormControl><FormMessage /></FormItem>
-                                    )} />
-                                )}
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <FormField name="department" control={control} render={({ field }) => (
                                         <FormItem><FormLabel>Department</FormLabel><FormControl><Input placeholder="e.g. CSE, Mechanical" {...field} /></FormControl><FormMessage /></FormItem>
