@@ -10,8 +10,10 @@ const navLinks = [
   { href: '/energy/2026/schedule', label: 'Schedule' },
   { href: '/energy/2026/sports', label: 'Sports' },
   { href: '/energy/2026/teams', label: 'Teams' },
-  { href: '/energy/2026/players', label: 'Players' },
+  { href: '/energy/2026/live', label: 'Live' },
   { href: '/energy/2026/gallery', label: 'Gallery' },
+  { href: '/energy/2026/instructions', label: 'General Instructions' },
+  { href: '/energy/2026/rules', label: 'Important Rules' },
   { href: '/energy/2026/about', label: 'About' },
 ];
 
