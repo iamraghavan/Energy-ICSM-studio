@@ -235,9 +235,20 @@ export const getLiveMatches = async (): Promise<ApiMatch[]> => {
     return Array.isArray(response.data) ? response.data : (response.data?.data || []);
 };
 
-export const getTeams = async (): Promise<ApiTeam[]> => {
-    const response = await api.get('/teams');
-    return Array.isArray(response.data) ? response.data : (response.data?.data || []);
+export const getTeams = async (): Promise<any[]> => {
+    const sports = await getSports();
+    if (!sports || sports.length === 0) {
+        return [];
+    }
+
+    const teamPromises = sports.map(sport =>
+        api.get(`/teams/sport/${String(sport.id)}`)
+           .then(res => Array.isArray(res.data) ? res.data : (res.data?.data || []))
+           .catch(() => []) // In case one sport has no teams or errors out
+    );
+    
+    const allTeamsArrays = await Promise.all(teamPromises);
+    return allTeamsArrays.flat();
 };
 
 export const getTeam = async (id: string): Promise<ApiTeamDetails> => {

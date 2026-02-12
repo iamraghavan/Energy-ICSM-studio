@@ -25,14 +25,14 @@ export default async function TeamsPage() {
                 <p className="text-muted-foreground mt-2">Explore all the teams competing in Energy Sports Meet.</p>
             </div>
             
-            <Tabs defaultValue={sports.find(s => teamsData.some(t => t.sport_id === s.id))?.id.toString() || sports[0]?.id.toString()} className="w-full">
+            <Tabs defaultValue={sports.find(s => teamsData.some(t => String(t.sport_id) === String(s.id)))?.id.toString() || sports[0]?.id.toString()} className="w-full">
                 <TabsList className="overflow-x-auto whitespace-nowrap h-auto p-2 justify-start w-full md:w-auto md:inline-flex">
                     {sports.map(sport => (
                         <TabsTrigger key={sport.id} value={sport.id.toString()}>{sport.name}</TabsTrigger>
                     ))}
                 </TabsList>
                 {sports.map(sport => {
-                    const sportTeams = teamsData.filter(team => team.sport_id === sport.id);
+                    const sportTeams = teamsData.filter(team => String(team.sport_id) === String(sport.id));
                     return (
                         <TabsContent key={sport.id} value={sport.id.toString()}>
                             <div className="mt-4">
@@ -44,7 +44,7 @@ export default async function TeamsPage() {
                                                      <div className="w-12 h-12 bg-secondary rounded-full flex items-center justify-center font-bold text-2xl shrink-0">{team.team_name.charAt(0)}</div>
                                                      <div>
                                                         <CardTitle className="font-headline text-xl">{team.team_name}</CardTitle>
-                                                        <CardDescription>{team.college.name}</CardDescription>
+                                                        {team.Captain?.name && <CardDescription>Captain: {team.Captain.name}</CardDescription>}
                                                      </div>
                                                 </CardHeader>
                                                 <CardContent className="flex-grow flex items-end">
