@@ -19,8 +19,8 @@ const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
 function InfoDetail({ icon: Icon, label, value, isMono = false }: { icon?: React.ElementType, label: string, value: string | null | undefined, isMono?: boolean }) {
     if (!value) return null;
     return (
-        <div className="flex items-start gap-3">
-            {Icon && <Icon className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />}
+        <div className="flex items-start gap-4">
+            {Icon && <Icon className="h-5 w-5 text-muted-foreground mt-1 shrink-0" />}
             <div className="flex-1">
                 <p className="text-sm text-muted-foreground">{label}</p>
                 <p className={cn("font-medium break-words", isMono && "font-mono")}>{value}</p>
@@ -55,17 +55,21 @@ function RegistrationClientActions({ ticketUrl, detailsUrl, registration }: { ti
 
 function RegistrationDetailsSkeleton() {
     return (
-        <div className="container py-8 space-y-6">
-            <div className="flex items-center gap-4">
+        <div className="container py-6 md:py-8 space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <Skeleton className="h-7 w-48 mb-2" />
                     <Skeleton className="h-4 w-64" />
                 </div>
+                 <div className="flex gap-2">
+                    <Skeleton className="h-6 w-24" />
+                    <Skeleton className="h-6 w-24" />
+                </div>
             </div>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
                 <Card><CardHeader><Skeleton className="h-6 w-32" /></CardHeader><CardContent className="space-y-4">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</CardContent></Card>
-                <Card><CardHeader><Skeleton className="h-6 w-32" /></CardHeader><CardContent className="space-y-4">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</CardContent></Card>
-                <Card><CardHeader><Skeleton className="h-6 w-32" /></CardHeader><CardContent className="space-y-4">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</CardContent></Card>
+                <Card><CardHeader><Skeleton className="h-6 w-32" /></CardHeader><CardContent className="space-y-4">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</CardContent></Card>
+                <Card><CardHeader><Skeleton className="h-6 w-32" /></CardHeader><CardContent className="space-y-4">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</CardContent></Card>
             </div>
         </div>
     )
@@ -132,13 +136,13 @@ function PublicRegistrationDetailsContent() {
     const detailsUrl = `/energy/2026/registration/details?id=${registration.registration_code}`;
 
     return (
-        <div className="container py-8 space-y-6">
-             <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
+        <div className="container py-6 md:py-8 space-y-6">
+             <div className="flex flex-wrap items-center justify-between gap-4">
                  <div>
                     <h1 className="text-2xl font-bold">Registration Details</h1>
-                    <p className="text-muted-foreground">Public view for registration code: <span className="font-mono">{registration_code}</span></p>
+                    <p className="text-sm text-muted-foreground">Code: <span className="font-mono">{registration_code}</span></p>
                 </div>
-                 <div className="flex gap-2 mt-4 sm:mt-0 sm:ml-auto">
+                 <div className="flex gap-2">
                     <Badge
                         variant={
                             payment_status === 'approved' || payment_status === 'verified'
@@ -166,7 +170,7 @@ function PublicRegistrationDetailsContent() {
                 </div>
             </div>
             
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
                 <Card className="lg:col-span-1">
                     <CardHeader><CardTitle>Participant Information</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
@@ -220,7 +224,7 @@ function PublicRegistrationDetailsContent() {
                  {Payment && (
                      <Card className="md:col-span-3">
                         <CardHeader><CardTitle>Payment Details</CardTitle></CardHeader>
-                        <CardContent className="grid md:grid-cols-2 gap-6">
+                        <CardContent className="grid md:grid-cols-2 gap-6 items-start">
                              <div className="space-y-4">
                                 <InfoDetail label="Payment Status" value={payment_status} />
                                 <InfoDetail icon={Hash} label="Transaction ID" value={Payment?.txn_id || 'N/A'} isMono />
@@ -228,7 +232,7 @@ function PublicRegistrationDetailsContent() {
                             </div>
                             {Payment.screenshot_url && (
                                 <div className="flex justify-center md:justify-end">
-                                    <Image src={Payment.screenshot_url} alt="Payment Screenshot" width={200} height={400} className="rounded-md border object-contain"/>
+                                    <Image src={Payment.screenshot_url} alt="Payment Screenshot" width={180} height={360} className="rounded-md border object-contain"/>
                                 </div>
                             )}
                         </CardContent>
