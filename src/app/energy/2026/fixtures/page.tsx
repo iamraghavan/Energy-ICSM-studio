@@ -4,9 +4,12 @@ import { fixtures, teams, sports } from "@/lib/data";
 import type { Fixture } from "@/lib/types";
 import { Calendar, MapPin, Clapperboard } from "lucide-react";
 import { format } from 'date-fns';
+import type { Metadata } from 'next';
 
-const getTeam = (id: string) => teams.find(t => t.id === id);
-const getSport = (id: string) => sports.find(s => s.id === id);
+export const metadata: Metadata = {
+  title: 'Match Fixtures',
+  description: 'View upcoming, live, and completed match fixtures for all sports at the ENERGY 2026 tournament.',
+};
 
 export default function FixturesPage() {
     const upcomingFixtures = fixtures.filter(f => f.status === 'Upcoming');

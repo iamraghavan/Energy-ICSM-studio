@@ -1,22 +1,25 @@
-import { getColleges, getSports } from "@/lib/api";
+import { getSports } from "@/lib/api";
 import { RegisterForm } from "./register-form";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AlertTriangle } from "lucide-react";
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Register Now',
+  description: 'Register as a player or team for the ENERGY 2026 sports meet. Fill out the form to participate in various sports and compete for the championship trophy.',
+};
+
 
 export default async function RegisterPage() {
-    let colleges;
     let sports;
     
     try {
-        [colleges, sports] = await Promise.all([
-            getColleges(),
-            getSports()
-        ]);
+        sports = await getSports();
     } catch (error) {
         console.error("Failed to load registration data:", error);
     }
     
-    if (!colleges || !sports || colleges.length <= 1 || sports.length === 0) { // colleges.length <=1 to account for "Other"
+    if (!sports || sports.length === 0) {
          return (
             <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
                 <Card className="w-full max-w-md mx-auto">
@@ -32,5 +35,5 @@ export default async function RegisterPage() {
         )
     }
 
-    return <RegisterForm colleges={colleges} sports={sports} />;
+    return <RegisterForm sports={sports} />;
 }

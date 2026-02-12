@@ -6,6 +6,25 @@ import { notFound } from "next/navigation";
 import { User, Trophy as TrophyIcon } from "lucide-react";
 import Image from "next/image";
 import { getSportIcon } from "@/lib/icons";
+import type { Metadata } from 'next';
+
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const team = await getTeam(params.id).catch(() => null);
+
+  if (!team) {
+    return {
+      title: 'Team Not Found'
+    }
+  }
+  
+  const allSportsData = await getSports();
+  const sport = allSportsData.find(s => s.id === team.sport_id);
+
+  return {
+    title: `${team.team_name} (${sport?.name || 'Team'})`,
+    description: `View the player roster and team info for ${team.team_name} from ${team.college.name}, competing in ENERGY 2026.`,
+  };
+}
 
 export default async function TeamDetailsPage({ params }: { params: { id: string } }) {
     const team = await getTeam(params.id).catch(() => null);

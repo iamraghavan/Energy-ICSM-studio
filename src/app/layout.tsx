@@ -4,11 +4,56 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'Energy – Inter-College Sports Meet',
-  description: "Tamil Nadu's Biggest Inter-College Sports Meet",
+  title: {
+    default: 'ENERGY 2026 - Chevalier Dr. G.S. Pillay Memorial Inter-College Sports Meet',
+    template: '%s | ENERGY 2026',
+  },
+  description: "Join ENERGY 2026, the premier inter-college sports meet organized by EGS Pillay Group of Institutions, Nagapattinam. Compete for the Chevalier Dr. G.S. Pillay Memorial Overall Championship Trophy.",
+  keywords: [
+    'ENERGY 2026',
+    'EGS Pillay',
+    'Chevalier Dr. G.S. Pillay',
+    'inter-college sports meet',
+    'sports tournament',
+    'Nagapattinam',
+    'college sports',
+    'Cricket tournament',
+    'Football tournament',
+    'Basketball tournament',
+    'Volleyball tournament',
+    'D. Velavan',
+    'K. Nelson',
+    'S. Senthil Kumar',
+  ],
+  authors: [
+    { name: 'EGS Pillay Group of Institutions' }
+  ],
+  creator: 'EGS Pillay Group of Institutions',
+  openGraph: {
+    title: 'ENERGY 2026 - Chevalier Dr. G.S. Pillay Memorial Inter-College Sports Meet',
+    description: 'Join the ultimate college sports competition organized by EGS Pillay Group of Institutions.',
+    url: 'https://www.energy2026.com', // Placeholder URL
+    siteName: 'ENERGY 2026',
+    images: [
+      {
+        url: '/energy_web_banner.webp',
+        width: 1280,
+        height: 640,
+        alt: 'ENERGY 2026 Sports Meet Banner',
+      },
+    ],
+    locale: 'en_IN',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ENERGY 2026 - Chevalier Dr. G.S. Pillay Memorial Inter-College Sports Meet',
+    description: 'Join the ultimate college sports competition organized by EGS Pillay Group of Institutions.',
+    images: ['/energy_web_banner.webp'],
+  },
   icons: {
     icon: '/favicon.ico',
-  }
+  },
 };
 
 export default function RootLayout({

@@ -4,6 +4,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from 'next/link';
 import { ArrowRight, BarChart, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'All Players',
+  description: 'Browse all the talented athletes participating in the ENERGY 2026 sports meet. View player profiles and statistics.',
+};
 
 export default function PlayersPage() {
     return (

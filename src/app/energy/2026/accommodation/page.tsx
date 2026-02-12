@@ -1,4 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Accommodation',
+  description: 'Information about accommodation for participants of the ENERGY 2026 sports meet.',
+};
 
 export default function AccommodationPage() {
     return (

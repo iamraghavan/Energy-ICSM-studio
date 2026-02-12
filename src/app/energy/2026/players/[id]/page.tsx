@@ -4,6 +4,22 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { notFound } from "next/navigation";
 import { BarChart, CheckCircle, XCircle, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { Metadata } from 'next';
+
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const player = players.find(p => p.id === params.id);
+  if (!player) {
+    return {
+      title: 'Player Not Found'
+    }
+  }
+
+  return {
+    title: `${player.name} - ${player.college}`,
+    description: `View player statistics and recent activity for ${player.name}, competing in ENERGY 2026.`,
+  };
+}
+
 
 export default function PlayerDetailsPage({ params }: { params: { id: string } }) {
     const player = players.find(p => p.id === params.id);

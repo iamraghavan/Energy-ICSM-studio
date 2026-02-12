@@ -3,8 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'All Sports',
+  description: 'Browse all sports available at ENERGY 2026, including Cricket, Football, Basketball, Volleyball, and more. Register for team and individual events.',
+};
 
 export default async function SportsPage() {
     const sports = await getSports().catch(() => []);
@@ -36,10 +41,13 @@ export default async function SportsPage() {
                     </TabsList>
                      {Object.keys(sportsByCategory).sort().map(category => (
                         <TabsContent key={category} value={category} className="mt-8">
+                             <div className="mb-8">
+                                <h2 className={`text-3xl font-bold font-headline text-center ${category === 'Boys' ? 'text-primary' : 'text-destructive'}`}>{category} Sports</h2>
+                            </div>
                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                 {sportsByCategory[category].map((sport) => {
                                     return (
-                                        <Card key={sport.id} className="group relative flex flex-col overflow-hidden text-center transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                                        <Card key={sport.id} className="group relative flex flex-col overflow-hidden text-center transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
                                             <CardHeader className="pt-6">
                                                 <CardTitle className="font-headline text-2xl min-h-[3rem] flex items-center justify-center">{sport.name}</CardTitle>
                                             </CardHeader>
@@ -47,7 +55,7 @@ export default async function SportsPage() {
                                                 <div className="w-full space-y-3 text-sm">
                                                     <div className="flex justify-between border-t pt-3">
                                                         <span className="text-muted-foreground">Type</span>
-                                                        <Badge variant="secondary">{sport.type}</Badge>
+                                                        <span className="font-semibold">{sport.type}</span>
                                                     </div>
                                                     <div className="flex justify-between border-t pt-3">
                                                         <span className="text-muted-foreground">Max Players</span>

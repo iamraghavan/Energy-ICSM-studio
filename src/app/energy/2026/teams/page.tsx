@@ -5,7 +5,12 @@ import { ArrowRight } from "lucide-react";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { getSportIcon } from "@/lib/icons";
+import type { Metadata } from 'next';
 
+export const metadata: Metadata = {
+  title: 'Participating Teams',
+  description: 'Explore all the college teams participating in the ENERGY 2026 sports meet. View rosters and team details.',
+};
 
 export default async function TeamsPage() {
     const sportsData = await getSports();

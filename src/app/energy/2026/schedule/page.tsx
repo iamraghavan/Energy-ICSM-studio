@@ -1,4 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Event Schedule',
+  description: 'Find the full event schedule for ENERGY 2026. Dates and times for all matches and ceremonies.',
+};
 
 export default function SchedulePage() {
     return (

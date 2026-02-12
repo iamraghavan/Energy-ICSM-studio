@@ -1,4 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Medal Standings',
+  description: 'Live medal standings for the ENERGY 2026 sports meet. Track which college is leading the leaderboard.',
+};
 
 export default function MedalsPage() {
     return (
