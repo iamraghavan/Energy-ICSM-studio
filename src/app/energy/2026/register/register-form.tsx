@@ -323,42 +323,41 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
     }, [collegeId, colleges, setValue, getValues]);
 
     const onSubmit = async (data: FormSchema) => {
-        const snakeCaseData: { [key: string]: any } = {
-            name: data.fullName,
-            dob: format(data.dob, 'yyyy-MM-dd'),
-            gender: data.gender,
-            email: data.email,
-            mobile: data.mobile,
-            department: data.department,
-            year_of_study: data.year,
-            sport_id: data.sportId,
-            txn_id: data.transactionId,
-            accommodation_needed: data.needsAccommodation
-        };
+        const apiFormData = new FormData();
+
+        apiFormData.append('name', data.fullName);
+        apiFormData.append('dob', format(data.dob, 'yyyy-MM-dd'));
+        apiFormData.append('gender', data.gender);
+        apiFormData.append('email', data.email);
+        apiFormData.append('mobile', data.mobile);
+        apiFormData.append('department', data.department);
+        apiFormData.append('year_of_study', data.year);
+        apiFormData.append('sport_id', data.sportId);
+        apiFormData.append('txn_id', data.transactionId);
+        apiFormData.append('accommodation_needed', String(data.needsAccommodation));
 
         if (data.isWhatsappSame) {
-            snakeCaseData.whatsapp = data.mobile;
+            apiFormData.append('whatsapp', data.mobile);
         } else if (data.whatsapp) {
-            snakeCaseData.whatsapp = data.whatsapp;
+            apiFormData.append('whatsapp', data.whatsapp);
         }
 
         if (data.collegeId === 'other') {
-            snakeCaseData.other_college = data.otherCollegeName;
+            if (data.otherCollegeName) {
+                apiFormData.append('other_college', data.otherCollegeName);
+            }
         } else {
-            snakeCaseData.college_id = data.collegeId;
+            apiFormData.append('college_id', data.collegeId);
         }
 
         const [city, state] = data.cityState.split(',').map(s => s.trim());
-        if(city) snakeCaseData.city = city;
-        if(state) snakeCaseData.state = state;
+        if(city) apiFormData.append('city', city);
+        if(state) apiFormData.append('state', state);
 
         if (data.sportType === 'Team' && data.teamName) {
-            snakeCaseData.create_team = 'true';
-            snakeCaseData.team_name = data.teamName;
+            apiFormData.append('create_team', 'true');
+            apiFormData.append('team_name', data.teamName);
         }
-
-        const apiFormData = new FormData();
-        apiFormData.append('student_data', JSON.stringify(snakeCaseData));
 
         if (data.paymentScreenshot && data.paymentScreenshot.length > 0) {
             apiFormData.append('screenshot', data.paymentScreenshot[0]);
@@ -373,7 +372,7 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
             router.push(`/energy/2026/registration/success?id=${result.registration_code}`);
         } catch (error: any) {
             console.error("Form submission error:", error);
-            const errorMessage = error.response?.data?.error || error.response?.data?.message || "An unknown error occurred. Please try again.";
+            const errorMessage = error.response?.data?.error || error.response?.data?.details || error.response?.data?.message || "An unknown error occurred. Please try again.";
             router.push(`/energy/2026/registration/failure?error=${encodeURIComponent(errorMessage)}`);
         }
     };
