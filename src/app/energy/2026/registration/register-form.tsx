@@ -117,6 +117,9 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
     const [registrationFee, setRegistrationFee] = useState("0.00");
     const [isClient, setIsClient] = useState(false);
 
+    const cityStateInputRef = useRef<HTMLInputElement | null>(null);
+    const autocompleteRef = useRef<any>(null);
+
     useEffect(() => {
         setIsClient(true);
     }, []);
@@ -259,6 +262,41 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
             setScreenshotPreview(null);
         }
     }, [paymentScreenshot, setValue, toast]);
+
+    useEffect(() => {
+        if (!isClient || !(window as any).google || !cityStateInputRef.current) return;
+        if (autocompleteRef.current) return;
+
+        autocompleteRef.current = new (window as any).google.maps.places.Autocomplete(
+            cityStateInputRef.current,
+            { types: ["(cities)"], componentRestrictions: { country: "in" } }
+        );
+        autocompleteRef.current.setFields(["address_components", "formatted_address"]);
+        
+        const handlePlaceSelect = () => {
+            const place = autocompleteRef.current.getPlace();
+            if (place && place.address_components) {
+                const city = place.address_components.find((c: any) => c.types.includes('locality'))?.long_name;
+                const state = place.address_components.find((c: any) => c.types.includes('administrative_area_level_1'))?.long_name;
+
+                if (city && state) {
+                    setValue('cityState', `${city}, ${state}`, { shouldValidate: true });
+                } else if (city) {
+                    setValue('cityState', city, { shouldValidate: true });
+                } else if (place.formatted_address) {
+                    setValue('cityState', place.formatted_address, { shouldValidate: true });
+                }
+            }
+        };
+
+        autocompleteRef.current.addListener("place_changed", handlePlaceSelect);
+
+        return () => {
+            if (autocompleteRef.current) {
+                (window as any).google.maps.event.clearInstanceListeners(autocompleteRef.current);
+            }
+        };
+    }, [isClient, setValue]);
 
     useEffect(() => {
         if (collegeId && collegeId !== 'other' && !getValues('cityState')) {
@@ -498,6 +536,10 @@ export function RegisterForm({ colleges, sports: apiSports }: { colleges: Colleg
                                                 <Input
                                                     placeholder="e.g. Chennai, Tamil Nadu"
                                                     {...field}
+                                                    ref={(el) => {
+                                                        field.ref(el);
+                                                        cityStateInputRef.current = el;
+                                                    }}
                                                 />
                                             </FormControl>
                                             <FormMessage />

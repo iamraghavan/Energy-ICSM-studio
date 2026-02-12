@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 
@@ -25,6 +26,10 @@ export default function RootLayout({
       <body className="font-body antialiased" suppressHydrationWarning={true}>
         {children}
         <Toaster />
+        <Script
+          src={`https://maps.googleapis.com/maps/api/js?key=AIzaSyDfUl7G2CIfkJdCRwakYUQeen2o5cCzcVE&libraries=places`}
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
