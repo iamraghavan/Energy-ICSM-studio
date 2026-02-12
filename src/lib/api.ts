@@ -5,6 +5,7 @@ export type ApiSport = {
     id: number;
     name: string;
     type: 'Team' | 'Individual';
+    min_players?: number;
     max_players: number;
     amount: string;
 };
@@ -281,3 +282,48 @@ export const manageLineup = async (matchId: string, lineupData: { action: 'add' 
     const response = await api.post(`/matches/${matchId}/lineup`, lineupData);
     return response.data;
 };
+
+
+// Sports Management
+export const createSport = async (sportData: any) => {
+    const response = await api.post('/sports', sportData);
+    return response.data;
+};
+
+export const updateSport = async (sportId: number, sportData: any) => {
+    const response = await api.put(`/sports/${sportId}`, sportData);
+    return response.data;
+}
+
+export const deleteSport = async (sportId: number) => {
+    const response = await api.delete(`/sports/${sportId}`);
+    return response.data;
+}
+
+// College Management
+export const getCollegesAdmin = async (): Promise<(Omit<College, 'id'> & {id: number})[]> => {
+    const response = await api.get('/colleges');
+    const responseData = response.data;
+    return Array.isArray(responseData) ? responseData : responseData?.data || [];
+};
+
+export const createCollege = async (collegeData: { name: string, city: string, state: string }) => {
+    const response = await api.post('/colleges', collegeData);
+    return response.data;
+};
+
+export const bulkCreateColleges = async (collegesData: { name: string, city: string, state: string }[]) => {
+    const response = await api.post('/colleges/bulk', collegesData);
+    return response.data;
+};
+
+
+export const updateCollege = async (collegeId: number, collegeData: any) => {
+    const response = await api.put(`/colleges/${collegeId}`, collegeData);
+    return response.data;
+}
+
+export const deleteCollege = async (collegeId: number) => {
+    const response = await api.delete(`/colleges/${collegeId}`);
+    return response.data;
+}

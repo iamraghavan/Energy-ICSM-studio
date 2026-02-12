@@ -7,12 +7,14 @@ import { getUserSession } from "@/lib/auth";
 import { useEffect, useState } from "react";
 import type { UserSession } from "@/lib/auth";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, ListChecks, Users, CalendarCog } from "lucide-react";
+import { LayoutDashboard, ListChecks, Users, CalendarCog, Trophy, Building } from "lucide-react";
 
 const navLinks = [
     { href: '/console/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/console/registrations', label: 'Registrations', icon: ListChecks },
     { href: '/console/users', label: 'User Management', icon: Users },
+    { href: '/console/sports', label: 'Sports', icon: Trophy },
+    { href: '/console/colleges', label: 'Colleges', icon: Building },
     { href: '/console/matches', label: 'Match Scheduler', icon: CalendarCog },
 ]
 
