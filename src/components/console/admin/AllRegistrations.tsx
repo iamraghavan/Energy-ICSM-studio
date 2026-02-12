@@ -1,6 +1,6 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { getRegistrations, verifyPayment, type Registration } from '@/lib/api';
+import { useEffect, useState, useMemo } from 'react';
+import { getRegistrations, verifyPayment, type Registration, getSports, getColleges, type ApiSport, type College } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -8,32 +8,61 @@ import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { VerifyPaymentModal } from './VerifyPaymentModal';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarIcon, Search, X } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { DateRange } from 'react-day-picker';
+import { cn } from '@/lib/utils';
+
 
 export function AllRegistrations() {
+  const router = useRouter();
   const params = useParams();
   const viewId = params.viewId as string;
+
   const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [sports, setSports] = useState<ApiSport[]>([]);
+  const [colleges, setColleges] = useState<College[]>([]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedRegistration, setSelectedRegistration] = useState<Registration | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
   const { toast } = useToast();
 
-  const fetchRegistrations = async () => {
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState({
+    sport: '',
+    college: '',
+    paymentStatus: '',
+    registrationStatus: ''
+  });
+  const [date, setDate] = useState<DateRange | undefined>();
+
+  const fetchData = async () => {
     setIsLoading(true);
     try {
-      const data = await getRegistrations();
-      setRegistrations(data);
+      const [regData, sportsData, collegeData] = await Promise.all([
+        getRegistrations(),
+        getSports(),
+        getColleges()
+      ]);
+      setRegistrations(regData);
+      setSports(sportsData);
+      setColleges(collegeData.filter(c => c.id !== 'other')); // Exclude 'Other' option
       setError(null);
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch registrations.');
+      setError(err.message || 'Failed to fetch data.');
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: err.message || 'Failed to fetch registrations.',
+        description: err.message || 'Failed to fetch initial data.',
       });
     } finally {
       setIsLoading(false);
@@ -41,10 +70,48 @@ export function AllRegistrations() {
   };
 
   useEffect(() => {
-    fetchRegistrations();
+    fetchData();
   }, []);
 
-  const handleVerifyClick = (registration: Registration) => {
+  const handleFilterChange = (filterName: keyof typeof filters, value: string) => {
+    setFilters(prev => ({ ...prev, [filterName]: value }));
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setFilters({ sport: '', college: '', paymentStatus: '', registrationStatus: '' });
+    setDate(undefined);
+  };
+
+  const filteredRegistrations = useMemo(() => {
+    return registrations.filter(reg => {
+      // Search term filter
+      const searchMatch = searchTerm.toLowerCase() === '' ||
+        reg.Student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (reg.Student.other_college || reg.Student.College?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (reg.Sport?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        reg.registration_code.toLowerCase().includes(searchTerm.toLowerCase());
+
+      // Dropdown filters
+      const sportMatch = !filters.sport || String(reg.sport_id) === filters.sport;
+      const collegeMatch = !filters.college || reg.Student.college_id === filters.college;
+      const paymentStatusMatch = !filters.paymentStatus || reg.payment_status === filters.paymentStatus;
+      const registrationStatusMatch = !filters.registrationStatus || reg.status === filters.registrationStatus;
+
+      // Date range filter
+      const regDate = new Date(reg.created_at);
+      const dateMatch = !date || (
+        (!date.from || regDate >= date.from) &&
+        (!date.to || regDate <= date.to)
+      );
+
+      return searchMatch && sportMatch && collegeMatch && paymentStatusMatch && registrationStatusMatch && dateMatch;
+    });
+  }, [registrations, searchTerm, filters, date]);
+
+
+  const handleVerifyClick = (e: React.MouseEvent, registration: Registration) => {
+    e.stopPropagation(); // Prevent row click
     setSelectedRegistration(registration);
     setIsModalOpen(true);
   };
@@ -61,7 +128,7 @@ export function AllRegistrations() {
         title: 'Success',
         description: `Registration status updated to ${status}.`,
       });
-      fetchRegistrations(); // Refresh the list
+      fetchData(); // Refresh the list
       handleModalClose();
     } catch (err: any) {
       toast({
@@ -71,29 +138,24 @@ export function AllRegistrations() {
       });
     }
   };
-  
-  const filteredRegistrations = (status: 'pending' | 'verified' | 'rejected' | 'approved' | 'all') => {
-      if (status === 'all') return registrations;
-      if (!registrations) return [];
-      if (status === 'approved') {
-        return registrations.filter(r => r.payment_status === 'approved' || r.payment_status === 'verified');
-      }
-      return registrations.filter(r => r.payment_status === status);
-  }
 
-  const renderTable = (data: Registration[]) => {
+  const handleRowClick = (registrationCode: string) => {
+    router.push(`/console/${viewId}/registrations/${encodeURIComponent(registrationCode)}`);
+  };
+
+  const renderTable = () => {
       if (isLoading) {
         return (
             <div className="space-y-2">
-                {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+                {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
             </div>
         )
       }
       if (error) {
         return <p className="text-destructive text-center">{error}</p>;
       }
-      if (data.length === 0) {
-        return <p className="text-muted-foreground text-center pt-8">No registrations found for this status.</p>;
+      if (filteredRegistrations.length === 0) {
+        return <p className="text-muted-foreground text-center py-16">No registrations match your filters.</p>;
       }
       
       return (
@@ -101,51 +163,64 @@ export function AllRegistrations() {
             <Table>
                 <TableHeader>
                 <TableRow>
-                    <TableHead>Student Name</TableHead>
-                    <TableHead>College</TableHead>
-                    <TableHead>Sport</TableHead>
-                    <TableHead>Date</TableHead>
+                    <TableHead>Student</TableHead>
+                    <TableHead className="hidden md:table-cell">College</TableHead>
+                    <TableHead className="hidden sm:table-cell">Sport</TableHead>
+                    <TableHead className="hidden md:table-cell">Date</TableHead>
+                    <TableHead>Payment</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
                 </TableHeader>
                 <TableBody>
-                {data.map((reg) => (
-                    <TableRow key={reg.id}>
-                    <TableCell className="font-medium">{reg.Student.name}</TableCell>
-                    <TableCell>{reg.Student.other_college || reg.Student.College?.name}</TableCell>
-                    <TableCell>{reg.Sport?.name}</TableCell>
-                    <TableCell>{format(new Date(reg.created_at), 'PPP')}</TableCell>
-                    <TableCell>
-                        <Badge
-                        variant={
-                            reg.payment_status === 'verified' || reg.payment_status === 'approved'
-                            ? 'default'
-                            : reg.payment_status === 'rejected'
-                            ? 'destructive'
-                            : 'secondary'
-                        }
-                        className="capitalize"
-                        >
-                        {reg.payment_status}
-                        </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                            {reg.payment_status === 'pending' && (
+                {filteredRegistrations.map((reg) => (
+                    <TableRow key={reg.id} onClick={() => handleRowClick(reg.registration_code)} className="cursor-pointer">
+                        <TableCell>
+                            <div className="font-medium">{reg.Student.name}</div>
+                            <div className="text-xs text-muted-foreground font-mono">{reg.registration_code}</div>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">{reg.Student.other_college || reg.Student.College?.name}</TableCell>
+                        <TableCell className="hidden sm:table-cell">{reg.Sport?.name}</TableCell>
+                        <TableCell className="hidden md:table-cell">{format(new Date(reg.created_at), 'PPP')}</TableCell>
+                        <TableCell>
+                            <Badge
+                                variant={
+                                    reg.payment_status === 'verified' || reg.payment_status === 'approved'
+                                    ? 'default'
+                                    : reg.payment_status === 'rejected'
+                                    ? 'destructive'
+                                    : 'secondary'
+                                }
+                                className="capitalize"
+                            >
+                                {reg.payment_status}
+                            </Badge>
+                        </TableCell>
+                        <TableCell>
+                             <Badge
+                                variant={
+                                    reg.status === 'approved'
+                                    ? 'default'
+                                    : reg.status === 'rejected'
+                                    ? 'destructive'
+                                    : 'secondary'
+                                }
+                                className="capitalize"
+                                >
+                                {reg.status}
+                            </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                           {reg.payment_status === 'pending' && (
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleVerifyClick(reg)}
+                                onClick={(e) => handleVerifyClick(e, reg)}
                             >
                                 Verify
                             </Button>
-                            )}
-                            <Button asChild variant="ghost" size="sm">
-                                <Link href={`/console/${viewId}/registrations/${encodeURIComponent(reg.registration_code)}`}>Details</Link>
-                            </Button>
-                        </div>
-                    </TableCell>
+                           )}
+                        </TableCell>
                     </TableRow>
                 ))}
                 </TableBody>
@@ -154,20 +229,88 @@ export function AllRegistrations() {
       )
   }
 
+  const hasActiveFilters = searchTerm || filters.sport || filters.college || filters.paymentStatus || filters.registrationStatus || date;
+
   return (
-    <>
-        <Tabs defaultValue="pending">
-            <TabsList>
-                <TabsTrigger value="pending">Pending</TabsTrigger>
-                <TabsTrigger value="approved">Approved</TabsTrigger>
-                <TabsTrigger value="rejected">Rejected</TabsTrigger>
-                <TabsTrigger value="all">All</TabsTrigger>
-            </TabsList>
-            <TabsContent value="pending">{renderTable(filteredRegistrations('pending'))}</TabsContent>
-            <TabsContent value="approved">{renderTable(filteredRegistrations('approved'))}</TabsContent>
-            <TabsContent value="rejected">{renderTable(filteredRegistrations('rejected'))}</TabsContent>
-            <TabsContent value="all">{renderTable(filteredRegistrations('all'))}</TabsContent>
-        </Tabs>
+    <Card>
+        <CardHeader>
+            <CardTitle>All Registrations</CardTitle>
+            <CardDescription>View, filter, and verify student registrations and payments.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <div className="space-y-4">
+                <div className="flex flex-col md:flex-row gap-2">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                            placeholder="Search by name, code, sport..."
+                            className="pl-10"
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                     <div className="grid grid-cols-2 sm:flex gap-2">
+                         <Select value={filters.sport} onValueChange={(v) => handleFilterChange('sport', v)}>
+                            <SelectTrigger className="w-full sm:w-auto"><SelectValue placeholder="Sport" /></SelectTrigger>
+                            <SelectContent>
+                                {sports.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <Select value={filters.college} onValueChange={(v) => handleFilterChange('college', v)}>
+                            <SelectTrigger className="w-full sm:w-auto"><SelectValue placeholder="College" /></SelectTrigger>
+                            <SelectContent>
+                                {colleges.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                         <Select value={filters.paymentStatus} onValueChange={(v) => handleFilterChange('paymentStatus', v)}>
+                            <SelectTrigger className="w-full sm:w-auto"><SelectValue placeholder="Payment" /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="pending">Pending</SelectItem>
+                                <SelectItem value="approved">Approved</SelectItem>
+                                <SelectItem value="verified">Verified</SelectItem>
+                                <SelectItem value="rejected">Rejected</SelectItem>
+                            </SelectContent>
+                        </Select>
+                         <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                variant={"outline"}
+                                className={cn(
+                                    "w-full sm:w-auto justify-start text-left font-normal",
+                                    !date && "text-muted-foreground"
+                                )}
+                                >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {date?.from ? (
+                                    date.to ? (
+                                    <>
+                                        {format(date.from, "LLL dd, y")} -{" "}
+                                        {format(date.to, "LLL dd, y")}
+                                    </>
+                                    ) : (
+                                    format(date.from, "LLL dd, y")
+                                    )
+                                ) : (
+                                    <span>Pick a date</span>
+                                )}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                mode="range"
+                                selected={date}
+                                onSelect={setDate}
+                                initialFocus
+                                />
+                            </PopoverContent>
+                        </Popover>
+                        {hasActiveFilters && <Button variant="ghost" onClick={clearFilters}><X className="h-4 w-4 mr-2" />Clear</Button>}
+                    </div>
+                </div>
+
+                {renderTable()}
+            </div>
+        </CardContent>
 
         {selectedRegistration && (
             <VerifyPaymentModal

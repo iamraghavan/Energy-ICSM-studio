@@ -27,16 +27,8 @@ export function SuperAdminDashboard() {
                         Match Scheduler
                     </TabsTrigger>
                 </TabsList>
-                <TabsContent value="registrations">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>All Registrations</CardTitle>
-                            <CardDescription>View and verify student registrations and payments.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <AllRegistrations />
-                        </CardContent>
-                    </Card>
+                <TabsContent value="registrations" className="mt-4">
+                    <AllRegistrations />
                 </TabsContent>
                 <TabsContent value="users">
                     <UserManagement />
