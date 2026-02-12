@@ -232,7 +232,8 @@ export function AllRegistrations() {
   const hasActiveFilters = searchTerm || filters.sport || filters.college || filters.paymentStatus || filters.registrationStatus || date;
 
   return (
-    <Card>
+    <>
+      <Card>
         <CardHeader>
             <CardTitle>All Registrations</CardTitle>
             <CardDescription>View, filter, and verify student registrations and payments.</CardDescription>
@@ -311,15 +312,15 @@ export function AllRegistrations() {
                 {renderTable()}
             </div>
         </CardContent>
-
-        {selectedRegistration && (
-            <VerifyPaymentModal
-            isOpen={isModalOpen}
-            onClose={handleModalClose}
-            registration={selectedRegistration}
-            onVerify={handleVerification}
-            />
-        )}
+      </Card>
+      {selectedRegistration && (
+          <VerifyPaymentModal
+          isOpen={isModalOpen}
+          onClose={handleModalClose}
+          registration={selectedRegistration}
+          onVerify={handleVerification}
+          />
+      )}
     </>
   );
 }
