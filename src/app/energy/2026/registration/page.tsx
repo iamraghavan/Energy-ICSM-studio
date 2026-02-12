@@ -1,6 +1,6 @@
 import { getColleges, getSports } from "@/lib/api";
 import { RegisterForm } from "./register-form";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AlertTriangle } from "lucide-react";
 
 export default async function RegisterPage() {
