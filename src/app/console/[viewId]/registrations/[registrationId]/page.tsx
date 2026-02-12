@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { getRegistration, type Registration } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Mail, Phone, User, Building, Milestone, Dribbble, Calendar, Hash, FileText, Users as UsersIcon, Bed, UserCheck, Clock } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, User, Building, Dribbble, Hash, Users as UsersIcon, Bed, UserCheck, Clock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -100,8 +100,6 @@ export default function RegistrationDetailsPage() {
                         <InfoDetail icon={Mail} label="Email" value={Student.email} />
                         <InfoDetail icon={Phone} label="Mobile" value={Student.mobile} />
                         <InfoDetail icon={Phone} label="WhatsApp" value={Student.whatsapp} />
-                        <InfoDetail icon={Calendar} label="Date of Birth" value={format(new Date(Student.dob), 'PPP')} />
-                        <InfoDetail icon={User} label="Gender" value={Student.gender} />
                     </CardContent>
                 </Card>
 
@@ -109,8 +107,6 @@ export default function RegistrationDetailsPage() {
                     <CardHeader><CardTitle>Academic Details</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
                         <InfoDetail icon={Building} label="College" value={Student.other_college || Student.College?.name || 'N/A'} />
-                         <InfoDetail icon={FileText} label="Department" value={Student.department} />
-                        <InfoDetail icon={Milestone} label="Year of Study" value={Student.year_of_study} />
                         <InfoDetail icon={Building} label="City" value={Student.city} />
                         <InfoDetail icon={Building} label="State" value={Student.state} />
                     </CardContent>
