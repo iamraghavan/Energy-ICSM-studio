@@ -24,6 +24,7 @@ export default function ConsoleDashboardPage() {
     const [collegeWiseData, setCollegeWiseData] = useState<any[]>([]);
 
     useEffect(() => {
+        // This is mock data. In a real app, you'd fetch this.
         setSportWiseData(sports.map(s => ({ name: s.name.length > 10 ? s.name.substring(0,10) + '...' : s.name, count: Math.floor(Math.random() * 50) + 10 })));
         setCollegeWiseData(colleges.map(c => ({ name: c.name.split(' ')[0], count: Math.floor(Math.random() * 100) + 20 })));
     }, []);

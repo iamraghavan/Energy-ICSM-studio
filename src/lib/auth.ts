@@ -14,20 +14,7 @@ export interface UserSession {
     id: string;
 }
 
-const ROLE_MAP: Record<string, UserSession['role']> = {
-    '8f7a2b9c': 'super_admin',
-    'x9d2k1m4': 'sports_head',
-    'm2p5q8l0': 'scorer',
-    'c4r1v3n7': 'committee',
-};
-
-export const getRoleForViewId = (viewId: string): UserSession['role'] | undefined => {
-    return ROLE_MAP[viewId];
-};
-
 export const getRedirectPathForRole = (role: string): string => {
-    // All roles can start at the dashboard now.
-    // Specific role permissions can be handled within pages or in the layout.
     return '/console/dashboard';
 }
 
