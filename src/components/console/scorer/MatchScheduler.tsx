@@ -30,6 +30,8 @@ const matchFormSchema = z.object({
     path: ["team_b_id"],
 });
 
+type MatchFormValues = z.infer<typeof matchFormSchema>;
+
 export function MatchScheduler({ sportId }: { sportId?: string }) {
     const [upcomingMatches, setUpcomingMatches] = useState<ApiMatch[]>([]);
     const [teams, setTeams] = useState<ApiTeam[]>([]);
@@ -55,18 +57,23 @@ export function MatchScheduler({ sportId }: { sportId?: string }) {
     }
 
     useEffect(() => {
-        fetchUpcoming();
+        if (sportId) {
+            fetchUpcoming();
+        }
 
         const socket = io(SOCKET_URL);
         socket.on('connect', () => socket.emit('join_room', 'live_overview'));
         socket.on('overview_update', (data: any) => {
             toast({ title: 'Schedule Updated!', description: 'The match list has been updated in real-time.' });
-            fetchUpcoming();
+            if (sportId) {
+                fetchUpcoming();
+            }
         });
 
         return () => {
             socket.disconnect();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [sportId, toast]);
 
     const onMatchCreated = () => {
@@ -120,7 +127,7 @@ export function MatchScheduler({ sportId }: { sportId?: string }) {
 
 function CreateMatchDialog({ onMatchCreated, sportId, teams }: { onMatchCreated: () => void, sportId?: string, teams: ApiTeam[] }) {
     const { toast } = useToast();
-    const form = useForm<z.infer<typeof matchFormSchema>>({
+    const form = useForm<MatchFormValues>({
         resolver: zodResolver(matchFormSchema),
         defaultValues: {
             referee_name: '',
@@ -132,19 +139,20 @@ function CreateMatchDialog({ onMatchCreated, sportId, teams }: { onMatchCreated:
         }
     });
     
+    const { reset } = form;
     useEffect(() => {
-        form.reset({
-             referee_name: '',
+        reset({
+            referee_name: '',
             sport_id: sportId || '',
             start_time: '',
             team_a_id: '',
             team_b_id: '',
             venue: ''
-        })
-    }, [sportId, form])
+        });
+    }, [sportId, reset]);
 
 
-    const onSubmit = async (values: z.infer<typeof matchFormSchema>>) => {
+    const onSubmit = async (values: MatchFormValues) => {
         if (!sportId) {
             toast({ variant: 'destructive', title: 'Error', description: 'No sport selected.' });
             return;
@@ -159,7 +167,7 @@ function CreateMatchDialog({ onMatchCreated, sportId, teams }: { onMatchCreated:
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Error', description: error.response?.data?.message || 'Failed to create match.' });
         }
-    }
+    };
 
     if (!sportId || teams.length < 2) {
         return (
