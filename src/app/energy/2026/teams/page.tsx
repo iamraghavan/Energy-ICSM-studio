@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getSports, getTeams } from "@/lib/api";
+import { getSports, getTeamsBySport } from "@/lib/api";
 import { ArrowRight } from "lucide-react";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
@@ -14,9 +14,16 @@ export const metadata: Metadata = {
 
 export default async function TeamsPage() {
     const sportsData = await getSports();
-    const teamsData = await getTeams();
+    
+    const teamPromises = sportsData.map(sport =>
+        getTeamsBySport(String(sport.id)).catch(() => [])
+    );
+    const allTeamsArrays = await Promise.all(teamPromises);
+    const teamsData = allTeamsArrays.flat();
 
     const sports = sportsData.map(sport => ({ ...sport, icon: getSportIcon(sport.name) }));
+
+    const defaultTab = sports.find(s => teamsData.some(t => String(t.sport_id) === String(s.id)))?.id.toString() || sports[0]?.id.toString();
 
     return (
         <div className="container py-8 md:py-12">
@@ -25,7 +32,7 @@ export default async function TeamsPage() {
                 <p className="text-muted-foreground mt-2">Explore all the teams competing in Energy Sports Meet.</p>
             </div>
             
-            <Tabs defaultValue={sports.find(s => teamsData.some(t => String(t.sport_id) === String(s.id)))?.id.toString() || sports[0]?.id.toString()} className="w-full">
+            <Tabs defaultValue={defaultTab} className="w-full">
                 <TabsList className="overflow-x-auto whitespace-nowrap h-auto p-2 justify-start w-full md:w-auto md:inline-flex">
                     {sports.map(sport => (
                         <TabsTrigger key={sport.id} value={sport.id.toString()}>{sport.name}</TabsTrigger>
