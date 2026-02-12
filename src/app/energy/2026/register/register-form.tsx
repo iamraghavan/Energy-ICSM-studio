@@ -94,6 +94,7 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
     const { watch, setValue, getValues, control, formState: { isSubmitting } } = form;
 
     const selectedSportIds = watch('selected_sport_ids', []);
+    const collegeName = watch('collegeName');
     const isWhatsappSame = watch('isWhatsappSame');
     const mobile = watch('mobile');
     const isPd = watch('isPd');
@@ -215,6 +216,20 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
             }
         };
     }, [isClient, setValue]);
+
+    // Auto-generate team name
+    useEffect(() => {
+        const firstTeamSport = selectedSportIds
+            .map(id => apiSports.find(s => s.id.toString() === id))
+            .find(sport => sport?.type === 'Team');
+
+        if (firstTeamSport && collegeName) {
+            const newTeamName = `${collegeName} - ${firstTeamSport.name} - ${firstTeamSport.category}`;
+            setValue('teamName', newTeamName);
+        } else {
+            setValue('teamName', '');
+        }
+    }, [selectedSportIds, collegeName, apiSports, setValue]);
 
 
     const onSubmit = async (data: FormSchema) => {
@@ -395,7 +410,16 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
 
                                 {hasSelectedTeamSport && (
                                     <FormField name="teamName" control={control} render={({ field }) => (
-                                        <FormItem><FormLabel>Team Name</FormLabel><FormControl><Input placeholder="Enter your team name for all team events" {...field} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem>
+                                            <FormLabel>Team Name</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Auto-generated based on college and sport" {...field} readOnly />
+                                            </FormControl>
+                                            <FormDescription>
+                                                This is automatically generated. If you have multiple team entries, please submit them as separate registrations.
+                                            </FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
                                     )} />
                                 )}
                             </FormSection>
