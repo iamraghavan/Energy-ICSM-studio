@@ -18,6 +18,16 @@ export const getRedirectPathForRole = (role: string): string => {
     return '/console/dashboard';
 }
 
+export const getRoleForViewId = (viewId: string): UserSession['role'] | null => {
+    const roleMap: Record<string, UserSession['role']> = {
+        '8f7a2b9c': 'super_admin',
+        'x9d2k1m4': 'sports_head',
+        'm2p5q8l0': 'scorer',
+        'c4r1v3n7': 'committee'
+    };
+    return roleMap[viewId] || null;
+};
+
 export const getUserSession = (): UserSession | null => {
     if (typeof window === 'undefined') return null;
     
