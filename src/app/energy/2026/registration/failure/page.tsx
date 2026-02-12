@@ -5,11 +5,46 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { XCircle } from 'lucide-react';
+import { Suspense } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 
-export default function RegistrationFailurePage() {
+function FailureContent() {
     const searchParams = useSearchParams();
     const errorMessage = searchParams.get('error');
 
+    return (
+        <>
+            {errorMessage && (
+                <div className="border rounded-lg p-3 bg-destructive/10 text-destructive text-sm">
+                    <p className="font-semibold">Error Details:</p>
+                    <p>{decodeURIComponent(errorMessage)}</p>
+                </div>
+            )}
+            <div className="flex flex-col sm:flex-row gap-2">
+                <Button asChild className="w-full">
+                    <Link href="/energy/2026/registration">Try Again</Link>
+                </Button>
+                <Button asChild variant="outline" className="w-full">
+                    <Link href="/energy/2026">Back to Home</Link>
+                </Button>
+            </div>
+        </>
+    );
+}
+
+function FailureSkeleton() {
+    return (
+        <div className="space-y-4">
+            <Skeleton className="h-16 w-full" />
+            <div className="flex flex-col sm:flex-row gap-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+            </div>
+        </div>
+    )
+}
+
+export default function RegistrationFailurePage() {
     return (
         <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
             <Card className="w-full max-w-md text-center">
@@ -21,20 +56,9 @@ export default function RegistrationFailurePage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {errorMessage && (
-                        <div className="border rounded-lg p-3 bg-destructive/10 text-destructive text-sm">
-                            <p className="font-semibold">Error Details:</p>
-                            <p>{decodeURIComponent(errorMessage)}</p>
-                        </div>
-                    )}
-                    <div className="flex flex-col sm:flex-row gap-2">
-                        <Button asChild className="w-full">
-                            <Link href="/energy/2026/registration">Try Again</Link>
-                        </Button>
-                        <Button asChild variant="outline" className="w-full">
-                            <Link href="/energy/2026">Back to Home</Link>
-                        </Button>
-                    </div>
+                    <Suspense fallback={<FailureSkeleton />}>
+                        <FailureContent />
+                    </Suspense>
                 </CardContent>
             </Card>
         </div>
