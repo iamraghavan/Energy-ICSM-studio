@@ -115,7 +115,7 @@ export type User = {
     assigned_sport_id?: number | null;
 };
 
-const API_BASE_URL = 'https://api.egspgroup.in/api/v1';
+const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

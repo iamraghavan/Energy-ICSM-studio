@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MatchCard } from './MatchCard';
 
-const SOCKET_URL = 'https://api.egspgroup.in';
+const SOCKET_URL = 'https://energy-sports-meet-backend.onrender.com';
 
 function ScoringInterface({ match, onBack }: { match: ApiMatch, onBack: () => void }) {
     const [score, setScore] = useState(match.score_details || {});
