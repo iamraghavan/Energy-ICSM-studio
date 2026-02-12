@@ -2,13 +2,13 @@
 import { getRegistration, type Registration } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Mail, Phone, User, Building, Dribbble, Hash, Users as UsersIcon, Bed, UserCheck, Clock, Download, AlertTriangle, Share2, Copy } from 'lucide-react';
+import { Mail, Phone, User, Building, Dribbble, Hash, Users as UsersIcon, Bed, UserCheck, Clock, Download, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ShareButton } from '@/components/shared/share-button';
@@ -71,8 +71,7 @@ function RegistrationDetailsSkeleton() {
     )
 }
 
-
-export default function PublicRegistrationDetailsPage() {
+function PublicRegistrationDetailsContent() {
     const searchParams = useSearchParams();
     const registrationId = searchParams.get('id');
 
@@ -219,5 +218,14 @@ export default function PublicRegistrationDetailsPage() {
                  )}
             </div>
         </div>
+    );
+}
+
+
+export default function PublicRegistrationDetailsPage() {
+    return (
+        <Suspense fallback={<RegistrationDetailsSkeleton />}>
+            <PublicRegistrationDetailsContent />
+        </Suspense>
     );
 }
