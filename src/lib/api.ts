@@ -113,6 +113,8 @@ export type User = {
 };
 
 const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
+const SOCKET_URL = 'https://energy-sports-meet-backend.onrender.com';
+
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -176,11 +178,7 @@ export const getSports = async (): Promise<ApiSport[]> => {
 };
 
 export const registerStudent = async (formData: FormData) => {
-  const response = await api.post('/register', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
+  const response = await api.post('/register', formData);
   return response.data;
 };
 
