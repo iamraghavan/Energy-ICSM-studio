@@ -22,7 +22,7 @@ export default async function TeamsPage() {
         <div className="container py-8 md:py-12">
             <div className="mb-8">
                 <h1 className="text-4xl font-bold font-headline">Participating Teams</h1>
-                <p className="text-muted-foreground mt-2">Explore all the teams competing in SportZone.</p>
+                <p className="text-muted-foreground mt-2">Explore all the teams competing in Energy Sports Meet.</p>
             </div>
             
             <Tabs defaultValue={sports.find(s => teamsData.some(t => t.sport_id === s.id))?.id.toString() || sports[0]?.id.toString()} className="w-full">
