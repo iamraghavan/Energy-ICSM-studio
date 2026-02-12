@@ -235,7 +235,22 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
             .find(sport => sport?.type === 'Team');
 
         if (firstTeamSport && collegeName) {
-            const newTeamName = `${collegeName} - ${firstTeamSport.name} - ${firstTeamSport.category}`;
+            const sportNameSuffixes: Record<string, string> = {
+                'Cricket': 'Strikers',
+                'Football': 'Kickers',
+                'Basketball': 'Hoopers',
+                'Volleyball': 'Spikers',
+                'Kabaddi': 'Raiders',
+                'Badminton': 'Shuttlers',
+                'Chess': 'Masters',
+                'Table Tennis': 'Paddlers',
+            };
+            
+            const collegePrefix = collegeName.split(' ')[0].replace(/[^a-zA-Z0-9]/g, '');
+
+            const suffix = sportNameSuffixes[firstTeamSport.name] || firstTeamSport.name;
+
+            const newTeamName = `${collegePrefix} ${suffix}`;
             setValue('teamName', newTeamName);
         } else {
             setValue('teamName', '');
