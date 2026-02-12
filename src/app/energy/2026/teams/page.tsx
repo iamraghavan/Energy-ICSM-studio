@@ -1,7 +1,6 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getSports, getTeamsBySport } from "@/lib/api";
-import { ArrowRight } from "lucide-react";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { getSportIcon } from "@/lib/icons";
@@ -46,22 +45,16 @@ export default async function TeamsPage() {
                                 {sportTeams.length > 0 ? (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {sportTeams.map(team => (
-                                            <Card key={team.id} className="hover:shadow-lg transition-shadow flex flex-col">
-                                                <CardHeader className="flex-row items-center gap-4">
-                                                     <div className="w-12 h-12 bg-secondary rounded-full flex items-center justify-center font-bold text-2xl shrink-0">{team.team_name.charAt(0)}</div>
-                                                     <div>
-                                                        <CardTitle className="font-headline text-xl">{team.team_name}</CardTitle>
-                                                        {team.Captain?.name && <CardDescription>Captain: {team.Captain.name}</CardDescription>}
-                                                     </div>
-                                                </CardHeader>
-                                                <CardContent className="flex-grow flex items-end">
-                                                    <Button asChild variant="outline" className="w-full">
-                                                        <Link href={`/energy/2026/teams/${team.id}`}>
-                                                            View Details <ArrowRight className="ml-2 h-4 w-4" />
-                                                        </Link>
-                                                    </Button>
-                                                </CardContent>
-                                            </Card>
+                                            <Link key={team.id} href={`/energy/2026/teams/${team.id}`} className="block h-full">
+                                                <Card className="hover:shadow-lg transition-shadow h-full">
+                                                    <CardHeader className="flex-row items-center gap-4">
+                                                        <div className="w-12 h-12 bg-secondary rounded-full flex items-center justify-center font-bold text-2xl shrink-0">{team.team_name.charAt(0)}</div>
+                                                        <div>
+                                                            <CardTitle className="font-headline text-xl">{team.team_name}</CardTitle>
+                                                        </div>
+                                                    </CardHeader>
+                                                </Card>
+                                            </Link>
                                         ))}
                                     </div>
                                 ) : (
