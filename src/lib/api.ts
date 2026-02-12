@@ -22,6 +22,11 @@ export type ApiTeam = {
   Captain?: {
     name: string;
   };
+  Sport?: {
+    id: number;
+    name: string;
+    category: 'Boys' | 'Girls';
+  };
 };
 
 export type TeamMember = {
