@@ -7,9 +7,11 @@ import { SportsHeadDashboard } from '@/components/console/SportsHeadDashboard';
 import { ScorerDashboard } from '@/components/console/ScorerDashboard';
 import { CommitteeDashboard } from '@/components/console/CommitteeDashboard';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 export default function DashboardRouterPage() {
     const router = useRouter();
+    const { toast } = useToast();
     const [user, setUser] = useState<UserSession | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -51,6 +53,15 @@ export default function DashboardRouterPage() {
         case 'committee':
             return <CommitteeDashboard />;
         default:
+            toast({
+                variant: 'destructive',
+                title: 'Invalid Role',
+                description: `Your account role ('${user.role}') is not recognized. Logging you out.`,
+            });
+            // Clear the invalid session to prevent a redirect loop
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('jwt_token');
+            }
             router.replace('/auth/session');
             return null;
     }
