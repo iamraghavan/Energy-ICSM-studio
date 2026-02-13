@@ -37,6 +37,12 @@ export default function AuthSessionPage() {
 
       if (token) {
         localStorage.setItem('jwt_token', token);
+        localStorage.setItem('user_role', response.role);
+        if (response.assigned_sport_id) {
+          localStorage.setItem('assigned_sport_id', String(response.assigned_sport_id));
+        } else {
+          localStorage.removeItem('assigned_sport_id');
+        }
         router.replace('/console/dashboard');
       } else {
         throw new Error("Login failed: No token received.");

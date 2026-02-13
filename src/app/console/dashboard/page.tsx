@@ -61,6 +61,8 @@ export default function DashboardRouterPage() {
             // Clear the invalid session to prevent a redirect loop
             if (typeof window !== 'undefined') {
                 localStorage.removeItem('jwt_token');
+                localStorage.removeItem('user_role');
+                localStorage.removeItem('assigned_sport_id');
             }
             router.replace('/auth/session');
             return null;

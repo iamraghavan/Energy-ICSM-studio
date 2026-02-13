@@ -25,13 +25,25 @@ export const getUserSession = (): UserSession | null => {
         
         if (Date.now() >= decoded.exp * 1000) {
             localStorage.removeItem('jwt_token');
+            localStorage.removeItem('user_role');
+            localStorage.removeItem('assigned_sport_id');
             return null;
+        }
+
+        const role = localStorage.getItem('user_role') as UserSession['role'];
+        const assigned_sport_id = localStorage.getItem('assigned_sport_id') || undefined;
+
+        if (!role) {
+             localStorage.removeItem('jwt_token');
+             localStorage.removeItem('user_role');
+             localStorage.removeItem('assigned_sport_id');
+             return null;
         }
 
         return {
             id: decoded.id,
-            role: decoded.role,
-            assigned_sport_id: decoded.assigned_sport_id,
+            role: role,
+            assigned_sport_id: assigned_sport_id,
             iat: decoded.iat,
             exp: decoded.exp,
         };
@@ -39,6 +51,8 @@ export const getUserSession = (): UserSession | null => {
     } catch (error) {
         console.error("Failed to decode token", error);
         localStorage.removeItem('jwt_token');
+        localStorage.removeItem('user_role');
+        localStorage.removeItem('assigned_sport_id');
         return null;
     }
 };

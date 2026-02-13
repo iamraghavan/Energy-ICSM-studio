@@ -34,6 +34,8 @@ function ConsoleHeader() {
 
     const handleLogout = () => {
         localStorage.removeItem('jwt_token');
+        localStorage.removeItem('user_role');
+        localStorage.removeItem('assigned_sport_id');
         router.push('/auth/session');
     };
 
