@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { loginUser } from '@/lib/api';
-import { getRedirectPathForRole } from '@/lib/auth';
 import { Logo } from '@/components/shared/logo';
 import { Loader2 } from 'lucide-react';
 
@@ -24,15 +23,12 @@ export default function AuthSessionPage() {
     try {
       const response = await loginUser({ username: email, password });
       const token = response.token;
-      const role = response.role;
 
-      if (token && role) {
+      if (token) {
         localStorage.setItem('jwt_token', token);
-        localStorage.setItem('user_role', role);
-        const redirectPath = getRedirectPathForRole(role);
-        router.push(redirectPath);
+        router.push('/console/dashboard');
       } else {
-        throw new Error("Login failed: No token or role received.");
+        throw new Error("Login failed: No token received.");
       }
     } catch (error: any) {
       toast({

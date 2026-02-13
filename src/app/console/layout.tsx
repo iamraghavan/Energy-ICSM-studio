@@ -34,7 +34,6 @@ function ConsoleHeader() {
 
     const handleLogout = () => {
         localStorage.removeItem('jwt_token');
-        localStorage.removeItem('user_role');
         router.push('/auth/session');
     };
 
@@ -45,20 +44,29 @@ function ConsoleHeader() {
                     <Link href="/energy/2026" className="mr-6 flex items-center space-x-2">
                         <Logo />
                     </Link>
-                    <nav className="flex items-center space-x-6 text-sm font-medium">
-                        {navLinks.map(link => (
-                             <Link
-                                key={link.label}
-                                href={link.href}
-                                className={cn(
-                                    "transition-colors hover:text-foreground/80",
-                                    pathname.startsWith(link.href) ? "text-foreground" : "text-foreground/60"
-                                )}
+                    {user?.role === 'super_admin' ? (
+                        <nav className="flex items-center space-x-6 text-sm font-medium">
+                            {navLinks.map(link => (
+                                <Link
+                                    key={link.label}
+                                    href={link.href}
+                                    className={cn(
+                                        "transition-colors hover:text-foreground/80",
+                                        pathname.startsWith(link.href) ? "text-foreground" : "text-foreground/60"
+                                    )}
                                 >
-                                {link.label}
-                            </Link>
-                        ))}
-                    </nav>
+                                    {link.label}
+                                </Link>
+                            ))}
+                        </nav>
+                    ) : (
+                         <nav className="flex items-center space-x-6 text-sm font-medium">
+                            <Link href="/console/dashboard"  className={cn(
+                                    "transition-colors hover:text-foreground/80",
+                                    pathname.startsWith('/console/dashboard') ? "text-foreground" : "text-foreground/60"
+                                )}>Dashboard</Link>
+                        </nav>
+                    )}
                 </div>
 
                 <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">

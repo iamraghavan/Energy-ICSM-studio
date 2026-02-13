@@ -183,10 +183,11 @@ export const getRegistration = async (id: string): Promise<Registration> => {
     return response.data;
 };
 
-export const verifyPayment = async (registrationCode: string, status: 'approved' | 'rejected') => {
+export const verifyPayment = async (registrationCode: string, status: 'approved' | 'rejected', remarks: string) => {
     const response = await api.post('/admin/verify-payment', {
         registration_code: registrationCode,
         status: status,
+        remarks: remarks,
     });
     return response.data;
 };
@@ -213,10 +214,40 @@ export const deleteUser = async (userId: string) => {
 };
 
 // Match & Team Management
-export const getMatchesBySport = async (sportId: string): Promise<ApiMatch[]> => {
-    const response = await api.get(`/matches/sport/${sportId}`);
+export const getMatchesBySport = async (sportId: string, status?: 'scheduled' | 'live' | 'completed'): Promise<ApiMatch[]> => {
+    const response = await api.get(`/matches/sport/${sportId}`, { params: { status } });
     return Array.isArray(response.data) ? response.data : (response.data?.data || []);
 };
+
+export const getLiveMatches = async (): Promise<ApiMatch[]> => {
+    const response = await api.get('/matches/live');
+    return response.data.data || response.data;
+}
+
+export const createMatch = async (matchData: any) => {
+    const response = await api.post('/matches', matchData);
+    return response.data;
+}
+
+export const updateScore = async (matchId: string, scoreDetails: any, status: 'live' | 'completed') => {
+    const response = await api.put(`/matches/${matchId}/score`, { score_details: scoreDetails, status });
+    return response.data;
+};
+
+export const postMatchEvent = async (matchId: string, eventData: any) => {
+    const response = await api.post(`/matches/${matchId}/event`, eventData);
+    return response.data;
+}
+
+export const getLineup = async (matchId: string) => {
+    const response = await api.get(`/matches/${matchId}/lineup`);
+    return response.data;
+}
+
+export const manageLineup = async (matchId: string, lineupData: any) => {
+    const response = await api.post(`/matches/${matchId}/lineup`, lineupData);
+    return response.data;
+}
 
 export const getTeam = async (id: string): Promise<ApiTeamDetails> => {
     const response = await api.get(`/teams/${id}`);
@@ -227,3 +258,59 @@ export const getTeamsBySport = async (sportId: string): Promise<ApiTeam[]> => {
     const response = await api.get(`/teams/sport/${sportId}`);
     return Array.isArray(response.data) ? response.data : (response.data?.data || []);
 }
+
+// Admin
+export const getAdminAnalytics = async () => {
+    const response = await api.get('/admin/analytics');
+    return response.data;
+}
+
+// College Management
+export const getCollegesAdmin = async (): Promise<(Omit<College, 'id'> & {id: number})[]> => {
+    const response = await api.get('/colleges/admin');
+    return response.data.data || response.data;
+};
+export const createCollege = async (collegeData: Omit<College, 'id'>) => {
+    const response = await api.post('/colleges', collegeData);
+    return response.data;
+};
+export const bulkCreateColleges = async (collegesData: Omit<College, 'id'>[]) => {
+    const response = await api.post('/colleges/bulk', { colleges: collegesData });
+    return response.data;
+}
+export const updateCollege = async (collegeId: number, collegeData: Partial<Omit<College, 'id'>>) => {
+    const response = await api.put(`/colleges/${collegeId}`, collegeData);
+    return response.data;
+}
+export const deleteCollege = async (collegeId: number) => {
+    const response = await api.delete(`/colleges/${collegeId}`);
+    return response.data;
+}
+
+// Sports Management
+export const createSport = async (sportData: any) => {
+    const response = await api.post('/sports', sportData);
+    return response.data;
+}
+export const updateSport = async (sportId: number, sportData: any) => {
+    const response = await api.put(`/sports/${sportId}`, sportData);
+    return response.data;
+}
+export const deleteSport = async (sportId: number) => {
+    const response = await api.delete(`/sports/${sportId}`);
+    return response.data;
+}
+
+export type ApiMatch = {
+    id: string;
+    sport_id: number;
+    team_a_id: string;
+    team_b_id: string;
+    start_time: string;
+    venue: string;
+    status: 'scheduled' | 'live' | 'completed';
+    score_details: any;
+    Sport: ApiSport;
+    TeamA: ApiTeam;
+    TeamB: ApiTeam;
+};
