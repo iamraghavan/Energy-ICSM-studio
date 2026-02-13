@@ -65,13 +65,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 const userFormSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters long.'),
   email: z.string().email('Invalid email address.'),
+  username: z.string().min(3, 'Username must be at least 3 characters.'),
   role: z.enum(['super_admin', 'sports_head', 'scorer', 'committee']),
   password: z.string().optional(),
   assigned_sport_id: z.string().optional(),
 }).refine(data => {
     // In creation mode, password is required
-    if (!('id' in data) && (!data.password || data.password.length < 8)) {
-        return false;
+    if (!data.password || data.password.length < 8) {
+      // This is a new user if there's no ID yet.
+      // We can't check for ID here directly, so we check for password presence.
+      // This check is mainly for new user creation.
+      return false;
     }
     return true;
 }, {
@@ -86,6 +90,8 @@ const userFormSchema = z.object({
     message: 'Please assign a sport for the Sports Head role.',
     path: ['assigned_sport_id'],
 });
+
+const editUserFormSchema = userFormSchema.omit({ password: true, username: true });
 
 const roles: { id: User['role'], name: string }[] = [
     { id: 'super_admin', name: 'Super Admin' },
@@ -104,16 +110,25 @@ export default function UserManagementPage() {
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof userFormSchema>>({
-    resolver: zodResolver(userFormSchema),
+    resolver: zodResolver(selectedUser ? editUserFormSchema : userFormSchema),
     defaultValues: {
         name: '',
         email: '',
+        username: '',
         password: '',
         assigned_sport_id: undefined,
     },
   });
 
   const role = form.watch('role');
+  const email = form.watch('email');
+
+  useEffect(() => {
+    if (email && !selectedUser) {
+        const suggestedUsername = email.split('@')[0].replace(/[^a-z0-9]/gi, '').toLowerCase();
+        form.setValue('username', suggestedUsername);
+    }
+  }, [email, selectedUser, form]);
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -155,12 +170,13 @@ export default function UserManagementPage() {
       form.reset({
         name: user.name,
         email: user.email,
+        username: user.username,
         role: user.role,
         password: '',
         assigned_sport_id: user.assigned_sport_id ? String(user.assigned_sport_id) : undefined,
       });
     } else {
-      form.reset({ name: '', email: '', role: undefined, password: '', assigned_sport_id: undefined });
+      form.reset({ name: '', email: '', username: '', role: undefined, password: '', assigned_sport_id: undefined });
     }
     setIsModalOpen(true);
   };
@@ -311,7 +327,7 @@ export default function UserManagementPage() {
       </Card>
       </div>
 
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+      <Dialog open={isModalOpen} onOpenChange={handleModalClose}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>{selectedUser ? 'Edit User' : 'Add New User'}</DialogTitle>
@@ -321,51 +337,23 @@ export default function UserManagementPage() {
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Full Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter full name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="user@example.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <FormField control={form.control} name="name" render={({ field }) => (
+                  <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="Enter full name" {...field} /></FormControl><FormMessage /></FormItem>
+              )}/>
+              <FormField control={form.control} name="email" render={({ field }) => (
+                  <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="user@example.com" {...field} /></FormControl><FormMessage /></FormItem>
+              )}/>
               {!selectedUser && (
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <Input type="password" placeholder="Min. 8 characters" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <>
+                <FormField control={form.control} name="username" render={({ field }) => (
+                    <FormItem><FormLabel>Username</FormLabel><FormControl><Input placeholder="Enter username" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="password" render={({ field }) => (
+                    <FormItem><FormLabel>Password</FormLabel><FormControl><Input type="password" placeholder="Min. 8 characters" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                </>
               )}
-               <FormField
-                control={form.control}
-                name="role"
-                render={({ field }) => (
+               <FormField control={form.control} name="role" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Role</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -382,8 +370,7 @@ export default function UserManagementPage() {
                         </Select>
                         <FormMessage />
                     </FormItem>
-                )}
-                />
+                )}/>
                 {role === 'sports_head' && (
                     <FormField
                         control={form.control}

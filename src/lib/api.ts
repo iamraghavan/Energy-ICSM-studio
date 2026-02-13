@@ -199,7 +199,7 @@ export const getUsers = async (): Promise<User[]> => {
 };
 
 export const createUser = async (userData: any) => {
-    const response = await api.post('/auth/create-user', userData);
+    const response = await api.post('/admin/users', userData);
     return response.data;
 };
 
