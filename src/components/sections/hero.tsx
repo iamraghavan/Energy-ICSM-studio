@@ -9,7 +9,6 @@ export function Hero() {
         width={1920}
         height={800}
         className="w-full h-auto"
-        quality={100}
         priority
       />
     </section>

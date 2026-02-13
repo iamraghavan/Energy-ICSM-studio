@@ -4,6 +4,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://energy.egspgroup.in'),
   title: {
     default: 'ENERGY 2026 - Chevalier Dr. G.S. Pillay Memorial Inter-College Sports Meet',
     template: '%s | ENERGY 2026',
