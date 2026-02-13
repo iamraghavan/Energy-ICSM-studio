@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,24 +9,35 @@ import { useToast } from '@/hooks/use-toast';
 import { loginUser } from '@/lib/api';
 import { Logo } from '@/components/shared/logo';
 import { Loader2 } from 'lucide-react';
+import { getUserSession } from '@/lib/auth';
 
 export default function AuthSessionPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+
+  useEffect(() => {
+    const session = getUserSession();
+    if (session) {
+      router.replace('/console/dashboard');
+    } else {
+      setIsCheckingSession(false);
+    }
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsSubmitting(true);
     try {
       const response = await loginUser({ username: email, password });
       const token = response.token;
 
       if (token) {
         localStorage.setItem('jwt_token', token);
-        router.push('/console/dashboard');
+        router.replace('/console/dashboard');
       } else {
         throw new Error("Login failed: No token received.");
       }
@@ -36,9 +47,17 @@ export default function AuthSessionPage() {
         title: 'Login Failed',
         description: error.response?.data?.message || 'Invalid credentials. Please try again.',
       });
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
+
+  if (isCheckingSession) {
+    return (
+        <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
@@ -73,8 +92,8 @@ export default function AuthSessionPage() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Log In
             </Button>
           </form>
