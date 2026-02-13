@@ -90,7 +90,7 @@ export function SportsHeadDashboard({ user }: { user: UserSession }) {
                                         </TableHeader>
                                         <TableBody>
                                             {registrations.map(reg => (
-                                                <TableRow key={reg.id} onClick={() => router.push(`/console/registrations/${reg.registration_code}`)} className="cursor-pointer">
+                                                <TableRow key={reg.id}>
                                                     <TableCell>
                                                         <div className="font-medium">{reg.Student.name}</div>
                                                         <div className="text-xs font-mono text-muted-foreground">{reg.registration_code}</div>

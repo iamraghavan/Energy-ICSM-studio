@@ -9,7 +9,22 @@ import { useToast } from '@/hooks/use-toast';
 import { loginUser } from '@/lib/api';
 import { Logo } from '@/components/shared/logo';
 import { Loader2 } from 'lucide-react';
-import { getUserSession } from '@/lib/auth';
+import { getUserSession, type UserSession } from '@/lib/auth';
+
+const getDashboardPathForRole = (role: UserSession['role']): string => {
+    switch (role) {
+        case 'super_admin':
+            return '/admin/dashboard';
+        case 'sports_head':
+            return '/sports-head/dashboard';
+        case 'scorer':
+            return '/scorer/dashboard';
+        case 'committee':
+            return '/committee/dashboard';
+        default:
+            return '/auth/session'; // Fallback
+    }
+}
 
 export default function AuthSessionPage() {
   const router = useRouter();
@@ -22,7 +37,7 @@ export default function AuthSessionPage() {
   useEffect(() => {
     const session = getUserSession();
     if (session) {
-      router.replace('/console/dashboard');
+      router.replace(getDashboardPathForRole(session.role));
     } else {
       setIsCheckingSession(false);
     }
@@ -34,18 +49,19 @@ export default function AuthSessionPage() {
     try {
       const response = await loginUser({ username: email, password });
       const token = response.token;
+      const role = response.role;
 
-      if (token) {
+      if (token && role) {
         localStorage.setItem('jwt_token', token);
-        localStorage.setItem('user_role', response.role);
+        localStorage.setItem('user_role', role);
         if (response.assigned_sport_id) {
           localStorage.setItem('assigned_sport_id', String(response.assigned_sport_id));
         } else {
           localStorage.removeItem('assigned_sport_id');
         }
-        router.replace('/console/dashboard');
+        router.replace(getDashboardPathForRole(role as UserSession['role']));
       } else {
-        throw new Error("Login failed: No token received.");
+        throw new Error("Login failed: No token or role received.");
       }
     } catch (error: any) {
       toast({
