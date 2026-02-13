@@ -173,7 +173,7 @@ export const registerStudent = async (formData: FormData) => {
 };
 
 export const getRegistrations = async (): Promise<Registration[]> => {
-    const response = await api.get('/register');
+    const response = await api.get('/admin/registrations');
     const responseData = response.data;
     return Array.isArray(responseData) ? responseData : (responseData?.data || []);
 };
@@ -194,7 +194,7 @@ export const verifyPayment = async (registrationCode: string, status: 'approved'
 
 // User Management
 export const getUsers = async (): Promise<User[]> => {
-    const response = await api.get('/auth/users');
+    const response = await api.get('/admin/users');
     return Array.isArray(response.data) ? response.data : (response.data?.data || []);
 };
 
@@ -204,12 +204,12 @@ export const createUser = async (userData: any) => {
 };
 
 export const updateUser = async (userId: string, userData: any) => {
-    const response = await api.put(`/auth/users/${userId}`, userData);
+    const response = await api.put(`/admin/users/${userId}`, userData);
     return response.data;
 }
 
 export const deleteUser = async (userId: string) => {
-    const response = await api.delete(`/auth/users/${userId}`);
+    const response = await api.delete(`/admin/users/${userId}`);
     return response.data;
 };
 
@@ -225,17 +225,17 @@ export const getLiveMatches = async (): Promise<ApiMatch[]> => {
 }
 
 export const createMatch = async (matchData: any) => {
-    const response = await api.post('/matches', matchData);
+    const response = await api.post('/sports-head/matches/schedule', matchData);
     return response.data;
 }
 
 export const updateScore = async (matchId: string, scoreDetails: any, status: 'live' | 'completed') => {
-    const response = await api.put(`/matches/${matchId}/score`, { score_details: scoreDetails, status });
+    const response = await api.patch(`/scorer/matches/${matchId}/score`, { score_details: scoreDetails, status });
     return response.data;
 };
 
 export const postMatchEvent = async (matchId: string, eventData: any) => {
-    const response = await api.post(`/matches/${matchId}/event`, eventData);
+    const response = await api.post(`/scorer/matches/${matchId}/event`, eventData);
     return response.data;
 }
 
@@ -300,6 +300,18 @@ export const deleteSport = async (sportId: number) => {
     const response = await api.delete(`/sports/${sportId}`);
     return response.data;
 }
+
+// Committee Module
+export const searchCommitteeRegistrations = async (query: string): Promise<Registration[]> => {
+    const response = await api.get('/committee/registrations', { params: { search: query } });
+    return Array.isArray(response.data) ? response.data : (response.data?.data || []);
+}
+
+export const checkInStudent = async (registrationId: string) => {
+    const response = await api.patch(`/committee/checkin/${registrationId}`);
+    return response.data;
+}
+
 
 export type ApiMatch = {
     id: string;
