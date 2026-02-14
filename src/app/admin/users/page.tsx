@@ -62,25 +62,16 @@ import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const userFormSchema = z.object({
+const baseUserSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters long.'),
   email: z.string().email('Invalid email address.'),
-  username: z.string().min(3, 'Username must be at least 3 characters.'),
   role: z.enum(['super_admin', 'sports_head', 'scorer', 'committee']),
-  password: z.string().optional(),
   assigned_sport_id: z.string().optional(),
-}).refine(data => {
-    // In creation mode, password is required
-    if (!data.password || data.password.length < 8) {
-      // This is a new user if there's no ID yet.
-      // We can't check for ID here directly, so we check for password presence.
-      // This check is mainly for new user creation.
-      return false;
-    }
-    return true;
-}, {
-    message: 'Password must be at least 8 characters long for new users.',
-    path: ['password'],
+});
+
+const createUserFormSchema = baseUserSchema.extend({
+  username: z.string().min(3, 'Username must be at least 3 characters.'),
+  password: z.string().min(8, 'Password must be at least 8 characters.'),
 }).refine(data => {
     if (data.role === 'sports_head') {
         return !!data.assigned_sport_id;
@@ -91,7 +82,18 @@ const userFormSchema = z.object({
     path: ['assigned_sport_id'],
 });
 
-const editUserFormSchema = userFormSchema.omit({ password: true, username: true });
+const editUserFormSchema = baseUserSchema.refine(data => {
+    if (data.role === 'sports_head') {
+        return !!data.assigned_sport_id;
+    }
+    return true;
+}, {
+    message: 'Please assign a sport for the Sports Head role.',
+    path: ['assigned_sport_id'],
+});
+
+type UserFormData = z.infer<typeof createUserFormSchema>;
+
 
 const roles: { id: User['role'], name: string }[] = [
     { id: 'super_admin', name: 'Super Admin' },
@@ -109,12 +111,13 @@ export default function UserManagementPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const { toast } = useToast();
 
-  const form = useForm<z.infer<typeof userFormSchema>>({
-    resolver: zodResolver(selectedUser ? editUserFormSchema : userFormSchema),
+  const form = useForm<UserFormData>({
+    resolver: zodResolver(selectedUser ? editUserFormSchema : createUserFormSchema),
     defaultValues: {
         name: '',
         email: '',
         username: '',
+        role: undefined,
         password: '',
         assigned_sport_id: undefined,
     },
@@ -209,7 +212,7 @@ export default function UserManagementPage() {
     }
   };
 
-  const onSubmit = async (values: z.infer<typeof userFormSchema>) => {
+  const onSubmit = async (values: UserFormData) => {
     const apiValues: any = {...values};
     if (apiValues.role === 'sports_head' && apiValues.assigned_sport_id) {
         apiValues.assigned_sport_id = parseInt(apiValues.assigned_sport_id, 10);
