@@ -43,8 +43,11 @@ export function Header() {
         
 
         <div className="flex items-center gap-3">
-            <Button asChild size="sm" className="hidden md:inline-flex bg-accent hover:bg-accent/80 text-accent-foreground">
+            <Button asChild size="sm" className="hidden md:inline-flex">
               <Link href="/energy/2026/registration">Register</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm" className="hidden md:inline-flex">
+              <Link href="/auth/session">Login</Link>
             </Button>
             
             <Sheet>
@@ -72,9 +75,12 @@ export function Header() {
                         <span className={cn()}>{link.label}</span>
                     </Link>
                 ))}
-                <div className='pt-4'>
+                <div className='pt-4 space-y-2'>
                     <Button asChild className="w-full">
                         <Link href="/energy/2026/registration">Register Now</Link>
+                    </Button>
+                    <Button asChild variant="outline" className="w-full">
+                        <Link href="/auth/session">Login</Link>
                     </Button>
                 </div>
                 </div>
