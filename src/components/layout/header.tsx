@@ -2,7 +2,14 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import { Menu, User } from 'lucide-react';
 import { Logo } from '@/components/shared/logo';
 import { cn } from '@/lib/utils';
@@ -129,11 +136,14 @@ export function Header() {
                 </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-full max-w-xs p-0">
-                 <div className="p-4 border-b bg-background">
-                    <Link href="/energy/2026" className="flex items-center space-x-2">
-                        <Logo />
-                    </Link>
-                </div>
+                 <SheetHeader className="p-4 border-b">
+                    <SheetTitle asChild>
+                        <Link href="/energy/2026" className="flex items-center space-x-2">
+                            <Logo />
+                        </Link>
+                    </SheetTitle>
+                    <SheetDescription className="sr-only">Mobile Navigation Menu</SheetDescription>
+                 </SheetHeader>
                 <div className="flex flex-col space-y-2 p-4">
                 {navLinks.map((link) => (
                     <Link
