@@ -12,7 +12,7 @@ export function Logo({
     return (
       <div className={cn('relative h-6 w-6', className)}>
         <Image
-          src="/Energy_college_logo.png"
+          src="/Energy_college_logo.svg"
           alt="Energy Sports Meet Logo"
           fill
           className="object-contain"
@@ -24,7 +24,7 @@ export function Logo({
   return (
     <div className={cn('relative h-14 w-40', className)}>
       <Image
-        src="/Energy_college_logo.png"
+        src="/Energy_college_logo.svg"
         alt="Energy Sports Meet Logo"
         fill
         className="object-contain"
