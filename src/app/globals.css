@@ -5,50 +5,50 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    --foreground: 215 82% 15%; /* Darker blue from palette */
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card-foreground: 215 82% 15%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 221 83% 53%;
+    --popover-foreground: 215 82% 15%;
+    --primary: 215 82% 27%; /* Dark Blue #0d377b */
     --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
+    --secondary: 320 100% 95%; /* Muted Pink */
+    --secondary-foreground: 320 100% 20%;
     --muted: 240 4.8% 95.9%;
     --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
+    --accent: 192 97% 44%; /* Light Blue #03b1e3 */
+    --accent-foreground: 0 0% 98%;
+    --destructive: 30 99% 54%; /* Orange #fd8515 */
     --destructive-foreground: 0 0% 98%;
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 221 83% 53%;
-    --chart-1: 221 83% 53%;
-    --chart-2: 160 60% 45%;
+    --ring: 192 97% 44%; /* Light Blue for rings */
+    --chart-1: 215 82% 27%; /* Dark Blue */
+    --chart-2: 320 100% 46%; /* Pink #ed008e */
     --radius: 0.5rem;
   }
   .dark {
-    --background: 240 10% 3.9%;
+    --background: 215 82% 10%;
     --foreground: 0 0% 98%;
-    --card: 240 5% 10%;
+    --card: 215 82% 15%;
     --card-foreground: 0 0% 98%;
-    --popover: 240 5% 10%;
+    --popover: 215 82% 15%;
     --popover-foreground: 0 0% 98%;
-    --primary: 217 91% 60%;
-    --primary-foreground: 240 10% 3.9%;
-    --secondary: 240 5% 15%;
+    --primary: 192 97% 44%; /* Light Blue for primary in dark mode */
+    --primary-foreground: 215 82% 10%;
+    --secondary: 320 100% 20%; /* Darker Pink */
     --secondary-foreground: 0 0% 98%;
-    --muted: 240 5% 15%;
+    --muted: 215 82% 20%;
     --muted-foreground: 240 5% 64.9%;
-    --accent: 240 5% 15%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --accent: 320 100% 56%; /* Brighter Pink for accent in dark mode */
+    --accent-foreground: 215 82% 10%;
+    --destructive: 30 99% 54%; /* Orange */
     --destructive-foreground: 0 0% 98%;
-    --border: 240 4% 20%;
-    --input: 240 4% 20%;
-    --ring: 217 91% 60%;
-    --chart-1: 217 91% 60%;
-    --chart-2: 160 60% 45%;
+    --border: 215 82% 25%;
+    --input: 215 82% 25%;
+    --ring: 192 97% 44%;
+    --chart-1: 192 97% 44%;
+    --chart-2: 320 100% 56%;
   }
 }
 

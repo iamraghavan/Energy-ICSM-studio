@@ -20,7 +20,7 @@ const navLinks = [
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background text-foreground">
+    <header className="sticky top-0 z-50 w-full border-b bg-gradient-to-r from-primary to-accent text-primary-foreground">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-6">
             <Link href="/energy/2026" className="flex items-center gap-2">
@@ -32,7 +32,7 @@ export function Header() {
                     key={link.label}
                     href={link.href}
                     className={cn(
-                        "transition-colors hover:text-primary flex items-center"
+                        "transition-colors hover:text-white/80 flex items-center"
                     )}
                 >
                     {link.label}
@@ -43,13 +43,13 @@ export function Header() {
         
 
         <div className="flex items-center gap-3">
-            <Button asChild size="sm" className="hidden md:inline-flex">
+            <Button asChild size="sm" className="hidden md:inline-flex bg-accent hover:bg-accent/80 text-accent-foreground">
               <Link href="/energy/2026/registration">Register</Link>
             </Button>
             
             <Sheet>
             <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden">
+                <Button variant="ghost" size="icon" className="md:hidden hover:bg-white/10">
                 <Menu className="h-6 w-6" />
                 <span className="sr-only">Toggle Menu</span>
                 </Button>

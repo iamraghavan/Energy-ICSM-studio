@@ -18,21 +18,21 @@ const resourceLinks = [
 
 export function Footer() {
   return (
-    <footer className="border-t bg-muted/40">
+    <footer className="border-t bg-primary text-primary-foreground">
       <div className="container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 py-12">
         <div className="md:col-span-1 space-y-4">
           <Logo />
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-primary-foreground/80">
             The Chevalier Dr. G.S. Pillay Memorial Inter-College Sports Meet organized by E.G.S. Pillay Group of Institutions.
           </p>
         </div>
         
         <div>
-          <h4 className="font-semibold mb-4">Quick Links</h4>
+          <h4 className="font-semibold mb-4 text-primary-foreground">Quick Links</h4>
           <ul className="space-y-2">
             {quickLinks.map(link => (
               <li key={link.href}>
-                <Link href={link.href} className="text-sm text-muted-foreground hover:text-primary">
+                <Link href={link.href} className="text-sm text-primary-foreground/80 hover:text-primary-foreground">
                   {link.label}
                 </Link>
               </li>
@@ -41,11 +41,11 @@ export function Footer() {
         </div>
 
         <div>
-          <h4 className="font-semibold mb-4">Resources</h4>
+          <h4 className="font-semibold mb-4 text-primary-foreground">Resources</h4>
           <ul className="space-y-2">
             {resourceLinks.map(link => (
               <li key={link.href}>
-                <Link href={link.href} className="text-sm text-muted-foreground hover:text-primary">
+                <Link href={link.href} className="text-sm text-primary-foreground/80 hover:text-primary-foreground">
                   {link.label}
                 </Link>
               </li>
@@ -54,24 +54,24 @@ export function Footer() {
         </div>
 
         <div>
-           <h4 className="font-semibold mb-4">Get in Touch</h4>
-           <div className="space-y-4 text-sm text-muted-foreground">
+           <h4 className="font-semibold mb-4 text-primary-foreground">Get in Touch</h4>
+           <div className="space-y-4 text-sm text-primary-foreground/80">
                 <div className="flex items-start gap-3">
-                    <MapPin className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <MapPin className="h-5 w-5 text-accent mt-0.5 shrink-0" />
                     <p>E.G.S. Pillay Engineering College, Nagapattinam – 611 002.</p>
                 </div>
                 <div className="flex items-start gap-3">
-                    <Phone className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <Phone className="h-5 w-5 text-accent mt-0.5 shrink-0" />
                     <div>
-                        <a href="tel:9942997667" className="hover:text-primary">D. Velavan: 9942997667</a><br/>
-                        <a href="tel:9655260429" className="hover:text-primary">K. Nelson: 9655260429</a>
+                        <a href="tel:9942997667" className="hover:text-primary-foreground">D. Velavan: 9942997667</a><br/>
+                        <a href="tel:9655260429" className="hover:text-primary-foreground">K. Nelson: 9655260429</a>
                     </div>
                 </div>
            </div>
         </div>
       </div>
-      <div className="border-t">
-        <div className="container py-6 text-center text-sm text-muted-foreground">
+      <div className="border-t border-primary-foreground/20">
+        <div className="container py-6 text-center text-sm text-primary-foreground/80">
           © {new Date().getFullYear()} Energy Sports Meet. All rights reserved.
         </div>
       </div>
