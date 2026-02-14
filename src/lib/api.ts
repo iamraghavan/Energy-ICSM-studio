@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 import type { College } from './types';
 
@@ -238,7 +239,7 @@ export const getRegistrations = async (): Promise<Registration[]> => {
 };
 
 export const getRegistration = async (id: string): Promise<Registration> => {
-    const response = await api.get('/register/details', { params: { id }});
+    const response = await api.get(`/register/details/${id}`);
     return response.data;
 };
 
