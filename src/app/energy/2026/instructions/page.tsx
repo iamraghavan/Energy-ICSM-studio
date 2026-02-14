@@ -1,77 +1,113 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
+import { ClipboardList, Users, Gavel, Trophy, IndianRupee } from "lucide-react";
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'General Instructions',
-  description: 'General instructions for all participants of the ENERGY 2026 sports meet.',
+  description: 'Important guidelines, rules, and instructions for all participants of the ENERGY 2026 sports meet.',
 };
+
+const instructionSections = [
+    {
+        id: 'registration',
+        title: "Registration & Eligibility",
+        icon: ClipboardList,
+        rules: [
+            "Registration will be on a <strong>first-come, first-served basis</strong>.",
+            "Only <strong>bonafide and regular students</strong> are allowed to represent their respective colleges.",
+            "Participants must produce their <strong>identity cards</strong> at the time of the match.",
+            "Last date for registration is <strong>8 days before the respective event date</strong>.",
+        ]
+    },
+    {
+        id: 'conduct',
+        title: "Player & Team Conduct",
+        icon: Users,
+        rules: [
+            "Participants must come in <strong>proper uniforms</strong>.",
+            "The names of players along with the Coach/Manager, duly certified by the Principal/Physical Director, must be sent to the address below.",
+        ],
+        extraContent: (
+            <blockquote className="mt-4 border-l-4 border-primary pl-4 italic bg-primary/10 p-4 rounded-r-lg text-sm">
+                Physical Director, Department of Physical Education,<br />
+                E.G.S. Pillay Engineering College (Autonomous),<br />
+                Old Nagore Road, Thethi, Nagapattinam – 611 002.
+            </blockquote>
+        )
+    },
+    {
+        id: 'rules',
+        title: "Match & Tournament Rules",
+        icon: Gavel,
+        rules: [
+            "Matches will be conducted on a <strong>knockout basis</strong>.",
+            "The latest rules framed by the respective game federations will be followed.",
+            "<strong>Referee’s decision will be final and binding.</strong>",
+            "The decision of the organizing committee will be final in all matters concerning the organization and conduct of the tournament.",
+        ]
+    },
+    {
+        id: 'prizes',
+        title: "Prizes & Awards",
+        icon: Trophy,
+        rules: [
+            "Trophies will be awarded to the <strong>I-Prize</strong> and <strong>II-Prize</strong> winners for each event.",
+            "An <strong>Overall Championship Trophy</strong> will be awarded for the Winner and Runner-up institutions based on total points.",
+        ]
+    },
+    {
+        id: 'fees',
+        title: "Registration Fees",
+        icon: IndianRupee,
+        rules: [] // handled by special content
+    }
+];
 
 export default function InstructionsPage() {
     return (
         <div className="container py-8 md:py-12">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline text-3xl">General Instructions</CardTitle>
-                    <CardDescription>Important guidelines for all participants.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6 text-muted-foreground">
-                    
-                    <Section title="Registration & Eligibility">
-                        <ul className="list-disc pl-5 space-y-2">
-                            <li>Registration will be on a first-come, first-served basis.</li>
-                            <li>Only bonafide and regular students are allowed to represent their respective colleges.</li>
-                            <li>Participants must produce their identity cards at the time of the match.</li>
-                             <li>Last date for registration is <strong>8 days before the respective event date</strong>.</li>
-                        </ul>
-                    </Section>
-                    
-                    <Section title="Player & Team Conduct">
-                         <ul className="list-disc pl-5 space-y-2">
-                            <li>Participants must come in proper uniforms.</li>
-                             <li>The names of players along with the Coach/Manager, duly certified by the Principal/Physical Director, must be sent to the address below.</li>
-                        </ul>
-                        <blockquote className="mt-4 border-l-2 pl-6 italic bg-muted/50 p-4 rounded-r-lg">
-                            Physical Director, Department of Physical Education,<br />
-                            E.G.S. Pillay Engineering College (Autonomous),<br />
-                            Old Nagore Road, Thethi, Nagapattinam – 611 002.
-                        </blockquote>
-                    </Section>
-                    
-                    <Section title="Match & Tournament Rules">
-                        <ul className="list-disc pl-5 space-y-2">
-                            <li>Matches will be conducted on a knockout basis.</li>
-                            <li>The latest rules framed by the respective game federations will be followed.</li>
-                            <li>Referee’s decision will be final and binding.</li>
-                            <li>The decision of the organizing committee will be final in all matters concerning the organization and conduct of the tournament.</li>
-                        </ul>
-                    </Section>
+            <div className="text-center mb-12">
+                <h1 className="text-4xl font-bold font-headline">General Instructions</h1>
+                <p className="text-muted-foreground mt-2 max-w-3xl mx-auto">
+                    Important guidelines for all participants. Please read these instructions carefully to ensure a smooth and fair competition.
+                </p>
+            </div>
 
-                    <Section title="Prizes & Awards">
-                         <ul className="list-disc pl-5 space-y-2">
-                            <li>Trophies will be awarded to the I-Prize and II-Prize winners for each event.</li>
-                            <li>An Overall Championship Trophy will be awarded for the Winner and Runner-up institutions based on total points.</li>
-                        </ul>
-                    </Section>
-
-                    <Section title="Registration Fees">
-                         <ul className="list-disc pl-5 space-y-2">
-                            <li><strong>₹300 per team (Men/Women):</strong> Badminton, Chess, Table Tennis</li>
-                            <li><strong>₹500 per team (Men/Women):</strong> Cricket, Football, Kabaddi, Basketball, Volleyball</li>
-                        </ul>
-                    </Section>
-
-                </CardContent>
-            </Card>
-        </div>
-    );
-}
-
-function Section({ title, children }: { title: string, children: React.ReactNode }) {
-    return (
-        <div>
-            <h3 className="text-xl font-semibold font-headline text-foreground mb-3">{title}</h3>
-            <div className="space-y-2">
-                {children}
+            <div className="max-w-4xl mx-auto">
+                <Accordion type="single" collapsible className="w-full space-y-4">
+                    {instructionSections.map((section) => (
+                        <AccordionItem value={section.id} key={section.id} className="border rounded-lg bg-card shadow-sm">
+                            <AccordionTrigger className="px-6 py-4 text-lg hover:no-underline">
+                                <div className="flex items-center gap-4">
+                                    <section.icon className="h-6 w-6 text-primary" />
+                                    {section.title}
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="px-6 pb-6">
+                                {section.id === 'fees' ? (
+                                    <div className="space-y-3 pt-2 pl-10">
+                                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 rounded-md bg-muted">
+                                            <p>Badminton, Chess, Table Tennis (Men/Women)</p>
+                                            <Badge variant="secondary" className="mt-1 sm:mt-0">₹300 per team</Badge>
+                                        </div>
+                                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 rounded-md bg-muted">
+                                            <p>Cricket, Football, Kabaddi, Basketball, Volleyball (Men/Women)</p>
+                                            <Badge variant="secondary" className="mt-1 sm:mt-0">₹500 per team</Badge>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <ul className="list-disc pl-10 space-y-3 text-muted-foreground">
+                                        {section.rules.map((rule, i) => (
+                                            <li key={i} dangerouslySetInnerHTML={{ __html: rule }} />
+                                        ))}
+                                    </ul>
+                                )}
+                                {section.extraContent}
+                            </AccordionContent>
+                        </AccordionItem>
+                    ))}
+                </Accordion>
             </div>
         </div>
     );
