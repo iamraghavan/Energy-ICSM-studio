@@ -94,14 +94,14 @@ export function Header() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                       <Avatar className="h-10 w-10">
-                        <AvatarFallback>{studentSession.name.charAt(0).toUpperCase()}</AvatarFallback>
+                        <AvatarFallback>{studentSession.name ? studentSession.name.charAt(0).toUpperCase() : 'S'}</AvatarFallback>
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56" align="end" forceMount>
                     <DropdownMenuLabel className="font-normal">
                       <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium leading-none">{studentSession.name}</p>
+                        <p className="text-sm font-medium leading-none">{studentSession.name || 'Student'}</p>
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
