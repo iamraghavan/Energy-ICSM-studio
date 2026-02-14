@@ -75,22 +75,28 @@ function StudentAuthForm() {
   const handleVerifyOtp = async (data: VerifyOtpFormValues) => {
     setIsSubmitting(true);
     try {
-        const response = await verifyStudentOtp(identifier, data.otp);
-        const { token, ...sessionData } = response;
+        const responseData = await verifyStudentOtp(identifier, data.otp);
         
-        localStorage.setItem('student_token', token);
-        localStorage.setItem('student_session', JSON.stringify(sessionData));
+        if (responseData && responseData.token) {
+            const token = responseData.token;
+            const { token: _removedToken, ...sessionData } = responseData;
 
-        toast({
-            title: 'Login Successful!',
-            description: `Welcome back, ${response.name}!`,
-        });
-        window.location.href = '/energy/2026/student/dashboard';
+            localStorage.setItem('student_token', token);
+            localStorage.setItem('student_session', JSON.stringify(sessionData));
+
+            toast({
+                title: 'Login Successful!',
+                description: `Welcome back, ${responseData.name}!`,
+            });
+            window.location.href = '/energy/2026/student/dashboard';
+        } else {
+            throw new Error("Login failed: No token received from server.");
+        }
     } catch (error: any) {
         toast({
             variant: 'destructive',
-            title: 'Invalid OTP',
-            description: error.response?.data?.message || 'The OTP you entered is incorrect. Please try again.',
+            title: 'Login Failed',
+            description: error.response?.data?.message || error.message || 'An error occurred during login.',
         });
     } finally {
         setIsSubmitting(false);
