@@ -1,5 +1,7 @@
+
 'use client';
 import { jwtDecode } from 'jwt-decode';
+import type { StudentLoginResponse } from '@/lib/api';
 
 export interface DecodedJwtPayload {
     id: string;
@@ -10,6 +12,12 @@ export interface DecodedJwtPayload {
 }
 
 export interface UserSession extends DecodedJwtPayload {}
+
+const clearUserSession = () => {
+    localStorage.removeItem('jwt_token');
+    localStorage.removeItem('user_role');
+    localStorage.removeItem('assigned_sport_id');
+};
 
 export const getUserSession = (): UserSession | null => {
     if (typeof window === 'undefined') return null;
@@ -24,9 +32,7 @@ export const getUserSession = (): UserSession | null => {
         const decoded = jwtDecode<DecodedJwtPayload>(token);
         
         if (Date.now() >= decoded.exp * 1000) {
-            localStorage.removeItem('jwt_token');
-            localStorage.removeItem('user_role');
-            localStorage.removeItem('assigned_sport_id');
+            clearUserSession();
             return null;
         }
 
@@ -34,9 +40,7 @@ export const getUserSession = (): UserSession | null => {
         const assigned_sport_id = localStorage.getItem('assigned_sport_id') || undefined;
 
         if (!role) {
-             localStorage.removeItem('jwt_token');
-             localStorage.removeItem('user_role');
-             localStorage.removeItem('assigned_sport_id');
+             clearUserSession();
              return null;
         }
 
@@ -50,33 +54,35 @@ export const getUserSession = (): UserSession | null => {
 
     } catch (error) {
         console.error("Failed to decode token", error);
-        localStorage.removeItem('jwt_token');
-        localStorage.removeItem('user_role');
-        localStorage.removeItem('assigned_sport_id');
+        clearUserSession();
         return null;
     }
 };
 
 export interface DecodedStudentJwtPayload {
     id: string;
-    name: string;
     iat: number;
     exp: number;
 }
 
-export interface StudentSession {
-    id: string;
-    name: string;
+export type StudentSession = StudentLoginResponse & {
     iat: number;
     exp: number;
-}
+};
+
+const clearStudentSession = () => {
+    localStorage.removeItem('student_token');
+    localStorage.removeItem('student_session');
+};
 
 export const getStudentSession = (): StudentSession | null => {
     if (typeof window === 'undefined') return null;
     
     const token = localStorage.getItem('student_token');
+    const sessionDataString = localStorage.getItem('student_session');
 
-    if (!token) {
+    if (!token || !sessionDataString) {
+        clearStudentSession();
         return null;
     }
 
@@ -84,20 +90,23 @@ export const getStudentSession = (): StudentSession | null => {
         const decoded = jwtDecode<DecodedStudentJwtPayload>(token);
         
         if (Date.now() >= decoded.exp * 1000) {
-            localStorage.removeItem('student_token');
+            clearStudentSession();
             return null;
         }
 
+        const sessionData: Omit<StudentLoginResponse, 'token'> = JSON.parse(sessionDataString);
+
         return {
-            id: decoded.id,
-            name: decoded.name,
+            ...sessionData,
+            token: token,
+            id: decoded.id, 
             iat: decoded.iat,
             exp: decoded.exp,
         };
 
     } catch (error) {
-        console.error("Failed to decode student token", error);
-        localStorage.removeItem('student_token');
+        console.error("Failed to decode token or parse session", error);
+        clearStudentSession();
         return null;
     }
 };

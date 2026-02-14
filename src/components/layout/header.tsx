@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -61,6 +62,7 @@ export function Header() {
 
   const handleLogout = () => {
     localStorage.removeItem('student_token');
+    localStorage.removeItem('student_session');
     setStudentSession(null);
     toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
     router.push('/energy/2026');

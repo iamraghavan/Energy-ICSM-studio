@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -75,12 +76,16 @@ function StudentAuthForm() {
     setIsSubmitting(true);
     try {
         const response = await verifyStudentOtp(identifier, data.otp);
-        localStorage.setItem('student_token', response.token);
+        const { token, ...sessionData } = response;
+        
+        localStorage.setItem('student_token', token);
+        localStorage.setItem('student_session', JSON.stringify(sessionData));
+
         toast({
             title: 'Login Successful!',
             description: `Welcome back, ${response.name}!`,
         });
-        router.push('/energy/2026'); // Or a student dashboard later
+        router.push('/energy/2026/student/dashboard');
     } catch (error: any) {
         toast({
             variant: 'destructive',

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -128,6 +129,7 @@ export default function StudentDashboardPage() {
 
     const handleLogout = () => {
         localStorage.removeItem('student_token');
+        localStorage.removeItem('student_session');
         toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
         router.push('/energy/2026');
     };

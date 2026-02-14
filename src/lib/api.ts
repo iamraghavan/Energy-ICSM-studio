@@ -164,6 +164,42 @@ export type FullTeamDetails = {
     Members: StudentTeamMember[];
 };
 
+export type StudentLoginResponse = {
+    id: string;
+    registration_code: string;
+    name: string;
+    dob: string | null;
+    gender: string | null;
+    email: string;
+    mobile: string;
+    whatsapp: string;
+    city: string;
+    state: string;
+    department: string | null;
+    year_of_study: string | null;
+    other_college: string;
+    college_id: number;
+    college_name: string;
+    college_city: string;
+    college_state: string;
+    pd_name: string | null;
+    pd_whatsapp: string | null;
+    college_email: string | null;
+    college_contact: string | null;
+    total_amount: string;
+    is_captain: boolean;
+    accommodation_needed: boolean;
+    payment_status: 'pending' | 'verified' | 'rejected' | 'approved';
+    status: 'pending' | 'approved' | 'rejected';
+    created_at: string;
+    createdAt: string;
+    updatedAt: string;
+    Sports: ApiSport[];
+    Teams: ApiTeam[];
+    isNewUser: boolean;
+    token: string;
+};
+
 const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
 
 const api = axios.create({
@@ -378,7 +414,7 @@ export const requestStudentOtp = async (identifier: string) => {
     return response.data;
 };
 
-export const verifyStudentOtp = async (identifier: string, otp: string) => {
+export const verifyStudentOtp = async (identifier: string, otp: string): Promise<StudentLoginResponse> => {
     const response = await api.post('/auth/student/verify-otp', { identifier, otp });
     return response.data;
 };
