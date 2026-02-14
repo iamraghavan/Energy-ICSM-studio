@@ -321,6 +321,17 @@ export const checkInStudent = async (registrationId: string) => {
     return response.data;
 }
 
+// Student Auth
+export const requestStudentOtp = async (identifier: string) => {
+    const response = await api.post('/auth/student/request-otp', { identifier });
+    return response.data;
+};
+
+export const verifyStudentOtp = async (identifier: string, otp: string) => {
+    const response = await api.post('/auth/student/verify-otp', { identifier, otp });
+    return response.data;
+};
+
 
 export type ApiMatch = {
     id: string;
