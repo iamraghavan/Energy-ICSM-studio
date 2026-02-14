@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { getSportIcon } from "@/lib/icons";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Metadata } from 'next';
-import type { ElementType } from "react";
 
 export const metadata: Metadata = {
   title: 'Important Rules',
@@ -11,7 +10,6 @@ export const metadata: Metadata = {
 const rulesData = [
     { 
         sport: "Volleyball (M & W)", 
-        icon: getSportIcon("Volleyball"),
         rules: [
             "Tournament will be conducted on a knockout basis.",
             "Maximum of 12 players per team.",
@@ -21,7 +19,6 @@ const rulesData = [
     },
     { 
         sport: "Badminton (M & W)", 
-        icon: getSportIcon("Badminton"),
         rules: [
             "Team consists of 4 players only.",
             "Singles, Doubles & Reverse-singles will be followed.",
@@ -32,7 +29,6 @@ const rulesData = [
     },
     { 
         sport: "Basketball (M)", 
-        icon: getSportIcon("Basketball"),
         rules: [
             "Tournament will be conducted on a knockout basis.",
             "Maximum of 12 players per team.",
@@ -41,7 +37,6 @@ const rulesData = [
     },
     { 
         sport: "Cricket (M)", 
-        icon: getSportIcon("Cricket"),
         rules: [
             "Tournament will be conducted on a knockout basis.",
             "Maximum of 15 players per team.",
@@ -51,7 +46,6 @@ const rulesData = [
     },
     { 
         sport: "Table Tennis (M & W)", 
-        icon: getSportIcon("Table Tennis"),
         rules: [
             "Tournament will be conducted in ABC – XYZ format, on a knockout basis.",
             "Maximum of 4 players and minimum of 3 players per team.",
@@ -63,7 +57,6 @@ const rulesData = [
     },
     { 
         sport: "Kabaddi (M)", 
-        icon: getSportIcon("Kabaddi"),
         rules: [
             "Team consists of 12 players only.",
             "Duration of game time: 10–5–10."
@@ -71,7 +64,6 @@ const rulesData = [
     },
     { 
         sport: "Football (M)", 
-        icon: getSportIcon("Football"),
         rules: [
             "Tournament will be conducted on a knockout basis.",
             "Maximum of 12 players per team and 5 substitutes allowed.",
@@ -81,7 +73,6 @@ const rulesData = [
     },
     { 
         sport: "Chess (M & W)", 
-        icon: getSportIcon("Chess"),
         rules: [
             "Own chess board must be brought."
         ] 
@@ -95,32 +86,30 @@ export default function RulesPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline text-3xl">Important Rules</CardTitle>
-                    <CardDescription>Rules and regulations for all events.</CardDescription>
+                    <CardDescription>Select a sport to view its specific rules and regulations.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-8">
-                   {rulesData.map(item => (
-                       <RuleSection key={item.sport} title={item.sport} icon={item.icon}>
-                            <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
-                                {item.rules.map((rule, index) => (
-                                    <li key={index}>{rule}</li>
-                                ))}
-                            </ul>
-                       </RuleSection>
-                   ))}
+                <CardContent>
+                   <Tabs defaultValue={rulesData[0].sport} className="w-full">
+                        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
+                             {rulesData.map(item => (
+                                <TabsTrigger key={item.sport} value={item.sport}>{item.sport}</TabsTrigger>
+                            ))}
+                        </TabsList>
+                        {rulesData.map(item => (
+                             <TabsContent key={item.sport} value={item.sport} className="mt-6">
+                                <div className="p-6 bg-muted/50 rounded-lg border">
+                                    <h3 className="text-xl font-semibold font-headline text-foreground mb-4">{item.sport}</h3>
+                                     <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+                                        {item.rules.map((rule, index) => (
+                                            <li key={index}>{rule}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </TabsContent>
+                        ))}
+                   </Tabs>
                 </CardContent>
             </Card>
-        </div>
-    );
-}
-
-function RuleSection({ title, icon: Icon, children }: { title: string, icon: ElementType, children: React.ReactNode }) {
-    return (
-        <div>
-            <h3 className="text-xl font-semibold font-headline text-foreground mb-3 flex items-center gap-2">
-                <Icon className="h-6 w-6" />
-                {title}
-            </h3>
-            {children}
         </div>
     );
 }
