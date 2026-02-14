@@ -47,7 +47,7 @@ export function Header() {
               <Link href="/energy/2026/registration">Register</Link>
             </Button>
             <Button asChild variant="outline" size="sm" className="hidden md:inline-flex">
-              <Link href="/auth/session">Login</Link>
+              <Link href="/energy/2026/auth?action=login">Login</Link>
             </Button>
             
             <Sheet>
@@ -80,7 +80,7 @@ export function Header() {
                         <Link href="/energy/2026/registration">Register Now</Link>
                     </Button>
                     <Button asChild variant="outline" className="w-full">
-                        <Link href="/auth/session">Login</Link>
+                        <Link href="/energy/2026/auth?action=login">Login</Link>
                     </Button>
                 </div>
                 </div>
