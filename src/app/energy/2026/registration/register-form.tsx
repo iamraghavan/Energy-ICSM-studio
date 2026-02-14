@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
@@ -14,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
 import { registerStudent, type ApiSport } from "@/lib/api";
-import { Loader2, Check, Copy, Download } from "lucide-react";
+import { Loader2, Check, Copy, Download, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 
@@ -406,6 +407,7 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                                         <FormItem>
                                             <FormLabel>Mobile Number</FormLabel>
                                             <FormControl><div className="relative"><div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><span className="text-muted-foreground">+91</span></div><Input placeholder="Enter 10-digit number" type="tel" maxLength={10} {...field} onChange={e => /^\d*$/.test(e.target.value) && field.onChange(e.target.value)} className="pl-12" /></div></FormControl>
+                                            <div className="flex items-center space-x-2 pt-2"><Checkbox id="isWhatsappSame" checked={isWhatsappSame} onCheckedChange={(checked) => setValue('isWhatsappSame', !!checked)} /><label htmlFor="isWhatsappSame" className="text-sm font-medium leading-none">Same as mobile number as a whatsapp number</label></div>
                                             <FormMessage />
                                         </FormItem>
                                         )}
@@ -414,7 +416,6 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                                         <FormItem>
                                             <FormLabel>WhatsApp Number</FormLabel>
                                             <FormControl><div className="relative"><div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><span className="text-muted-foreground">+91</span></div><Input type="tel" maxLength={10} disabled={isWhatsappSame} {...field} onChange={e => /^\d*$/.test(e.target.value) && field.onChange(e.target.value)} className="pl-12" /></div></FormControl>
-                                            <div className="flex items-center space-x-2 pt-2"><Checkbox id="isWhatsappSame" checked={isWhatsappSame} onCheckedChange={(checked) => setValue('isWhatsappSame', !!checked)} /><label htmlFor="isWhatsappSame" className="text-sm font-medium leading-none">Same as mobile number</label></div>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
@@ -608,13 +609,14 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                                         </div>
                                      )}
                                      <FormField name="transactionId" control={control} render={({ field }) => (
-                                        <FormItem><FormLabel>Transaction ID</FormLabel>
+                                        <FormItem><FormLabel>Transaction ID <span className="text-destructive">*</span></FormLabel>
                                             <FormControl>
                                                 <div className="relative">
                                                      <Input placeholder="Enter the UPI Transaction ID" {...field} disabled={isOcrRunning} />
                                                      {isOcrRunning && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin" />}
                                                 </div>
                                             </FormControl>
+                                             <FormDescription>We'll try to auto-fill this from your screenshot. Please verify it's correct.</FormDescription>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
@@ -641,3 +643,5 @@ function FormSection({ title, children }: { title: string, children: React.React
         </div>
     );
 }
+
+    
