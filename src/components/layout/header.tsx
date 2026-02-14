@@ -6,7 +6,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Menu, User } from 'lucide-react';
 import { Logo } from '@/components/shared/logo';
 import { cn } from '@/lib/utils';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { getStudentSession, type StudentSession } from '@/lib/auth';
 import {
