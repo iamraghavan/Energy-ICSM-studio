@@ -222,9 +222,27 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (typeof window !== 'undefined' && error.response && error.response.status === 401) {
-        localStorage.removeItem('jwt_token');
-        localStorage.removeItem('student_token');
-        window.location.href = '/login';
+        const pathname = window.location.pathname;
+        const isAdminRoute = pathname.startsWith('/admin') ||
+                             pathname.startsWith('/sports-head') ||
+                             pathname.startsWith('/scorer') ||
+                             pathname.startsWith('/committee') ||
+                             pathname.startsWith('/console');
+
+        if (isAdminRoute) {
+            localStorage.removeItem('jwt_token');
+            localStorage.removeItem('user_role');
+            localStorage.removeItem('assigned_sport_id');
+            if (pathname !== '/auth/session') {
+                window.location.href = '/auth/session';
+            }
+        } else {
+            localStorage.removeItem('student_token');
+            localStorage.removeItem('student_session');
+            if (pathname !== '/energy/2026/auth') {
+                window.location.href = '/energy/2026/auth';
+            }
+        }
     }
     return Promise.reject(error);
   }
