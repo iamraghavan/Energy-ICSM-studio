@@ -85,7 +85,7 @@ function StudentAuthForm() {
             title: 'Login Successful!',
             description: `Welcome back, ${response.name}!`,
         });
-        router.push('/energy/2026/student/dashboard');
+        window.location.href = '/energy/2026/student/dashboard';
     } catch (error: any) {
         toast({
             variant: 'destructive',
