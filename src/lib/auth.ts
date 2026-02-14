@@ -56,3 +56,48 @@ export const getUserSession = (): UserSession | null => {
         return null;
     }
 };
+
+export interface DecodedStudentJwtPayload {
+    id: string;
+    name: string;
+    iat: number;
+    exp: number;
+}
+
+export interface StudentSession {
+    id: string;
+    name: string;
+    iat: number;
+    exp: number;
+}
+
+export const getStudentSession = (): StudentSession | null => {
+    if (typeof window === 'undefined') return null;
+    
+    const token = localStorage.getItem('student_token');
+
+    if (!token) {
+        return null;
+    }
+
+    try {
+        const decoded = jwtDecode<DecodedStudentJwtPayload>(token);
+        
+        if (Date.now() >= decoded.exp * 1000) {
+            localStorage.removeItem('student_token');
+            return null;
+        }
+
+        return {
+            id: decoded.id,
+            name: decoded.name,
+            iat: decoded.iat,
+            exp: decoded.exp,
+        };
+
+    } catch (error) {
+        console.error("Failed to decode student token", error);
+        localStorage.removeItem('student_token');
+        return null;
+    }
+};
