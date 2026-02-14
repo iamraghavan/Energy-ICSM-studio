@@ -414,7 +414,7 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                                         <FormItem>
                                             <FormLabel>WhatsApp Number</FormLabel>
                                             <FormControl><div className="relative"><div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><span className="text-muted-foreground">+91</span></div><Input type="tel" maxLength={10} disabled={isWhatsappSame} {...field} onChange={e => /^\d*$/.test(e.target.value) && field.onChange(e.target.value)} className="pl-12" /></div></FormControl>
-                                            <div className="flex items-center space-x-2 pt-2"><Checkbox id="isWhatsappSame" checked={isWhatsappSame} onCheckedChange={(checked) => setValue('isWhatsappSame', !!checked)} /><label htmlFor="isWhatsappSame" className="text-sm font-medium leading-none">Same as mobile</label></div>
+                                            <div className="flex items-center space-x-2 pt-2"><Checkbox id="isWhatsappSame" checked={isWhatsappSame} onCheckedChange={(checked) => setValue('isWhatsappSame', !!checked)} /><label htmlFor="isWhatsappSame" className="text-sm font-medium leading-none">Same as mobile number</label></div>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
@@ -429,6 +429,7 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                                     <FormField name="cityState" control={control} render={({ field }) => (
                                         <FormItem><FormLabel>City/State</FormLabel>
                                             <FormControl><Input placeholder="e.g. Chennai, Tamil Nadu" {...field} ref={(el) => { field.ref(el); cityStateInputRef.current = el; }} /></FormControl>
+                                            <FormDescription>Please select your city from the suggestions for accuracy.</FormDescription>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
@@ -594,9 +595,10 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                                         </div>
                                     </div>
                                      <FormField control={control} name="paymentScreenshot" render={({ field }) => (
-                                        <FormItem><FormLabel>Upload Payment Screenshot</FormLabel>
+                                        <FormItem>
+                                            <FormLabel>Upload Payment Screenshot <span className="text-destructive">*</span></FormLabel>
                                             <FormControl><Input type="file" accept={ACCEPTED_IMAGE_TYPES.join(',')} onChange={(e) => field.onChange(e.target.files)} /></FormControl>
-                                            <FormDescription>File must be JPG, PNG, or PDF, under 5MB. This is mandatory.</FormDescription>
+                                            <FormDescription>A screenshot of your payment is mandatory for verification. File must be JPG, PNG, or PDF, under 5MB.</FormDescription>
                                             <FormMessage />
                                         </FormItem>
                                      )} />
