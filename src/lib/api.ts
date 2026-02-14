@@ -114,6 +114,55 @@ export type User = {
     assigned_sport_id?: number | null;
 };
 
+export type TeamMemberRole = 'Captain' | 'Vice-Captain' | 'Player';
+export type CricketSportRole = 'Batsman' | 'Bowler' | 'All-rounder' | 'Wicket Keeper';
+export type BattingStyle = 'Right Hand' | 'Left Hand';
+export type BowlingStyle = 
+    | 'Right Arm Fast' 
+    | 'Right Arm Medium' 
+    | 'Right Arm Spin' 
+    | 'Left Arm Fast' 
+    | 'Left Arm Medium' 
+    | 'Left Arm Spin' 
+    | 'N/A';
+
+export type StudentTeamMember = {
+    id: string;
+    name: string;
+    email: string;
+    mobile: string;
+    role: TeamMemberRole;
+    sport_role?: CricketSportRole | string;
+    batting_style?: BattingStyle;
+    bowling_style?: BowlingStyle;
+    is_wicket_keeper?: boolean;
+    additional_details?: any;
+};
+
+export type DashboardSport = {
+    id: number;
+    name: string;
+    type: 'Team' | 'Individual';
+    max_players: number;
+    team: {
+        id: string;
+        team_name: string;
+        members_count: number;
+    } | null;
+};
+
+export type StudentDashboardOverview = {
+    registered_sports: DashboardSport[];
+};
+
+export type FullTeamDetails = {
+    id: string;
+    team_name: string;
+    sport_id: number;
+    Sport: ApiSport;
+    Members: StudentTeamMember[];
+};
+
 const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
 
 const api = axios.create({
@@ -122,7 +171,7 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
     if (typeof window !== 'undefined') {
-        const token = localStorage.getItem('jwt_token');
+        const token = localStorage.getItem('jwt_token') || localStorage.getItem('student_token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -137,6 +186,7 @@ api.interceptors.response.use(
   (error) => {
     if (typeof window !== 'undefined' && error.response && error.response.status === 401) {
         localStorage.removeItem('jwt_token');
+        localStorage.removeItem('student_token');
         window.location.href = '/login';
     }
     return Promise.reject(error);
@@ -329,6 +379,47 @@ export const requestStudentOtp = async (identifier: string) => {
 
 export const verifyStudentOtp = async (identifier: string, otp: string) => {
     const response = await api.post('/auth/student/verify-otp', { identifier, otp });
+    return response.data;
+};
+
+// Student Dashboard
+export const getStudentDashboardOverview = async (): Promise<StudentDashboardOverview> => {
+    const response = await api.get('/dashboard');
+    return response.data;
+};
+
+export const createStudentTeam = async (sportId: number, teamName: string) => {
+    const response = await api.post('/dashboard/teams', { sport_id: sportId, team_name: teamName });
+    return response.data;
+};
+
+export const getStudentTeamDetails = async (teamId: string): Promise<FullTeamDetails> => {
+    const response = await api.get(`/dashboard/teams/${teamId}`);
+    return response.data;
+};
+
+export const addTeamMember = async (teamId: string, memberData: Omit<StudentTeamMember, 'id'>) => {
+    const response = await api.post(`/dashboard/teams/${teamId}/members`, memberData);
+    return response.data;
+};
+
+export const updateTeamMember = async (memberId: string, memberData: Partial<Omit<StudentTeamMember, 'id'>>) => {
+    const response = await api.patch(`/dashboard/members/${memberId}`, memberData);
+    return response.data;
+};
+
+export const deleteTeamMember = async (memberId: string) => {
+    const response = await api.delete(`/dashboard/members/${memberId}`);
+    return response.data;
+};
+
+export const updateTeamName = async (teamId: string, teamName: string) => {
+    const response = await api.put(`/dashboard/teams/${teamId}`, { team_name: teamName });
+    return response.data;
+};
+
+export const deleteTeam = async (teamId: string) => {
+    const response = await api.delete(`/dashboard/teams/${teamId}`);
     return response.data;
 };
 
