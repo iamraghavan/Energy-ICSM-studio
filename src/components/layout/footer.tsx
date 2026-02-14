@@ -21,9 +21,7 @@ export function Footer() {
     <footer className="border-t bg-primary text-primary-foreground">
       <div className="container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 py-12">
         <div className="md:col-span-1 space-y-4">
-          <div className="bg-white p-1 rounded-md inline-block">
-            <Logo />
-          </div>
+          <Logo />
           <p className="text-sm text-primary-foreground/80">
             The Chevalier Dr. G.S. Pillay Memorial Inter-College Sports Meet organized by E.G.S. Pillay Group of Institutions.
           </p>
