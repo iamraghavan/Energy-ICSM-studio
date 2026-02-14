@@ -1,13 +1,14 @@
 
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Tesseract from 'tesseract.js';
+import html2canvas from 'html2canvas';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -62,6 +63,86 @@ const formSchema = z.object({
 
 type FormSchema = z.infer<typeof formSchema>;
 
+interface QrCodeStickerProps {
+    qrCodeUrl: string;
+    upiId: string;
+    totalAmount: number;
+    selectedSportIds: string[];
+    apiSports: ApiSport[];
+}
+
+const QrCodeSticker = React.forwardRef<HTMLDivElement, QrCodeStickerProps>(
+    ({ qrCodeUrl, upiId, totalAmount, selectedSportIds, apiSports }, ref) => {
+    const { toast } = useToast();
+    
+    const handleCopyUpiId = () => {
+        navigator.clipboard.writeText(upiId).then(() => {
+            toast({
+                title: "UPI ID Copied!",
+                description: `${upiId} has been copied to your clipboard.`,
+            });
+        }).catch(err => {
+             toast({
+                variant: "destructive",
+                title: "Copy Failed",
+                description: "Could not copy the UPI ID.",
+            });
+        });
+    };
+
+    return (
+        <div ref={ref} className="rounded-lg border bg-background p-4 flex flex-col items-center text-center shadow-md max-w-sm mx-auto">
+            <Logo className="h-10 w-28" />
+            <p className="text-sm font-medium mt-2">Pay using any UPI App</p>
+
+            <div className="my-4">
+                {totalAmount > 0 ? (
+                    <Image src={qrCodeUrl} alt="Payment QR Code" width={170} height={170} />
+                ) : (
+                    <div className="w-[170px] h-[170px] flex items-center justify-center bg-muted border rounded-md">
+                        <p className="text-xs text-muted-foreground text-center p-2">Select a sport to generate QR code</p>
+                    </div>
+                )}
+            </div>
+
+            <p className="text-sm">Or pay to UPI ID:</p>
+            <div className="flex items-center gap-2 mt-1">
+                <p className="font-mono font-semibold text-primary">{upiId}</p>
+                <Button type="button" variant="ghost" size="icon" onClick={handleCopyUpiId} className="h-6 w-6">
+                    <Copy className="h-3 w-3" />
+                    <span className="sr-only">Copy UPI ID</span>
+                </Button>
+            </div>
+            
+            <div className="w-full text-left my-4 border-y py-2 space-y-2">
+                <div className="flex justify-between items-center font-bold">
+                    <span>Total Amount:</span>
+                    <span className="text-primary">₹{totalAmount.toFixed(2)}</span>
+                </div>
+                {selectedSportIds.length > 0 && (
+                    <div>
+                        <p className="text-xs font-medium text-muted-foreground">For:</p>
+                        <ul className="list-disc list-inside text-xs">
+                            {selectedSportIds.map(id => {
+                                const sport = apiSports.find(s => s.id.toString() === id);
+                                return <li key={id} className="font-medium">{sport?.name} ({sport?.category})</li>
+                            })}
+                        </ul>
+                    </div>
+                )}
+            </div>
+
+            <div className="flex items-center justify-center gap-4">
+                <Image src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg" alt="Google Pay" width={60} height={24} className="object-contain" />
+                <Image src="https://upload.wikimedia.org/wikipedia/commons/7/71/PhonePe_Logo.svg" alt="PhonePe" width={60} height={24} className="object-contain" />
+                <Image src="https://upload.wikimedia.org/wikipedia/commons/2/24/Paytm_Logo_%28standalone%29.svg" alt="Paytm" width={50} height={16} className="object-contain" />
+            </div>
+        </div>
+    )
+});
+QrCodeSticker.displayName = "QrCodeSticker";
+
+
 export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
     const { toast } = useToast();
     const router = useRouter();
@@ -78,6 +159,8 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
 
     const cityStateInputRef = useRef<HTMLInputElement | null>(null);
     const autocompleteRef = useRef<any>(null);
+    const qrStickerRef = useRef<HTMLDivElement>(null);
+
 
     const form = useForm<FormSchema>({
         resolver: zodResolver(formSchema),
@@ -365,46 +448,28 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
         const sport = apiSports.find(s => s.id.toString() === id);
         return sport?.type === 'Team';
     });
+    
+    const handleDownloadQr = () => {
+        if (!qrStickerRef.current || totalAmount <= 0) return;
 
-    const handleCopyUpiId = () => {
-        navigator.clipboard.writeText(upiId).then(() => {
-            toast({
-                title: "UPI ID Copied!",
-                description: `${upiId} has been copied to your clipboard.`,
-            });
-        }).catch(err => {
-             toast({
-                variant: "destructive",
-                title: "Copy Failed",
-                description: "Could not copy the UPI ID.",
-            });
-        });
-    };
-
-    const handleDownloadQr = async () => {
-        if (!qrCodeUrl || totalAmount <= 0) return;
-        try {
-            const response = await fetch(qrCodeUrl);
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
+        html2canvas(qrStickerRef.current, { useCORS: true }).then((canvas) => {
             const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `energy2026-qr-payment.png`);
+            link.download = 'energy2026-payment-sticker.png';
+            link.href = canvas.toDataURL('image/png');
             document.body.appendChild(link);
             link.click();
-            link.parentNode?.removeChild(link);
-            window.URL.revokeObjectURL(url);
-             toast({
-                title: "QR Code Downloading...",
-            });
-        } catch (error) {
-            console.error("QR Download Error:", error);
+            document.body.removeChild(link);
             toast({
-                variant: "destructive",
-                title: "Download Failed",
-                description: "Could not download the QR code.",
+                title: 'QR Sticker Downloading...',
             });
-        }
+        }).catch(error => {
+            console.error('QR Download Error:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Download Failed',
+                description: 'Could not download the QR code sticker.',
+            });
+        });
     };
 
 
@@ -579,58 +644,20 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                                     </div>
                                     
                                     {selectedSportIds.length > 0 && (
-                                        <div className="rounded-lg border bg-background p-4 flex flex-col items-center text-center shadow-md max-w-sm mx-auto">
-                                            <Logo className="h-10 w-28" />
-                                            <p className="text-sm font-medium mt-2">Pay using any UPI App</p>
-
-                                            <div className="my-4">
-                                                {totalAmount > 0 ? (
-                                                    <Image src={qrCodeUrl} alt="Payment QR Code" width={170} height={170} />
-                                                ) : (
-                                                    <div className="w-[170px] h-[170px] flex items-center justify-center bg-muted border rounded-md">
-                                                        <p className="text-xs text-muted-foreground text-center p-2">Select a sport to generate QR code</p>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <p className="text-sm">Or pay to UPI ID:</p>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <p className="font-mono font-semibold text-primary">{upiId}</p>
-                                                <Button type="button" variant="ghost" size="icon" onClick={handleCopyUpiId} className="h-6 w-6">
-                                                    <Copy className="h-3 w-3" />
-                                                    <span className="sr-only">Copy UPI ID</span>
-                                                </Button>
-                                            </div>
-                                            
-                                            <div className="w-full text-left my-4 border-y py-2 space-y-2">
-                                                <div className="flex justify-between items-center font-bold">
-                                                    <span>Total Amount:</span>
-                                                    <span className="text-primary">₹{totalAmount.toFixed(2)}</span>
-                                                </div>
-                                                {selectedSportIds.length > 0 && (
-                                                    <div>
-                                                        <p className="text-xs font-medium text-muted-foreground">For:</p>
-                                                        <ul className="list-disc list-inside text-xs">
-                                                            {selectedSportIds.map(id => {
-                                                                const sport = apiSports.find(s => s.id.toString() === id);
-                                                                return <li key={id} className="font-medium">{sport?.name} ({sport?.category})</li>
-                                                            })}
-                                                        </ul>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="flex items-center justify-center gap-4">
-                                                <Image src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg" alt="Google Pay" width={60} height={24} className="object-contain" />
-                                                <Image src="https://upload.wikimedia.org/wikipedia/commons/7/71/PhonePe_Logo.svg" alt="PhonePe" width={60} height={24} className="object-contain" />
-                                                <Image src="https://upload.wikimedia.org/wikipedia/commons/4/42/Paytm_logo.svg" alt="Paytm" width={50} height={16} className="object-contain" />
-                                            </div>
-
-                                            <Button type="button" onClick={handleDownloadQr} variant="secondary" className="mt-6 w-full" disabled={totalAmount <= 0}>
+                                        <>
+                                            <QrCodeSticker
+                                                ref={qrStickerRef}
+                                                qrCodeUrl={qrCodeUrl}
+                                                upiId={upiId}
+                                                totalAmount={totalAmount}
+                                                selectedSportIds={selectedSportIds}
+                                                apiSports={apiSports}
+                                            />
+                                             <Button type="button" onClick={handleDownloadQr} variant="secondary" className="w-full max-w-sm mx-auto" disabled={totalAmount <= 0}>
                                                 <Download className="mr-2" />
-                                                Download Payment QR
+                                                Download Payment Sticker
                                             </Button>
-                                        </div>
+                                        </>
                                     )}
 
                                     <FormField control={control} name="paymentScreenshot" render={({ field }) => (
