@@ -153,7 +153,22 @@ export type DashboardSport = {
 };
 
 export type StudentDashboardOverview = {
-    registered_sports: DashboardSport[];
+    registration: {
+        id: string;
+        code: string;
+        name: string;
+        email: string;
+        college: string;
+        status: string;
+        payment_status: string;
+    };
+    registered_sports: ApiSport[];
+    teams: {
+        id: string;
+        sport_id: number;
+        team_name: string;
+        members_count: number;
+    }[];
 };
 
 export type FullTeamDetails = {
@@ -230,15 +245,12 @@ api.interceptors.response.use(
                              pathname.startsWith('/console');
 
         if (isAdminRoute) {
-            localStorage.removeItem('jwt_token');
-            localStorage.removeItem('user_role');
-            localStorage.removeItem('assigned_sport_id');
+            clearUserSession();
             if (pathname !== '/auth/session') {
                 window.location.href = '/auth/session';
             }
         } else {
-            localStorage.removeItem('student_token');
-            localStorage.removeItem('student_session');
+            clearStudentSession();
             if (pathname !== '/energy/2026/auth') {
                 window.location.href = '/energy/2026/auth';
             }
@@ -248,6 +260,16 @@ api.interceptors.response.use(
   }
 );
 
+const clearUserSession = () => {
+    localStorage.removeItem('jwt_token');
+    localStorage.removeItem('user_role');
+    localStorage.removeItem('assigned_sport_id');
+};
+
+const clearStudentSession = () => {
+    localStorage.removeItem('student_token');
+    localStorage.removeItem('student_session');
+};
 
 export const loginUser = async (credentials: {username: string, password: string}) => {
     const response = await api.post('/auth/login', {

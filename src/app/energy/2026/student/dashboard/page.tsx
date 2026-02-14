@@ -1,21 +1,21 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { getStudentSession, type StudentSession } from '@/lib/auth';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getStudentDashboardOverview, createStudentTeam, type StudentDashboardOverview, type DashboardSport } from '@/lib/api';
+import { getStudentDashboardOverview, createStudentTeam, type StudentDashboardOverview, type DashboardSport, type ApiSport } from '@/lib/api';
 import { Progress } from '@/components/ui/progress';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 
-function CreateTeamDialog({ sport, onTeamCreated }: { sport: DashboardSport, onTeamCreated: () => void }) {
+function CreateTeamDialog({ sport, onTeamCreated }: { sport: ApiSport, onTeamCreated: () => void }) {
     const [teamName, setTeamName] = useState('');
     const [isCreating, setIsCreating] = useState(false);
     const { toast } = useToast();
@@ -30,8 +30,8 @@ function CreateTeamDialog({ sport, onTeamCreated }: { sport: DashboardSport, onT
             await createStudentTeam(sport.id, teamName);
             toast({ title: 'Success!', description: `Team "${teamName}" has been created.` });
             onTeamCreated();
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to create team.' });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error', description: error.response?.data?.message || 'Failed to create team.' });
         } finally {
             setIsCreating(false);
         }
@@ -48,6 +48,9 @@ function CreateTeamDialog({ sport, onTeamCreated }: { sport: DashboardSport, onT
                 <Input id="team-name" value={teamName} onChange={(e) => setTeamName(e.target.value)} placeholder="e.g., College Warriors" />
             </div>
             <DialogFooter>
+                <DialogClose asChild>
+                    <Button variant="ghost">Cancel</Button>
+                </DialogClose>
                 <Button onClick={handleCreateTeam} disabled={isCreating}>
                     {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Create Team
@@ -57,12 +60,14 @@ function CreateTeamDialog({ sport, onTeamCreated }: { sport: DashboardSport, onT
     )
 }
 
-function SportCard({ sport, onTeamCreated }: { sport: DashboardSport, onTeamCreated: () => void }) {
+function SportCard({ sport, onTeamCreated }: { sport: DashboardSport & { category: string }, onTeamCreated: () => void }) {
+    const teamSport = sport as ApiSport; // To pass to Dialog
+
     return (
         <Card>
             <CardHeader>
                 <CardTitle>{sport.name}</CardTitle>
-                <CardDescription>{sport.type} Event</CardDescription>
+                <CardDescription>{sport.type} Event ({sport.category})</CardDescription>
             </CardHeader>
             <CardContent>
                 {sport.type === 'Team' ? (
@@ -90,7 +95,7 @@ function SportCard({ sport, onTeamCreated }: { sport: DashboardSport, onTeamCrea
                             <DialogTrigger asChild>
                                 <Button className="w-full">Create Team</Button>
                             </DialogTrigger>
-                           <CreateTeamDialog sport={sport} onTeamCreated={onTeamCreated} />
+                           <CreateTeamDialog sport={teamSport} onTeamCreated={onTeamCreated} />
                         </Dialog>
                      )}
                  </CardFooter>
@@ -107,6 +112,7 @@ export default function StudentDashboardPage() {
     const [isLoading, setIsLoading] = useState(true);
 
     const fetchDashboardData = async () => {
+        setIsLoading(true);
         try {
             const data = await getStudentDashboardOverview();
             setDashboardData(data);
@@ -126,6 +132,21 @@ export default function StudentDashboardPage() {
             fetchDashboardData();
         }
     }, [router]);
+
+    const processedSports: (DashboardSport & {category: string})[] = useMemo(() => {
+        if (!dashboardData) return [];
+        return dashboardData.registered_sports.map(sport => {
+            const teamInfo = dashboardData.teams.find(t => t.sport_id === sport.id);
+            return {
+                ...sport,
+                team: teamInfo ? {
+                    id: teamInfo.id,
+                    team_name: teamInfo.team_name,
+                    members_count: teamInfo.members_count,
+                } : null
+            };
+        });
+    }, [dashboardData]);
 
     const handleLogout = () => {
         localStorage.removeItem('student_token');
@@ -155,9 +176,9 @@ export default function StudentDashboardPage() {
                     <CardDescription>An overview of the sports you have registered for.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {dashboardData && dashboardData.registered_sports.length > 0 ? (
+                    {processedSports.length > 0 ? (
                         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {dashboardData.registered_sports.map(sport => (
+                            {processedSports.map(sport => (
                                 <SportCard key={sport.id} sport={sport} onTeamCreated={fetchDashboardData} />
                             ))}
                         </div>
