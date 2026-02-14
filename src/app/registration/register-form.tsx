@@ -499,10 +499,12 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                                      <FormField control={control} name="mobile" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Mobile Number</FormLabel>
-                                            <div className="flex items-center gap-2">
-                                                <FormControl><div className="relative flex-grow"><div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><span className="text-muted-foreground">+91</span></div><Input placeholder="Enter 10-digit number" type="tel" maxLength={10} {...field} onChange={e => /^\d*$/.test(e.target.value) && field.onChange(e.target.value)} className="pl-12" /></div></FormControl>
-                                                <div className="flex items-center space-x-2 pt-2 shrink-0"><Checkbox id="isWhatsappSame" checked={isWhatsappSame} onCheckedChange={(checked) => setValue('isWhatsappSame', !!checked)} /><label htmlFor="isWhatsappSame" className="text-sm font-medium leading-none">Same as mobile number as a whatsapp number</label></div>
-                                            </div>
+                                            <FormControl>
+                                                <div className="relative">
+                                                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><span className="text-muted-foreground">+91</span></div>
+                                                    <Input placeholder="Enter 10-digit number" type="tel" maxLength={10} {...field} onChange={e => /^\d*$/.test(e.target.value) && field.onChange(e.target.value)} className="pl-12" />
+                                                </div>
+                                            </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                         )}
@@ -510,7 +512,16 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                                     <FormField name="whatsapp" control={control} render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>WhatsApp Number</FormLabel>
-                                            <FormControl><div className="relative"><div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><span className="text-muted-foreground">+91</span></div><Input type="tel" maxLength={10} disabled={isWhatsappSame} {...field} onChange={e => /^\d*$/.test(e.target.value) && field.onChange(e.target.value)} className="pl-12" /></div></FormControl>
+                                             <FormControl>
+                                                <div className="relative">
+                                                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><span className="text-muted-foreground">+91</span></div>
+                                                    <Input type="tel" maxLength={10} disabled={isWhatsappSame} {...field} onChange={e => /^\d*$/.test(e.target.value) && field.onChange(e.target.value)} className="pl-12" />
+                                                </div>
+                                            </FormControl>
+                                            <div className="flex items-center space-x-2 pt-2">
+                                                <Checkbox id="isWhatsappSame" checked={isWhatsappSame} onCheckedChange={(checked) => setValue('isWhatsappSame', !!checked)} />
+                                                <label htmlFor="isWhatsappSame" className="text-sm font-medium leading-none">Same as mobile number as a whatsapp number</label>
+                                            </div>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
