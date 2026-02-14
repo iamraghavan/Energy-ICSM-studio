@@ -18,6 +18,7 @@ import { registerStudent, type ApiSport } from "@/lib/api";
 import { Loader2, Check, Copy, Download, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
+import { Logo } from "@/components/shared/logo";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "application/pdf"];
@@ -149,9 +150,9 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
         if (totalAmount > 0) {
             const payeeName = "EGS Pillay Institutions";
             const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${totalAmount.toFixed(2)}&cu=INR`;
-            setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiUrl)}`);
+            setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUrl)}`);
         } else {
-            setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=Please-select-a-sport`);
+            setQrCodeUrl('');
         }
     }, [totalAmount, upiId]);
     
@@ -380,6 +381,33 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
         });
     };
 
+    const handleDownloadQr = async () => {
+        if (!qrCodeUrl || totalAmount <= 0) return;
+        try {
+            const response = await fetch(qrCodeUrl);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `energy2026-qr-payment.png`);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
+            window.URL.revokeObjectURL(url);
+             toast({
+                title: "QR Code Downloading...",
+            });
+        } catch (error) {
+            console.error("QR Download Error:", error);
+            toast({
+                variant: "destructive",
+                title: "Download Failed",
+                description: "Could not download the QR code.",
+            });
+        }
+    };
+
+
     return (
         <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
             <Card className="w-full max-w-4xl my-8">
@@ -406,8 +434,10 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                                      <FormField control={control} name="mobile" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Mobile Number</FormLabel>
-                                            <FormControl><div className="relative"><div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><span className="text-muted-foreground">+91</span></div><Input placeholder="Enter 10-digit number" type="tel" maxLength={10} {...field} onChange={e => /^\d*$/.test(e.target.value) && field.onChange(e.target.value)} className="pl-12" /></div></FormControl>
-                                            <div className="flex items-center space-x-2 pt-2"><Checkbox id="isWhatsappSame" checked={isWhatsappSame} onCheckedChange={(checked) => setValue('isWhatsappSame', !!checked)} /><label htmlFor="isWhatsappSame" className="text-sm font-medium leading-none">Same as mobile number as a whatsapp number</label></div>
+                                            <div className="flex items-center gap-2">
+                                                <FormControl><div className="relative flex-grow"><div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><span className="text-muted-foreground">+91</span></div><Input placeholder="Enter 10-digit number" type="tel" maxLength={10} {...field} onChange={e => /^\d*$/.test(e.target.value) && field.onChange(e.target.value)} className="pl-12" /></div></FormControl>
+                                                <div className="flex items-center space-x-2 pt-2 shrink-0"><Checkbox id="isWhatsappSame" checked={isWhatsappSame} onCheckedChange={(checked) => setValue('isWhatsappSame', !!checked)} /><label htmlFor="isWhatsappSame" className="text-sm font-medium leading-none">Same as mobile number as a whatsapp number</label></div>
+                                            </div>
                                             <FormMessage />
                                         </FormItem>
                                         )}
@@ -541,75 +571,83 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                                 )}
                              </FormSection>
 
-                             <FormSection title="Payment Details">
-                                <div className="space-y-6 rounded-lg border bg-muted/50 p-4">
-                                    <div className="flex justify-between items-center font-bold text-lg">
+                            <FormSection title="Payment Details">
+                                <div className="space-y-6 rounded-lg border bg-muted/50 p-6">
+                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center font-bold text-lg">
                                         <p>Total Amount:</p>
-                                        <p className="text-primary">₹{totalAmount.toFixed(2)}</p>
+                                        <p className="text-2xl text-primary">₹{totalAmount.toFixed(2)}</p>
                                     </div>
-
+                                    
                                     {selectedSportIds.length > 0 && (
-                                        <div className="space-y-1">
-                                            <p className="text-sm font-medium">Selected Sports:</p>
-                                            <ul className="list-disc list-inside text-sm text-muted-foreground">
-                                                {selectedSportIds.map(id => {
-                                                    const sport = apiSports.find(s => s.id.toString() === id);
-                                                    return <li key={id}>{sport?.name} ({sport?.category}) - ₹{sport?.amount}</li>
-                                                })}
-                                            </ul>
-                                        </div>
-                                    )}
-                                    <div className="space-y-4">
-                                        <p className="text-sm text-muted-foreground">Please pay the total amount to the UPI ID below, or scan the QR code.</p>
-                                        
-                                        <div className="space-y-2">
-                                            <Label>UPI ID</Label>
-                                            <div className="flex items-center gap-2">
-                                                <Input value={upiId} readOnly className="font-mono bg-background"/>
-                                                <Button type="button" variant="outline" size="icon" onClick={handleCopyUpiId}>
-                                                    <Copy className="h-4 w-4" />
+                                        <div className="rounded-lg border bg-background p-4 flex flex-col items-center text-center shadow-md max-w-sm mx-auto">
+                                            <Logo className="h-10 w-28" />
+                                            <p className="text-sm font-medium mt-2">Pay using any UPI App</p>
+
+                                            <div className="my-4">
+                                                {totalAmount > 0 ? (
+                                                    <Image src={qrCodeUrl} alt="Payment QR Code" width={170} height={170} />
+                                                ) : (
+                                                    <div className="w-[170px] h-[170px] flex items-center justify-center bg-muted border rounded-md">
+                                                        <p className="text-xs text-muted-foreground text-center p-2">Select a sport to generate QR code</p>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <p className="text-sm">Or pay to UPI ID:</p>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <p className="font-mono font-semibold text-primary">{upiId}</p>
+                                                <Button type="button" variant="ghost" size="icon" onClick={handleCopyUpiId} className="h-6 w-6">
+                                                    <Copy className="h-3 w-3" />
                                                     <span className="sr-only">Copy UPI ID</span>
                                                 </Button>
                                             </div>
-                                        </div>
-                                        
-                                        <div className="flex items-center gap-4">
-                                            <span className="text-sm text-muted-foreground">Pay with:</span>
-                                            <Image src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg" alt="Google Pay" width={70} height={25} className="object-contain" />
-                                            <Image src="https://upload.wikimedia.org/wikipedia/commons/7/71/PhonePe_Logo.svg" alt="PhonePe" width={70} height={25} className="object-contain" />
-                                        </div>
-
-                                        <div className="flex flex-col items-center gap-4">
-                                            {totalAmount > 0 ? (
-                                                <Image src={qrCodeUrl} alt="Payment QR Code" width={150} height={150} />
-                                            ) : (
-                                                <div className="w-[150px] h-[150px] flex items-center justify-center bg-background border rounded-md">
-                                                    <p className="text-xs text-muted-foreground text-center p-2">Select a sport to generate QR code</p>
+                                            
+                                            <div className="w-full text-left my-4 border-y py-2 space-y-2">
+                                                <div className="flex justify-between items-center font-bold">
+                                                    <span>Total Amount:</span>
+                                                    <span className="text-primary">₹{totalAmount.toFixed(2)}</span>
                                                 </div>
-                                            )}
-                                            <Button asChild variant="secondary" disabled={totalAmount <= 0}>
-                                                <a href={qrCodeUrl} download={`energy2026-payment-qr.png`}>
-                                                    <Download className="mr-2" />
-                                                    Download QR Code
-                                                </a>
+                                                {selectedSportIds.length > 0 && (
+                                                    <div>
+                                                        <p className="text-xs font-medium text-muted-foreground">For:</p>
+                                                        <ul className="list-disc list-inside text-xs">
+                                                            {selectedSportIds.map(id => {
+                                                                const sport = apiSports.find(s => s.id.toString() === id);
+                                                                return <li key={id} className="font-medium">{sport?.name} ({sport?.category})</li>
+                                                            })}
+                                                        </ul>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="flex items-center justify-center gap-4">
+                                                <Image src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg" alt="Google Pay" width={60} height={24} className="object-contain" />
+                                                <Image src="https://upload.wikimedia.org/wikipedia/commons/7/71/PhonePe_Logo.svg" alt="PhonePe" width={60} height={24} className="object-contain" />
+                                                <Image src="https://upload.wikimedia.org/wikipedia/commons/4/42/Paytm_logo.svg" alt="Paytm" width={50} height={16} className="object-contain" />
+                                            </div>
+
+                                            <Button type="button" onClick={handleDownloadQr} variant="secondary" className="mt-6 w-full" disabled={totalAmount <= 0}>
+                                                <Download className="mr-2" />
+                                                Download Payment QR
                                             </Button>
                                         </div>
-                                    </div>
-                                     <FormField control={control} name="paymentScreenshot" render={({ field }) => (
+                                    )}
+
+                                    <FormField control={control} name="paymentScreenshot" render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Upload Payment Screenshot <span className="text-destructive">*</span></FormLabel>
+                                            <FormLabel>Upload Payment Screenshot <span className="font-bold text-destructive">*</span></FormLabel>
                                             <FormControl><Input type="file" accept={ACCEPTED_IMAGE_TYPES.join(',')} onChange={(e) => field.onChange(e.target.files)} /></FormControl>
                                             <FormDescription>A screenshot of your payment is mandatory for verification. File must be JPG, PNG, or PDF, under 5MB.</FormDescription>
                                             <FormMessage />
                                         </FormItem>
-                                     )} />
-                                     {screenshotPreview && (
+                                    )} />
+                                    {screenshotPreview && (
                                         <div className="mt-4"><p className="text-sm font-medium mb-2">Screenshot Preview:</p>
                                          {screenshotPreview.startsWith('PDF:') ? <p className="font-mono text-sm p-2 bg-background rounded-md border">{screenshotPreview}</p> : <Image src={screenshotPreview} alt="Screenshot preview" width={200} height={400} className="rounded-md border object-contain" />}
                                         </div>
-                                     )}
-                                     <FormField name="transactionId" control={control} render={({ field }) => (
-                                        <FormItem><FormLabel>Transaction ID <span className="text-destructive">*</span></FormLabel>
+                                    )}
+                                    <FormField name="transactionId" control={control} render={({ field }) => (
+                                        <FormItem><FormLabel>Transaction ID <span className="font-bold text-destructive">*</span></FormLabel>
                                             <FormControl>
                                                 <div className="relative">
                                                      <Input placeholder="Enter the UPI Transaction ID" {...field} disabled={isOcrRunning} />
@@ -643,5 +681,3 @@ function FormSection({ title, children }: { title: string, children: React.React
         </div>
     );
 }
-
-    
