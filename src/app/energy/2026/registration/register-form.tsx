@@ -444,11 +444,6 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
         }
     };
     
-    const hasSelectedTeamSport = watch('selected_sport_ids', []).some(id => {
-        const sport = apiSports.find(s => s.id.toString() === id);
-        return sport?.type === 'Team';
-    });
-    
     const handleDownloadQr = () => {
         if (!qrStickerRef.current || totalAmount <= 0) return;
 
@@ -606,21 +601,6 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                                         <FormMessage className="pt-2"/>
                                     </FormItem>
                                 )}/>
-
-                                {hasSelectedTeamSport && (
-                                    <FormField name="teamName" control={control} render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Team Name</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="Auto-generated based on college and sport" {...field} readOnly />
-                                            </FormControl>
-                                            <FormDescription>
-                                                This is automatically generated. If you have multiple team entries, please submit them as separate registrations.
-                                            </FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )} />
-                                )}
                             </FormSection>
 
                              <FormSection title="Physical Director (PD) Information">
