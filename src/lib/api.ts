@@ -16,16 +16,25 @@ export type ApiTeam = {
   sport_id: string | number;
   team_name: string;
   captain_id: string;
+  locked?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
   college?: {
     name: string;
   };
   Captain?: {
     name: string;
+    email?: string;
+    College?: {
+        name: string;
+        city?: string;
+    };
   };
   Sport?: {
     id: number;
     name: string;
     category: 'Boys' | 'Girls';
+    type?: 'Team' | 'Individual';
   };
 };
 

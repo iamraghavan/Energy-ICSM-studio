@@ -44,19 +44,25 @@ export default async function TeamsPage() {
                             <div className="mt-4">
                                 {sportTeams.length > 0 ? (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {sportTeams.map(team => (
-                                            <Link key={team.id} href={`/energy/2026/teams/${team.id}`} className="block h-full">
-                                                <Card className="hover:shadow-lg transition-shadow h-full">
-                                                    <CardHeader className="flex-row items-center gap-4">
-                                                        <div className="w-12 h-12 bg-secondary rounded-full flex items-center justify-center font-bold text-2xl shrink-0">{team.team_name.charAt(0)}</div>
-                                                        <div>
-                                                            <CardTitle className="font-headline text-xl">{team.team_name}</CardTitle>
-                                                            {team.Sport && <CardDescription>{team.Sport.category}</CardDescription>}
-                                                        </div>
-                                                    </CardHeader>
-                                                </Card>
-                                            </Link>
-                                        ))}
+                                        {sportTeams.map(team => {
+                                            const collegeName = team.Captain?.College?.name || team.team_name;
+                                            const category = team.Sport?.category;
+                                            return (
+                                                <Link key={team.id} href={`/energy/2026/teams/${team.id}`} className="block h-full">
+                                                    <Card className="hover:shadow-lg transition-shadow h-full">
+                                                        <CardHeader className="flex-row items-center gap-4">
+                                                            <div className="w-12 h-12 bg-secondary rounded-full flex items-center justify-center font-bold text-2xl shrink-0">
+                                                                {collegeName.charAt(0)}
+                                                            </div>
+                                                            <div>
+                                                                <CardTitle className="font-headline text-xl">{collegeName}</CardTitle>
+                                                                {category && <CardDescription>{category}</CardDescription>}
+                                                            </div>
+                                                        </CardHeader>
+                                                    </Card>
+                                                </Link>
+                                            );
+                                        })}
                                     </div>
                                 ) : (
                                     <div className="text-center text-muted-foreground py-16 border rounded-lg">
