@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,7 +14,6 @@ import {
 import { Menu, User } from 'lucide-react';
 import { Logo } from '@/components/shared/logo';
 import { cn } from '@/lib/utils';
-import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { getStudentSession, type StudentSession } from '@/lib/auth';
 import {
@@ -43,6 +43,7 @@ const navLinks = [
 export function Header() {
   const [studentSession, setStudentSession] = useState<StudentSession | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
@@ -92,10 +93,13 @@ export function Header() {
              {isClient && studentSession ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                      <Avatar className="h-10 w-10">
+                    <Button variant="ghost" className="flex items-center gap-2 rounded-full h-10 px-2 pr-4">
+                      <Avatar className="h-8 w-8">
                         <AvatarFallback>{studentSession.name ? studentSession.name.charAt(0).toUpperCase() : 'S'}</AvatarFallback>
                       </Avatar>
+                       <span className="hidden md:inline-block font-medium">
+                        {studentSession.name || 'Student'}
+                    </span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56" align="end" forceMount>
@@ -128,7 +132,7 @@ export function Header() {
                 </>
               )}
             
-            <Sheet>
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="md:hidden">
                 <Menu className="h-6 w-6" />
@@ -138,7 +142,7 @@ export function Header() {
             <SheetContent side="left" className="w-full max-w-xs p-0">
                  <SheetHeader className="p-4 border-b">
                     <SheetTitle asChild>
-                        <Link href="/energy/2026" className="flex items-center space-x-2">
+                        <Link href="/energy/2026" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center space-x-2">
                             <Logo />
                         </Link>
                     </SheetTitle>
@@ -146,27 +150,26 @@ export function Header() {
                  </SheetHeader>
                 <div className="flex flex-col space-y-2 p-4">
                 {navLinks.map((link) => (
-                    <Link
-                        key={`mobile-${link.label}`}
-                        href={link.href}
-                        className={cn(
-                            "px-4 py-2 rounded-md hover:bg-muted flex items-center justify-between"
-                        )}
-                    >
-                        <span className={cn()}>{link.label}</span>
-                    </Link>
+                    <Button key={`mobile-${link.label}`} asChild variant="ghost" className="justify-start">
+                        <Link
+                            href={link.href}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                           {link.label}
+                        </Link>
+                    </Button>
                 ))}
                 <div className='pt-4 space-y-2'>
                     {isClient && studentSession ? (
-                      <Button asChild className="w-full">
+                      <Button asChild className="w-full" onClick={() => setIsMobileMenuOpen(false)}>
                         <Link href="/energy/2026/student/dashboard">Go to Dashboard</Link>
                       </Button>
                     ) : (
                       <>
-                        <Button asChild className="w-full">
+                        <Button asChild className="w-full" onClick={() => setIsMobileMenuOpen(false)}>
                             <Link href="/energy/2026/registration">Register Now</Link>
                         </Button>
-                        <Button asChild variant="outline" className="w-full">
+                        <Button asChild variant="outline" className="w-full" onClick={() => setIsMobileMenuOpen(false)}>
                             <Link href="/energy/2026/auth?action=login">Login</Link>
                         </Button>
                       </>
