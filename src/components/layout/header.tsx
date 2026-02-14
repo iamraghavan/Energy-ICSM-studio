@@ -20,7 +20,7 @@ const navLinks = [
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-gradient-to-r from-primary to-accent text-primary-foreground">
+    <header className="sticky top-0 z-50 w-full border-b bg-primary text-primary-foreground">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-6">
             <Link href="/energy/2026" className="flex items-center gap-2">
@@ -55,7 +55,7 @@ export function Header() {
                 </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-full max-w-xs p-0">
-                 <div className="p-4 border-b bg-gradient-to-r from-primary to-accent">
+                 <div className="p-4 border-b bg-primary">
                     <Link href="/energy/2026" className="flex items-center space-x-2">
                         <Logo />
                     </Link>
