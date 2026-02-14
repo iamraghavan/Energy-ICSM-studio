@@ -1,4 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Metadata } from 'next';
 
@@ -83,33 +82,33 @@ const rulesData = [
 export default function RulesPage() {
     return (
         <div className="container py-8 md:py-12">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline text-3xl">Important Rules</CardTitle>
-                    <CardDescription>Select a sport to view its specific rules and regulations.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                   <Tabs defaultValue={rulesData[0].sport} className="w-full">
-                        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
-                             {rulesData.map(item => (
-                                <TabsTrigger key={item.sport} value={item.sport}>{item.sport}</TabsTrigger>
-                            ))}
-                        </TabsList>
-                        {rulesData.map(item => (
-                             <TabsContent key={item.sport} value={item.sport} className="mt-6">
-                                <div className="p-6 bg-muted/50 rounded-lg border">
-                                    <h3 className="text-xl font-semibold font-headline text-foreground mb-4">{item.sport}</h3>
-                                     <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
-                                        {item.rules.map((rule, index) => (
-                                            <li key={index}>{rule}</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            </TabsContent>
-                        ))}
-                   </Tabs>
-                </CardContent>
-            </Card>
+            <div className="text-center mb-12">
+                <h1 className="text-4xl font-bold font-headline text-primary">Important Rules</h1>
+                <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
+                    Select a sport to view its specific rules and regulations.
+                </p>
+            </div>
+            
+            <Tabs defaultValue={rulesData[0].sport} className="w-full max-w-4xl mx-auto">
+                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 h-auto">
+                     {rulesData.map(item => (
+                        <TabsTrigger key={item.sport} value={item.sport} className="py-2.5">{item.sport}</TabsTrigger>
+                    ))}
+                </TabsList>
+
+                {rulesData.map(item => (
+                     <TabsContent key={item.sport} value={item.sport} className="mt-8">
+                        <div className="border-l-4 border-primary bg-card rounded-r-lg p-6 md:p-8 shadow-sm">
+                            <h3 className="text-2xl font-bold font-headline text-primary mb-6">{item.sport}</h3>
+                             <ul className="list-disc pl-5 space-y-3 text-foreground/80">
+                                {item.rules.map((rule, index) => (
+                                    <li key={index} className="pl-2">{rule}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    </TabsContent>
+                ))}
+           </Tabs>
         </div>
     );
 }
