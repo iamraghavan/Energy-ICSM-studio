@@ -70,9 +70,16 @@ export function Footer() {
            </div>
         </div>
       </div>
-      <div className="border-t border-primary-foreground/20">
-        <div className="container py-6 text-center text-sm text-primary-foreground/80">
-          © {new Date().getFullYear()} Energy Sports Meet. All rights reserved.
+      <div className="bg-gray-800 text-gray-300">
+        <div className="container flex flex-col md:flex-row items-center justify-between gap-y-4 py-4 text-sm">
+            <p className="text-center md:text-left">
+                © {new Date().getFullYear()} Energy Sports Meet. All rights reserved.
+            </p>
+            <div className="flex flex-wrap items-center justify-center md:justify-end gap-x-6 gap-y-2">
+                <Link href="/privacy-policy" className="hover:text-white">Privacy Policy</Link>
+                <Link href="/terms-and-conditions" className="hover:text-white">Terms & Conditions</Link>
+                <p>Developed by Raghavan Jeeva</p>
+            </div>
         </div>
       </div>
     </footer>
