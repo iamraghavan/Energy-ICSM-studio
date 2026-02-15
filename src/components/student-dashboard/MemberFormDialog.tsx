@@ -16,21 +16,18 @@ import { Loader2 } from 'lucide-react';
 
 const memberFormSchema = z.object({
   name: z.string().min(3, "Name is required."),
-  email: z.string().email({ message: "Please enter a valid email." }).optional().or(z.literal('')),
-  mobile: z.string().optional().or(z.literal('')),
   role: z.enum(['Captain', 'Vice-Captain', 'Player']),
+  email: z.string().email({ message: "Please enter a valid email." }).optional().or(z.literal('')),
+  mobile: z.string().optional().or(z.literal('')).refine(val => !val || /^\d{10}$/.test(val), { message: "Mobile number must be 10 digits." }),
+  
+  // Cricket specific
   sport_role: z.string().optional(),
   batting_style: z.string().optional(),
   bowling_style: z.string().optional(),
   is_wicket_keeper: z.boolean().default(false),
-}).refine(data => {
-    if (data.mobile && data.mobile.length > 0) {
-        return /^\d{10}$/.test(data.mobile);
-    }
-    return true;
-}, {
-    message: "Mobile number must be 10 digits.",
-    path: ['mobile'],
+
+  // Generic position for other sports
+  position: z.string().optional(),
 });
 
 type MemberFormValues = z.infer<typeof memberFormSchema>;
@@ -39,6 +36,8 @@ const roles: TeamMemberRole[] = ['Player', 'Vice-Captain', 'Captain'];
 const cricketRoles: CricketSportRole[] = ['Batsman', 'Bowler', 'All-rounder', 'Wicket Keeper'];
 const battingStyles: BattingStyle[] = ['Right Hand', 'Left Hand'];
 const bowlingStyles: BowlingStyle[] = ['Right Arm Fast', 'Right Arm Medium', 'Right Arm Spin', 'Left Arm Fast', 'Left Arm Medium', 'Left Arm Spin', 'N/A'];
+const sportsWithPositions = ['Football', 'Basketball', 'Volleyball', 'Kabaddi'];
+
 
 interface MemberFormDialogProps {
     isOpen: boolean;
@@ -52,15 +51,18 @@ interface MemberFormDialogProps {
 export function MemberFormDialog({ isOpen, onClose, teamId, sportName, existingMember, onSuccess }: MemberFormDialogProps) {
     const { toast } = useToast();
     const isCricket = sportName === 'Cricket';
+    const showPositionField = sportsWithPositions.includes(sportName);
+
 
     const form = useForm<MemberFormValues>({
         resolver: zodResolver(memberFormSchema),
         defaultValues: {
             name: '',
+            role: 'Player',
             email: '',
             mobile: '',
-            role: 'Player',
             is_wicket_keeper: false,
+            position: '',
         }
     });
     
@@ -72,23 +74,32 @@ export function MemberFormDialog({ isOpen, onClose, teamId, sportName, existingM
                     sport_role: existingMember.sport_role || undefined,
                     batting_style: existingMember.batting_style || undefined,
                     bowling_style: existingMember.bowling_style || undefined,
+                    position: existingMember.additional_details?.position || '',
                 });
             } else {
                 form.reset({
-                    name: '', email: '', mobile: '', role: 'Player', is_wicket_keeper: false,
+                    name: '', role: 'Player', email: '', mobile: '',
                     sport_role: undefined, batting_style: undefined, bowling_style: undefined,
+                    is_wicket_keeper: false, position: '',
                 });
             }
         }
     }, [existingMember, isOpen, form]);
 
     const onSubmit = async (values: MemberFormValues) => {
+        const { position, ...rest } = values;
+        const submissionData: any = { ...rest };
+
+        if (showPositionField && position) {
+            submissionData.additional_details = { position };
+        }
+
         try {
             if (existingMember) {
-                await updateTeamMember(existingMember.id, values);
+                await updateTeamMember(existingMember.id, submissionData);
                 toast({ title: 'Success', description: 'Member details updated.' });
             } else {
-                await addTeamMember(teamId, values as Omit<StudentTeamMember, 'id'>);
+                await addTeamMember(teamId, submissionData as Omit<StudentTeamMember, 'id'>);
                 toast({ title: 'Success', description: 'New member added to the team.' });
             }
             onSuccess();
@@ -116,6 +127,19 @@ export function MemberFormDialog({ isOpen, onClose, teamId, sportName, existingM
                              <FormField control={form.control} name="mobile" render={({ field }) => (<FormItem><FormLabel>Mobile (Optional)</FormLabel><FormControl><Input type="tel" placeholder="10-digit number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         </div>
                         
+                        {showPositionField && (
+                             <>
+                                <h4 className="text-sm font-medium pt-2 border-t">Sport Details</h4>
+                                <FormField control={form.control} name="position" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Position</FormLabel>
+                                        <FormControl><Input placeholder="e.g. Defender, Setter, Center" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}/>
+                             </>
+                        )}
+
                         {isCricket && (
                              <>
                                 <h4 className="text-sm font-medium pt-2 border-t">Cricket Details</h4>
