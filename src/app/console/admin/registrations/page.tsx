@@ -18,6 +18,7 @@ import { Calendar as CalendarIcon, MoreHorizontal, Search, X, Eye } from 'lucide
 import { Calendar } from '@/components/ui/calendar';
 import { DateRange } from 'react-day-picker';
 import { cn } from '@/lib/utils';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 
 export default function AllRegistrationsPage() {
@@ -92,7 +93,7 @@ export default function AllRegistrationsPage() {
       const searchMatch = lowerSearchTerm === '' ||
         reg.Student.name?.toLowerCase().includes(lowerSearchTerm) ||
         (reg.Student.other_college || reg.Student.College?.name || '').toLowerCase().includes(lowerSearchTerm) ||
-        (reg.Sports || []).some(s => s?.name?.toLowerCase().includes(lowerSearchTerm)) ||
+        (reg.Sports || []).some(s => s && s.name && s.name.toLowerCase().includes(lowerSearchTerm)) ||
         reg.registration_code?.toLowerCase().includes(lowerSearchTerm);
 
       const sportMatch = !filters.sport || (reg.Sports || []).some(s => s && String(s.id) === filters.sport);
@@ -181,7 +182,7 @@ export default function AllRegistrationsPage() {
                             <div className="text-xs text-muted-foreground font-mono">{reg.registration_code}</div>
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">{reg.Student?.other_college || reg.Student?.College?.name || 'N/A'}</TableCell>
-                        <TableCell className="hidden md:table-cell">{(reg.Sports || []).map(s => s?.name).filter(Boolean).join(', ')}</TableCell>
+                        <TableCell className="hidden md:table-cell">{(reg.Sports || []).filter(s => s && s.name).map(s => s.name).join(', ')}</TableCell>
                         <TableCell className="hidden lg:table-cell">{format(new Date(reg.created_at), 'PPP')}</TableCell>
                         <TableCell>
                             <Badge
