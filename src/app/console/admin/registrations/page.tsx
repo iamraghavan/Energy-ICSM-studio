@@ -89,10 +89,10 @@ export default function AllRegistrationsPage() {
       const searchMatch = lowerSearchTerm === '' ||
         reg.Student.name.toLowerCase().includes(lowerSearchTerm) ||
         (reg.Student.other_college || reg.Student.College?.name || '').toLowerCase().includes(lowerSearchTerm) ||
-        (reg.Sports || []).some(s => s.name.toLowerCase().includes(lowerSearchTerm)) ||
+        (reg.Sports || []).some(s => s?.name?.toLowerCase().includes(lowerSearchTerm)) ||
         reg.registration_code.toLowerCase().includes(lowerSearchTerm);
 
-      const sportMatch = !filters.sport || (reg.Sports || []).some(s => String(s.id) === filters.sport);
+      const sportMatch = !filters.sport || (reg.Sports || []).some(s => s && String(s.id) === filters.sport);
       const collegeMatch = !filters.college || reg.Student.college_id === filters.college;
       const paymentStatusMatch = !filters.paymentStatus || reg.payment_status === filters.paymentStatus;
       const registrationStatusMatch = !filters.registrationStatus || reg.status === filters.registrationStatus;
@@ -177,7 +177,7 @@ export default function AllRegistrationsPage() {
                             <div className="text-xs text-muted-foreground font-mono">{reg.registration_code}</div>
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">{reg.Student.other_college || reg.Student.College?.name}</TableCell>
-                        <TableCell className="hidden md:table-cell">{(reg.Sports || []).map(s => s.name).join(', ')}</TableCell>
+                        <TableCell className="hidden md:table-cell">{(reg.Sports || []).map(s => s?.name).filter(Boolean).join(', ')}</TableCell>
                         <TableCell className="hidden lg:table-cell">{format(new Date(reg.created_at), 'PPP')}</TableCell>
                         <TableCell>
                             <Badge
