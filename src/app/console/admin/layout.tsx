@@ -92,7 +92,7 @@ export default function AdminLayout({
   return (
     <div className="relative flex min-h-screen flex-col bg-background">
       <AdminHeader />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 bg-muted/40">{children}</main>
     </div>
   );
 }
