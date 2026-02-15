@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDashboard } from '@/app/energy/2026/student/dashboard/layout';
-import { bulkAddTeamMembers, bulkDeleteTeamMembers, updateTeamName, deleteTeam, deleteTeamMember, getStudentTeamDetails, type StudentTeamMember, type FullTeamDetails, type TeamMemberRole } from '@/lib/api';
+import { bulkAddTeamMembers, bulkDeleteTeamMembers, updateTeamName, deleteTeam, deleteTeamMember, getStudentTeamDetails, type StudentTeamMember, type FullTeamDetails, type TeamMemberRole, type CricketSportRole, type BattingStyle, type BowlingStyle } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,24 +23,60 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 
 const roles: TeamMemberRole[] = ['Player', 'Vice-Captain', 'Captain'];
+const cricketRoles: CricketSportRole[] = ['Batsman', 'Bowler', 'All-rounder', 'Wicket Keeper'];
+const battingStyles: BattingStyle[] = ['Right Hand', 'Left Hand'];
+const bowlingStyles: BowlingStyle[] = ['Right Arm Fast', 'Right Arm Medium', 'Right Arm Spin', 'Left Arm Fast', 'Left Arm Medium', 'Left Arm Spin', 'N/A'];
+const sportsWithPositions = ['Football', 'Basketball', 'Volleyball', 'Kabaddi'];
 
-function BulkAddDialog({ teamId, onSuccess }: { teamId: string, onSuccess: () => void }) {
+
+function BulkAddDialog({ teamId, sportName, onSuccess }: { teamId: string, sportName: string, onSuccess: () => void }) {
     const { toast } = useToast();
     const [isOpen, setIsOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const [members, setMembers] = useState<{name: string, role: TeamMemberRole}[]>([]);
+    const [members, setMembers] = useState<any[]>([]);
+    
+    // Form state for a new member
     const [currentName, setCurrentName] = useState('');
     const [currentRole, setCurrentRole] = useState<TeamMemberRole>('Player');
+    const [currentPosition, setCurrentPosition] = useState('');
+    const [currentSportRole, setCurrentSportRole] = useState<CricketSportRole | ''>('');
+    const [currentBattingStyle, setCurrentBattingStyle] = useState<BattingStyle | ''>('');
+    const [currentBowlingStyle, setCurrentBowlingStyle] = useState<BowlingStyle | ''>('');
+    const [isWicketKeeper, setIsWicketKeeper] = useState(false);
+
+    const isCricket = sportName === 'Cricket';
+    const showPositionField = sportsWithPositions.includes(sportName);
+
+    const resetForm = () => {
+        setCurrentName('');
+        setCurrentRole('Player');
+        setCurrentPosition('');
+        setCurrentSportRole('');
+        setCurrentBattingStyle('');
+        setCurrentBowlingStyle('');
+        setIsWicketKeeper(false);
+    };
 
     const handleAddToList = () => {
         if (!currentName.trim()) {
             toast({ variant: 'destructive', title: 'Name is required' });
             return;
         }
-        setMembers(prev => [...prev, { name: currentName, role: currentRole }]);
-        setCurrentName('');
-        setCurrentRole('Player');
+        
+        const newMember: any = { name: currentName, role: currentRole };
+        if (showPositionField && currentPosition) {
+            newMember.additional_details = { position: currentPosition };
+        }
+        if (isCricket) {
+            if (currentSportRole) newMember.sport_role = currentSportRole;
+            if (currentBattingStyle) newMember.batting_style = currentBattingStyle;
+            if (currentBowlingStyle) newMember.bowling_style = currentBowlingStyle;
+            if (isWicketKeeper) newMember.is_wicket_keeper = isWicketKeeper;
+        }
+
+        setMembers(prev => [...prev, newMember]);
+        resetForm();
     };
 
     const handleRemoveFromList = (index: number) => {
@@ -56,7 +92,7 @@ function BulkAddDialog({ teamId, onSuccess }: { teamId: string, onSuccess: () =>
         try {
             await bulkAddTeamMembers(teamId, members);
             toast({ title: "Bulk Add Successful", description: `${members.length} members have been added.` });
-            setMembers([]); // Clear list on success
+            setMembers([]);
             onSuccess();
             setIsOpen(false);
         } catch (error: any) {
@@ -69,8 +105,7 @@ function BulkAddDialog({ teamId, onSuccess }: { teamId: string, onSuccess: () =>
     useEffect(() => {
         if (!isOpen) {
             setMembers([]);
-            setCurrentName('');
-            setCurrentRole('Player');
+            resetForm();
             setIsSubmitting(false);
         }
     }, [isOpen]);
@@ -80,43 +115,76 @@ function BulkAddDialog({ teamId, onSuccess }: { teamId: string, onSuccess: () =>
             <DialogTrigger asChild>
                 <Button variant="outline"><Upload className="mr-2 h-4 w-4" /> Bulk Add</Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="sm:max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>Bulk Add Members</DialogTitle>
                     <DialogDescription>Add multiple team members using the form below. They will all be added at once when you submit.</DialogDescription>
                 </DialogHeader>
                 
-                <div className="space-y-4 py-4">
-                    <div className="flex items-end gap-2">
-                        <div className="grid flex-1 gap-2">
+                <div className="grid md:grid-cols-2 gap-8 py-4">
+                    {/* Form Side */}
+                    <div className="space-y-4">
+                        <h4 className="font-semibold text-lg">Add New Member</h4>
+                        <div className="grid gap-2">
                             <Label htmlFor="new-member-name">Member Name</Label>
                             <Input id="new-member-name" value={currentName} onChange={e => setCurrentName(e.target.value)} placeholder="Enter name"/>
                         </div>
-                        <div className="grid w-[150px] gap-2">
+                        <div className="grid gap-2">
                             <Label htmlFor="new-member-role">Role</Label>
                             <Select value={currentRole} onValueChange={(value) => setCurrentRole(value as TeamMemberRole)}>
-                                <SelectTrigger id="new-member-role">
-                                    <SelectValue placeholder="Select role" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {roles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                                </SelectContent>
+                                <SelectTrigger id="new-member-role"><SelectValue placeholder="Select role" /></SelectTrigger>
+                                <SelectContent>{roles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
                             </Select>
                         </div>
-                        <Button type="button" onClick={handleAddToList}>Add</Button>
+                        
+                        {showPositionField && (
+                            <div className="grid gap-2">
+                                <Label htmlFor="new-member-position">Position</Label>
+                                <Input id="new-member-position" value={currentPosition} onChange={e => setCurrentPosition(e.target.value)} placeholder="e.g. Defender, Setter"/>
+                            </div>
+                        )}
+
+                        {isCricket && (
+                             <div className="space-y-4 pt-2 border-t">
+                                <h5 className="font-medium">Cricket Details</h5>
+                                 <div className="grid gap-2">
+                                    <Label>Playing Role</Label>
+                                    <Select value={currentSportRole} onValueChange={v => setCurrentSportRole(v as CricketSportRole)}><SelectTrigger><SelectValue placeholder="Select playing role" /></SelectTrigger><SelectContent>{cricketRoles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label>Batting Style</Label>
+                                        <Select value={currentBattingStyle} onValueChange={v => setCurrentBattingStyle(v as BattingStyle)}><SelectTrigger><SelectValue placeholder="Select style" /></SelectTrigger><SelectContent>{battingStyles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select>
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label>Bowling Style</Label>
+                                        <Select value={currentBowlingStyle} onValueChange={v => setCurrentBowlingStyle(v as BowlingStyle)}><SelectTrigger><SelectValue placeholder="Select style" /></SelectTrigger><SelectContent>{bowlingStyles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select>
+                                    </div>
+                                </div>
+                                <div className="flex items-center space-x-2"><Checkbox id="isWK" checked={isWicketKeeper} onCheckedChange={c => setIsWicketKeeper(!!c)} /><Label htmlFor="isWK">Is Wicket Keeper?</Label></div>
+                            </div>
+                        )}
+
+                        <Button type="button" onClick={handleAddToList} className="w-full">Add to List</Button>
                     </div>
 
+                    {/* List Side */}
                     <div className="space-y-2">
                         <Label>Members to Add ({members.length})</Label>
-                        <div className="border rounded-md max-h-60 overflow-y-auto p-2 space-y-2">
-                            {members.length === 0 && <p className="text-center text-sm text-muted-foreground py-4">No members added yet.</p>}
+                        <div className="border rounded-md max-h-[400px] overflow-y-auto p-2 space-y-2">
+                            {members.length === 0 && <p className="text-center text-sm text-muted-foreground py-8">No members added yet.</p>}
                             {members.map((member, index) => (
-                                <div key={index} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
+                                <div key={index} className="flex items-start justify-between p-2 bg-muted/50 rounded-md">
                                     <div>
-                                        <p className="font-medium">{member.name}</p>
-                                        <p className="text-xs text-muted-foreground">{member.role}</p>
+                                        <p className="font-medium">{member.name} <span className="text-xs text-muted-foreground">({member.role})</span></p>
+                                        {(member.additional_details?.position || member.sport_role) && (
+                                            <p className="text-xs text-primary font-semibold">
+                                                {member.additional_details?.position || member.sport_role}
+                                                {member.is_wicket_keeper && ", WK"}
+                                            </p>
+                                        )}
                                     </div>
-                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemoveFromList(index)}>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleRemoveFromList(index)}>
                                         <X className="h-4 w-4"/>
                                     </Button>
                                 </div>
@@ -322,7 +390,7 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
                                 </AlertDialog>
                             ) : (
                                 <>
-                                 <BulkAddDialog teamId={team.id} onSuccess={handleSuccess} />
+                                 <BulkAddDialog teamId={team.id} sportName={team.Sport.name} onSuccess={handleSuccess} />
                                 <Button onClick={() => handleOpenForm(null)} disabled={memberCount >= maxPlayers}>
                                     <UserPlus className="mr-2 h-4 w-4" />
                                     Add Member
