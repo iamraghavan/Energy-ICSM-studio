@@ -31,13 +31,13 @@ const bulkAddSchema = z.object({
         const parsed = JSON.parse(val);
         return Array.isArray(parsed) && parsed.every(item => 
             typeof item.name === 'string' &&
-            typeof item.email === 'string' &&
-            typeof item.mobile === 'string'
+            (typeof item.email === 'string' || typeof item.email === 'undefined' || item.email === null) &&
+            (typeof item.mobile === 'string' || typeof item.mobile === 'undefined' || item.mobile === null)
         );
     } catch {
         return false;
     }
-  }, { message: 'Invalid JSON format. Must be an array of member objects with name, email, and mobile.' }),
+  }, { message: 'Invalid JSON format. Must be an array of member objects with at least a name.' }),
 });
 
 function BulkAddDialog({ teamId, onSuccess }: { teamId: string, onSuccess: () => void }) {
@@ -300,14 +300,13 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
                                         />
                                     </TableHead>
                                     <TableHead>Name</TableHead>
-                                    <TableHead className="hidden sm:table-cell">Email</TableHead>
                                     <TableHead>Role</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {team.Members.length === 0 ? (
-                                    <TableRow><TableCell colSpan={5} className="text-center h-24">No members added yet.</TableCell></TableRow>
+                                    <TableRow><TableCell colSpan={4} className="text-center h-24">No members added yet.</TableCell></TableRow>
                                 ) : team.Members.map(member => (
                                     <TableRow key={member.id} data-state={selectedMemberIds.includes(member.id) && "selected"}>
                                         <TableCell>
@@ -318,7 +317,6 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
                                             />
                                         </TableCell>
                                         <TableCell className="font-medium">{member.name}</TableCell>
-                                        <TableCell className="hidden sm:table-cell">{member.email}</TableCell>
                                         <TableCell><Badge variant={member.role === 'Captain' ? 'default' : 'secondary'}>{member.role}</Badge></TableCell>
                                         <TableCell className="text-right">
                                             <Button variant="ghost" size="icon" onClick={() => handleOpenForm(member)}><Edit className="h-4 w-4" /></Button>
