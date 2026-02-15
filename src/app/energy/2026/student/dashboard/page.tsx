@@ -5,7 +5,7 @@ import React, { useMemo, useState } from 'react';
 import { useDashboard } from './layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Download } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,9 @@ import type { StudentDashboardOverview } from '@/lib/api';
 
 function RegistrationDetailsCard({ registration }: { registration: StudentDashboardOverview['registration'] }) {
     if (!registration) return null;
+
+    const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
+    const ticketUrl = `${API_BASE_URL}/register/${registration.id}/ticket`;
 
     return (
         <Card>
@@ -57,6 +60,14 @@ function RegistrationDetailsCard({ registration }: { registration: StudentDashbo
                     </TableBody>
                 </Table>
             </CardContent>
+             <CardFooter>
+                 <Button asChild className="w-full">
+                    <a href={ticketUrl} target="_blank" rel="noopener noreferrer">
+                        <Download className="mr-2 h-4 w-4" />
+                        Download Ticket
+                    </a>
+                </Button>
+            </CardFooter>
         </Card>
     );
 }
