@@ -14,13 +14,13 @@ import { getUserSession, type UserSession } from '@/lib/auth';
 const getDashboardPathForRole = (role: UserSession['role']): string => {
     switch (role) {
         case 'super_admin':
-            return '/admin/dashboard';
+            return '/console/admin/dashboard';
         case 'sports_head':
-            return '/sports-head/dashboard';
+            return '/console/sports-head/dashboard';
         case 'scorer':
-            return '/scorer/dashboard';
+            return '/console/scorer/dashboard';
         case 'committee':
-            return '/committee/dashboard';
+            return '/console/committee/dashboard';
         default:
             return '/auth/session'; // Fallback
     }
