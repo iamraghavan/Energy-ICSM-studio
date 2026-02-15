@@ -53,7 +53,7 @@ export default function RegistrationDetailsPage({ params }: { params: { registra
         );
     }
     
-    const { Student, Sport, Team, Payment, registration_code, payment_status, accommodation_needed, is_captain, status, created_at } = registration;
+    const { Student, Sports, Team, Payment, registration_code, payment_status, accommodation_needed, is_captain, status, created_at } = registration;
 
     return (
         <div className="container py-8 space-y-6">
@@ -115,8 +115,13 @@ export default function RegistrationDetailsPage({ params }: { params: { registra
                 <Card className="lg:col-span-1">
                     <CardHeader><CardTitle>Event & Payment</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
-                         <InfoDetail icon={Dribbble} label="Sport" value={Sport?.name || 'N/A'} />
-                         {Sport?.type && <InfoDetail icon={UsersIcon} label="Event Type" value={Sport.type} />}
+                        <InfoDetail icon={Dribbble} label="Registered Sports">
+                            <div className="flex flex-wrap gap-2 pt-1">
+                                {Sports?.map(sport => (
+                                    <Badge key={sport.id} variant="secondary">{sport.name} ({sport.category})</Badge>
+                                ))}
+                            </div>
+                        </InfoDetail>
                          {Team && <InfoDetail icon={UsersIcon} label="Team Name" value={Team.team_name} />}
                          <InfoDetail icon={Hash} label="Transaction ID" value={Payment?.txn_id || 'N/A'} isMono />
                          <InfoDetail label="Amount Paid" value={`₹${Payment?.amount || '0.00'}`} />
@@ -138,14 +143,15 @@ export default function RegistrationDetailsPage({ params }: { params: { registra
     );
 }
 
-function InfoDetail({ icon: Icon, label, value, isMono = false }: { icon?: React.ElementType, label: string, value: string | null, isMono?: boolean }) {
-    if (!value) return null;
+function InfoDetail({ icon: Icon, label, value, isMono = false, children }: { icon?: React.ElementType, label: string, value?: string | null, isMono?: boolean, children?: React.ReactNode }) {
+    if (!value && !children) return null;
     return (
         <div className="flex items-start gap-3">
             {Icon && <Icon className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />}
             <div className="flex-1">
                 <p className="text-sm text-muted-foreground">{label}</p>
-                <p className={cn("font-medium break-words", isMono && "font-mono")}>{value}</p>
+                {value && <p className={cn("font-medium break-words", isMono && "font-mono")}>{value}</p>}
+                {children}
             </div>
         </div>
     )

@@ -84,13 +84,14 @@ export default function AllRegistrationsPage() {
 
   const filteredRegistrations = useMemo(() => {
     return registrations.filter(reg => {
-      const searchMatch = searchTerm.toLowerCase() === '' ||
-        reg.Student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (reg.Student.other_college || reg.Student.College?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (reg.Sport?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        reg.registration_code.toLowerCase().includes(searchTerm.toLowerCase());
+      const lowerSearchTerm = searchTerm.toLowerCase();
+      const searchMatch = lowerSearchTerm === '' ||
+        reg.Student.name.toLowerCase().includes(lowerSearchTerm) ||
+        (reg.Student.other_college || reg.Student.College?.name || '').toLowerCase().includes(lowerSearchTerm) ||
+        reg.Sports.some(s => s.name.toLowerCase().includes(lowerSearchTerm)) ||
+        reg.registration_code.toLowerCase().includes(lowerSearchTerm);
 
-      const sportMatch = !filters.sport || String(reg.sport_id) === filters.sport;
+      const sportMatch = !filters.sport || reg.Sports.some(s => String(s.id) === filters.sport);
       const collegeMatch = !filters.college || reg.Student.college_id === filters.college;
       const paymentStatusMatch = !filters.paymentStatus || reg.payment_status === filters.paymentStatus;
       const registrationStatusMatch = !filters.registrationStatus || reg.status === filters.registrationStatus;
@@ -175,7 +176,7 @@ export default function AllRegistrationsPage() {
                             <div className="text-xs text-muted-foreground font-mono">{reg.registration_code}</div>
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">{reg.Student.other_college || reg.Student.College?.name}</TableCell>
-                        <TableCell className="hidden md:table-cell">{reg.Sport?.name}</TableCell>
+                        <TableCell className="hidden md:table-cell">{reg.Sports.map(s => s.name).join(', ')}</TableCell>
                         <TableCell className="hidden lg:table-cell">{format(new Date(reg.created_at), 'PPP')}</TableCell>
                         <TableCell>
                             <Badge
