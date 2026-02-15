@@ -1,9 +1,9 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useDashboard } from '@/app/energy/2026/student/dashboard/layout';
-import { bulkAddTeamMembers, bulkDeleteTeamMembers, updateTeamName, deleteTeam, deleteTeamMember, type StudentTeamMember, type FullTeamDetails } from '@/lib/api';
+import { bulkAddTeamMembers, bulkDeleteTeamMembers, updateTeamName, deleteTeam, deleteTeamMember, getStudentTeamDetails, type StudentTeamMember, type FullTeamDetails } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -94,7 +94,11 @@ function BulkAddDialog({ teamId, onSuccess }: { teamId: string, onSuccess: () =>
 }
 
 export function ManageTeamClientPage({ teamId }: { teamId: string }) {
-    const { dashboardData, isLoading: isDashboardLoading, refetch } = useDashboard();
+    const { refetch: refetchDashboard } = useDashboard();
+    const [team, setTeam] = useState<FullTeamDetails | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
     const [isEditingName, setIsEditingName] = useState(false);
     const [newTeamName, setNewTeamName] = useState('');
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -104,16 +108,29 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
     const { toast } = useToast();
     const router = useRouter();
 
-    const team = useMemo(() => {
-        if (!dashboardData) return null;
-        return dashboardData.teams.find(t => t.id === teamId) || null;
-    }, [dashboardData, teamId]);
+    const fetchTeamDetails = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const teamData = await getStudentTeamDetails(teamId);
+            setTeam(teamData);
+            setNewTeamName(teamData.team_name);
+        } catch (err) {
+            setError('Failed to fetch team details.');
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch team details.' });
+        } finally {
+            setIsLoading(false);
+        }
+    }, [teamId, toast]);
 
     useEffect(() => {
-        if (team) {
-            setNewTeamName(team.team_name);
-        }
-    }, [team]);
+        fetchTeamDetails();
+    }, [fetchTeamDetails]);
+
+    const handleSuccess = () => {
+        fetchTeamDetails();
+        refetchDashboard();
+    };
 
     const handleUpdateTeamName = async () => {
         if (!team || newTeamName === team.team_name) {
@@ -123,7 +140,7 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
         try {
             await updateTeamName(team.id, newTeamName);
             toast({ title: 'Success', description: 'Team name updated.' });
-            refetch(); // Refetch all dashboard data
+            handleSuccess();
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to update team name.' });
         } finally {
@@ -136,6 +153,7 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
         try {
             await deleteTeam(team.id);
             toast({ title: 'Success', description: 'Team deleted successfully.' });
+            refetchDashboard();
             router.push('/energy/2026/student/dashboard');
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete team.' });
@@ -146,7 +164,7 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
         try {
             await deleteTeamMember(memberId);
             toast({ title: 'Success', description: 'Team member removed.' });
-            refetch();
+            handleSuccess();
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to remove member.' });
         }
@@ -158,7 +176,7 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
             await bulkDeleteTeamMembers(selectedMemberIds);
             toast({ title: "Bulk Delete Successful", description: `${selectedMemberIds.length} members removed.` });
             setSelectedMemberIds([]);
-            refetch();
+            handleSuccess();
         } catch (error) {
             toast({ variant: 'destructive', title: 'Bulk Delete Failed', description: 'Could not remove members.' });
         }
@@ -173,19 +191,19 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
         setSelectedMemberIds(prev => isSelected ? [...prev, memberId] : prev.filter(id => id !== memberId));
     };
 
-    if (isDashboardLoading) {
+    if (isLoading) {
         return (
-            <div className="container py-8 space-y-6">
+            <div className="space-y-6">
                 <Skeleton className="h-10 w-48" />
                 <Card><CardHeader><Skeleton className="h-8 w-1/2" /></CardHeader><CardContent><Skeleton className="h-40 w-full" /></CardContent></Card>
             </div>
         );
     }
     
-    if (!team) {
+    if (error || !team) {
         return (
              <div className="container py-8 text-center">
-                <p>Team not found or data is still loading...</p>
+                <p>{error || 'Team not found.'}</p>
                 <Button variant="outline" onClick={() => router.push('/energy/2026/student/dashboard')} className="mt-4">
                     <ArrowLeft className="mr-2 h-4 w-4"/> Back to Dashboard
                 </Button>
@@ -249,7 +267,7 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
                                 </AlertDialog>
                             ) : (
                                 <>
-                                 <BulkAddDialog teamId={team.id} onSuccess={refetch} />
+                                 <BulkAddDialog teamId={team.id} onSuccess={handleSuccess} />
                                 <Button onClick={() => handleOpenForm(null)} disabled={memberCount >= maxPlayers}>
                                     <UserPlus className="mr-2 h-4 w-4" />
                                     Add Member
@@ -342,7 +360,7 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
                 teamId={team.id}
                 sportName={team.Sport.name}
                 existingMember={selectedMember}
-                onSuccess={refetch}
+                onSuccess={handleSuccess}
             />
         </div>
     );
