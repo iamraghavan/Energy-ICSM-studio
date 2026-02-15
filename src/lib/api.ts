@@ -245,9 +245,9 @@ const clearStudentSession = () => {
     localStorage.removeItem('student_session');
 };
 
-export const loginUser = async (credentials: {identifier: string, password: string}) => {
+export const loginUser = async (credentials: {username: string, password: string}) => {
     const response = await api.post('/auth/login', {
-      identifier: credentials.identifier,
+      username: credentials.username,
       password: credentials.password,
     });
     return response.data;
@@ -293,10 +293,10 @@ export const getRegistration = async (id: string): Promise<Registration> => {
     return response.data;
 };
 
-export const verifyPayment = async (registrationId: string, status: 'approved' | 'rejected', remarks: string) => {
+export const verifyPayment = async (registration_code: string, status: 'approved' | 'rejected', remarks: string) => {
     const finalRemarks = remarks || `Payment ${status} via admin dashboard at ${new Date().toLocaleString()}.`;
     const response = await api.post('/admin/verify-payment', {
-        registrationId,
+        registrationId: registration_code,
         status,
         remarks: finalRemarks,
     });
@@ -517,5 +517,6 @@ export type ApiMatch = {
     TeamA: ApiTeam;
     TeamB: ApiTeam;
 };
+
 
 

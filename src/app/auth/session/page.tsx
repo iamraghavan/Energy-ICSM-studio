@@ -29,7 +29,7 @@ const getDashboardPathForRole = (role: UserSession['role']): string => {
 export default function AuthSessionPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
@@ -47,7 +47,7 @@ export default function AuthSessionPage() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const response = await loginUser({ identifier: email, password });
+      const response = await loginUser({ username, password });
       const token = response.token;
       const role = response.role;
 
@@ -94,14 +94,14 @@ export default function AuthSessionPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email or Username</Label>
+              <Label htmlFor="username">Username</Label>
               <Input
-                id="email"
+                id="username"
                 type="text"
-                placeholder="admin@example.com"
+                placeholder="Enter your username"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
               />
             </div>
             <div className="space-y-2">
