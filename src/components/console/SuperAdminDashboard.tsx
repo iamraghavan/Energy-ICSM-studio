@@ -7,12 +7,11 @@ import {
     CardTitle,
     CardDescription,
   } from "@/components/ui/card"
-import { Users, BarChart2, TrendingUp, Percent } from "lucide-react"
-import { Bar, BarChart, XAxis, YAxis } from "recharts"
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
+import { Users, TrendingUp, Percent } from "lucide-react"
 import { getAdminAnalytics } from "@/lib/api";
 import { Skeleton } from "../ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { Chart } from "react-google-charts";
 
 
 export function SuperAdminDashboard() {
@@ -31,13 +30,6 @@ export function SuperAdminDashboard() {
         })
     }, [toast]);
 
-    const chartConfig = {
-        count: {
-          label: "Registrations",
-          color: "hsl(var(--primary))",
-        },
-      } satisfies ChartConfig;
-
     if (isLoading) {
         return (
             <div className="container py-8 space-y-8">
@@ -51,10 +43,11 @@ export function SuperAdminDashboard() {
         )
     }
 
-    const sportWiseData = analytics?.sports.map((s: any) => ({ 
-        name: s.Sport.name.length > 15 ? s.Sport.name.substring(0,15) + '...' : s.Sport.name, 
-        count: s.count 
-    })) || [];
+    const sportWiseData = analytics?.sports.map((s: any) => ([s.Sport.name, s.count, 'color: hsl(var(--primary))'])) || [];
+    const chartData = [
+        ['Sport', 'Registrations', { role: 'style' }],
+        ...sportWiseData
+    ];
     
     return (
         <div className="container py-8 space-y-8">
@@ -94,14 +87,35 @@ export function SuperAdminDashboard() {
                         <CardDescription>A breakdown of registrations by sport.</CardDescription>
                     </CardHeader>
                     <CardContent className="pl-2">
-                        <ChartContainer config={chartConfig} className="h-[350px] w-full">
-                            <BarChart accessibilityLayer data={sportWiseData} margin={{ top: 20, right: 20, bottom: 60, left: 20 }}>
-                                <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} angle={-45} textAnchor="end" interval={0} />
-                                <YAxis tickLine={false} axisLine={false} tickMargin={8}/>
-                                <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                                <Bar dataKey="count" fill="var(--color-count)" radius={4} />
-                            </BarChart>
-                        </ChartContainer>
+                        {chartData.length > 1 ? (
+                            <Chart
+                                chartType="ColumnChart"
+                                width="100%"
+                                height="400px"
+                                data={chartData}
+                                options={{
+                                    chartArea: { width: '85%' },
+                                    hAxis: {
+                                        slantedText: true,
+                                        slantedTextAngle: 45,
+                                        textStyle: { color: 'hsl(var(--muted-foreground))' },
+                                        titleTextStyle: { color: 'hsl(var(--muted-foreground))' }
+                                    },
+                                    vAxis: {
+                                        title: 'Total Registrations',
+                                        minValue: 0,
+                                        textStyle: { color: 'hsl(var(--muted-foreground))' },
+                                        titleTextStyle: { color: 'hsl(var(--muted-foreground))' }
+                                    },
+                                    legend: { position: 'none' },
+                                    backgroundColor: 'transparent',
+                                }}
+                            />
+                        ) : (
+                            <div className="flex items-center justify-center h-96">
+                                <p className="text-muted-foreground">No registration data available to display.</p>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>

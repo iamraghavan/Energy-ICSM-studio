@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getMatchesBySport, createMatch, getTeamsBySport, type ApiMatch, type ApiTeam } from "@/lib/api";
+import { getMatchesBySport, createMatch, getTeamsBySport, type ApiMatch, type ApiTeam, startMatch } from "@/lib/api";
 import { MatchCard } from "./MatchCard";
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -80,6 +80,16 @@ export function MatchScheduler({ sportId }: { sportId?: string }) {
         setIsModalOpen(false);
         fetchUpcoming();
     }
+    
+    const handleStartMatch = async (matchId: string) => {
+        try {
+            await startMatch(matchId);
+            toast({ title: 'Match Started!', description: 'The match is now live.' });
+            fetchUpcoming();
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to start the match.' });
+        }
+    };
 
     const renderContent = () => {
         if (!sportId) {
@@ -95,7 +105,9 @@ export function MatchScheduler({ sportId }: { sportId?: string }) {
         }
         if (upcomingMatches.length > 0) {
             return upcomingMatches.map(match => (
-               <MatchCard key={match.id} match={match} />
+               <MatchCard key={match.id} match={match}>
+                   <Button onClick={() => handleStartMatch(match.id)}>Start Match</Button>
+               </MatchCard>
             ))
         }
         return <p className="text-muted-foreground text-center py-8">No upcoming matches scheduled for this sport.</p>

@@ -253,9 +253,9 @@ const clearStudentSession = () => {
     localStorage.removeItem('student_session');
 };
 
-export const loginUser = async (credentials: {username: string, password: string}) => {
+export const loginUser = async (credentials: {identifier: string, password: string}) => {
     const response = await api.post('/auth/login', {
-      username: credentials.username,
+      identifier: credentials.identifier,
       password: credentials.password,
     });
     return response.data;
@@ -347,6 +347,11 @@ export const createMatch = async (matchData: any) => {
     return response.data;
 }
 
+export const startMatch = async (matchId: string) => {
+    const response = await api.post(`/scorer/matches/${matchId}/start`, { status: 'live' });
+    return response.data;
+};
+
 export const updateScore = async (matchId: string, scoreDetails: any, status: 'live' | 'completed') => {
     const response = await api.patch(`/scorer/matches/${matchId}/score`, { score_details: scoreDetails, status });
     return response.data;
@@ -356,6 +361,14 @@ export const postMatchEvent = async (matchId: string, eventData: any) => {
     const response = await api.post(`/scorer/matches/${matchId}/event`, eventData);
     return response.data;
 }
+
+export const endMatch = async (matchId: string, winnerId: string | null) => {
+    const response = await api.post(`/scorer/matches/${matchId}/end`, {
+        status: 'completed',
+        winner_id: winnerId
+    });
+    return response.data;
+};
 
 export const getLineup = async (matchId: string) => {
     const response = await api.get(`/matches/${matchId}/lineup`);

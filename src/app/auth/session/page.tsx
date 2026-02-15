@@ -47,7 +47,7 @@ export default function AuthSessionPage() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const response = await loginUser({ username: email, password });
+      const response = await loginUser({ identifier: email, password });
       const token = response.token;
       const role = response.role;
 
@@ -94,10 +94,10 @@ export default function AuthSessionPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email or Username</Label>
               <Input
                 id="email"
-                type="email"
+                type="text"
                 placeholder="admin@example.com"
                 required
                 value={email}
