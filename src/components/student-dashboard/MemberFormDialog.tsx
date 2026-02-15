@@ -108,11 +108,13 @@ export function MemberFormDialog({ isOpen, onClose, teamId, sportName, existingM
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
                         <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="Member's full name" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <div className="grid grid-cols-2 gap-4">
-                             <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="member@email.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                             <FormField control={form.control} name="mobile" render={({ field }) => (<FormItem><FormLabel>Mobile</FormLabel><FormControl><Input type="tel" placeholder="10-digit number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        </div>
+                        
                         <FormField control={form.control} name="role" render={({ field }) => (<FormItem><FormLabel>Team Role</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger></FormControl><SelectContent>{roles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                             <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email (Optional)</FormLabel><FormControl><Input type="email" placeholder="member@email.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                             <FormField control={form.control} name="mobile" render={({ field }) => (<FormItem><FormLabel>Mobile (Optional)</FormLabel><FormControl><Input type="tel" placeholder="10-digit number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        </div>
                         
                         {isCricket && (
                              <>
