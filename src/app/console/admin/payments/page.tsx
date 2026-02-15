@@ -202,17 +202,17 @@ export default function AllPaymentsPage() {
        return (
              <div className="flex flex-col md:flex-row gap-2">
                  <div className="grid grid-cols-2 sm:flex gap-2">
-                     <Select value={filters.sport_id} onValueChange={(v) => handleFilterChange('sport_id', v)}>
+                     <Select value={filters.sport_id} onValueChange={(v) => handleFilterChange('sport_id', v === 'all' ? '' : v)}>
                         <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="All Sports" /></SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="">All Sports</SelectItem>
+                            <SelectItem value="all">All Sports</SelectItem>
                             {sports.map(s => s && <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
-                     <Select value={filters.status} onValueChange={(v) => handleFilterChange('status', v)}>
+                     <Select value={filters.status} onValueChange={(v) => handleFilterChange('status', v === 'all' ? '' : v)}>
                         <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="All Statuses" /></SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="">All Statuses</SelectItem>
+                            <SelectItem value="all">All Statuses</SelectItem>
                             <SelectItem value="pending">Pending</SelectItem>
                             <SelectItem value="approved">Approved</SelectItem>
                             <SelectItem value="verified">Verified</SelectItem>
