@@ -1,7 +1,7 @@
 
+
 'use client';
 import { useEffect, useState, useMemo } from 'react';
-import Link from 'next/link';
 import { getRegistrations, verifyPayment, type Registration, getSports, getColleges, type ApiSport, type College } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -14,8 +14,9 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MoreHorizontal, Search, X, Eye } from 'lucide-react';
+import { MoreHorizontal, Search, X, Eye, Home } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import Link from 'next/link';
 
 
 export default function AllRegistrationsPage() {
@@ -24,6 +25,7 @@ export default function AllRegistrationsPage() {
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [sports, setSports] = useState<ApiSport[]>([]);
   const [colleges, setColleges] = useState<College[]>([]);
+  const [lastRefreshed, setLastRefreshed] = useState('');
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +42,10 @@ export default function AllRegistrationsPage() {
     paymentStatus: '',
     registrationStatus: ''
   });
+  
+  useEffect(() => {
+    setLastRefreshed(new Date().toLocaleString());
+  }, []);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -129,7 +135,7 @@ export default function AllRegistrationsPage() {
   };
 
   const handleViewDetailsClick = (registrationCode: string) => {
-    router.push(`/console/admin/registrations/${encodeURIComponent(registrationCode)}`);
+    router.push(`/console/admin/registrations/details?id=${encodeURIComponent(registrationCode)}`);
   };
 
   const renderTable = () => {
@@ -291,9 +297,12 @@ export default function AllRegistrationsPage() {
     <>
     <div className="container py-8 space-y-6">
         <div className="space-y-2">
-            <div className="text-sm text-muted-foreground flex items-center gap-2">
-                <Link href="/console/admin/dashboard" className="hover:text-primary">Dashboard</Link>
-                <span className="text-muted-foreground">/</span>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Link href="/console/admin/dashboard" className="flex items-center gap-2 hover:text-primary">
+                    <Home className="h-4 w-4" />
+                    Dashboard
+                </Link>
+                <span>/</span>
                 <span>Registrations</span>
             </div>
             <h1 className="text-3xl font-bold">All Registrations</h1>

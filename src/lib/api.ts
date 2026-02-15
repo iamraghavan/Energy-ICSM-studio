@@ -305,7 +305,7 @@ export const getRegistrations = async (): Promise<Registration[]> => {
 };
 
 export const getRegistration = async (id: string): Promise<Registration> => {
-    const response = await api.get(`/register/details/${encodeURIComponent(id)}`);
+    const response = await api.get(`/register/details`, { params: { id } });
     return response.data;
 };
 

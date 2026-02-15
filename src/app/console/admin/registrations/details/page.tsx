@@ -1,8 +1,9 @@
 
 'use client';
 
+import { Suspense } from 'react';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { getRegistration, type Registration } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,16 +14,21 @@ import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
-export default function RegistrationDetailsPage({ params }: { params: { registrationId: string } }) {
+function RegistrationDetailsContent() {
     const router = useRouter();
-    const { registrationId } = params;
+    const searchParams = useSearchParams();
+    const registrationId = searchParams.get('id');
     
     const [registration, setRegistration] = useState<Registration | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!registrationId) return;
+        if (!registrationId) {
+            setError("No registration ID provided.");
+            setIsLoading(false);
+            return;
+        }
 
         const fetchRegistration = async () => {
             setIsLoading(true);
@@ -95,20 +101,20 @@ export default function RegistrationDetailsPage({ params }: { params: { registra
                 <Card className="lg:col-span-1">
                     <CardHeader><CardTitle>Student Information</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
-                        <InfoDetail icon={User} label="Name" value={Student.name} />
+                        <InfoDetail icon={User} label="Name" value={Student?.name} />
                         {is_captain && <InfoDetail icon={UserCheck} label="Role" value="Team Captain" />}
-                        <InfoDetail icon={Mail} label="Email" value={Student.email} />
-                        <InfoDetail icon={Phone} label="Mobile" value={Student.mobile} />
-                        <InfoDetail icon={Phone} label="WhatsApp" value={Student.whatsapp} />
+                        <InfoDetail icon={Mail} label="Email" value={Student?.email} />
+                        <InfoDetail icon={Phone} label="Mobile" value={Student?.mobile} />
+                        <InfoDetail icon={Phone} label="WhatsApp" value={Student?.whatsapp} />
                     </CardContent>
                 </Card>
 
                 <Card className="lg:col-span-1">
                     <CardHeader><CardTitle>Academic Details</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
-                        <InfoDetail icon={Building} label="College" value={Student.other_college || Student.College?.name || 'N/A'} />
-                        <InfoDetail icon={Building} label="City" value={Student.city} />
-                        <InfoDetail icon={Building} label="State" value={Student.state} />
+                        <InfoDetail icon={Building} label="College" value={Student?.other_college || Student?.College?.name || 'N/A'} />
+                        <InfoDetail icon={Building} label="City" value={Student?.city} />
+                        <InfoDetail icon={Building} label="State" value={Student?.state} />
                     </CardContent>
                 </Card>
 
@@ -117,7 +123,7 @@ export default function RegistrationDetailsPage({ params }: { params: { registra
                     <CardContent className="space-y-4">
                         <InfoDetail icon={Dribbble} label="Registered Sports">
                             <div className="flex flex-wrap gap-2 pt-1">
-                                {Sports?.map(sport => (
+                                {Sports?.map(sport => sport && (
                                     <Badge key={sport.id} variant="secondary">{sport.name} ({sport.category})</Badge>
                                 ))}
                             </div>
@@ -142,6 +148,7 @@ export default function RegistrationDetailsPage({ params }: { params: { registra
         </div>
     );
 }
+
 
 function InfoDetail({ icon: Icon, label, value, isMono = false, children }: { icon?: React.ElementType, label: string, value?: string | null, isMono?: boolean, children?: React.ReactNode }) {
     if (!value && !children) return null;
@@ -174,4 +181,12 @@ function RegistrationDetailsSkeleton() {
             </div>
         </div>
     );
+}
+
+export default function AdminRegistrationDetailsPage() {
+    return (
+        <Suspense fallback={<RegistrationDetailsSkeleton />}>
+            <RegistrationDetailsContent />
+        </Suspense>
+    )
 }
