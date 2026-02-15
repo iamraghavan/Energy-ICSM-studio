@@ -59,7 +59,7 @@ function RegistrationDetailsContent() {
         );
     }
     
-    const { Student, Sports, Team, Payment, registration_code, payment_status, accommodation_needed, is_captain, status, created_at } = registration;
+    const { Sports, Team, Payment, registration_code, payment_status, accommodation_needed, is_captain, status, created_at, name, email, mobile, whatsapp, college_name, city, state } = registration;
 
     return (
         <div className="container py-8 space-y-6">
@@ -101,20 +101,20 @@ function RegistrationDetailsContent() {
                 <Card className="lg:col-span-1">
                     <CardHeader><CardTitle>Student Information</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
-                        <InfoDetail icon={User} label="Name" value={Student?.name} />
+                        <InfoDetail icon={User} label="Name" value={name} />
                         {is_captain && <InfoDetail icon={UserCheck} label="Role" value="Team Captain" />}
-                        <InfoDetail icon={Mail} label="Email" value={Student?.email} />
-                        <InfoDetail icon={Phone} label="Mobile" value={Student?.mobile} />
-                        <InfoDetail icon={Phone} label="WhatsApp" value={Student?.whatsapp} />
+                        <InfoDetail icon={Mail} label="Email" value={email} />
+                        <InfoDetail icon={Phone} label="Mobile" value={mobile} />
+                        <InfoDetail icon={Phone} label="WhatsApp" value={whatsapp} />
                     </CardContent>
                 </Card>
 
                 <Card className="lg:col-span-1">
                     <CardHeader><CardTitle>Academic Details</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
-                        <InfoDetail icon={Building} label="College" value={Student?.other_college || Student?.College?.name || 'N/A'} />
-                        <InfoDetail icon={Building} label="City" value={Student?.city} />
-                        <InfoDetail icon={Building} label="State" value={Student?.state} />
+                        <InfoDetail icon={Building} label="College" value={college_name || 'N/A'} />
+                        <InfoDetail icon={Building} label="City" value={city} />
+                        <InfoDetail icon={Building} label="State" value={state} />
                     </CardContent>
                 </Card>
 

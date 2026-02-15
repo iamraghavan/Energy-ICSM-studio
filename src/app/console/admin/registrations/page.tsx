@@ -1,6 +1,7 @@
 
 
 
+
 'use client';
 import { useEffect, useState, useMemo } from 'react';
 import { getRegistrations, verifyPayment, type Registration, getSports, getColleges, type ApiSport, type College } from '@/lib/api';
@@ -94,7 +95,7 @@ export default function AllRegistrationsPage() {
       const searchMatch = lowerSearchTerm === '' ||
         (reg.name || '').toLowerCase().includes(lowerSearchTerm) ||
         (reg.college_name || '').toLowerCase().includes(lowerSearchTerm) ||
-        (reg.Sports || []).some(s => s?.name?.toLowerCase().includes(lowerSearchTerm)) ||
+        (reg.Sports || []).filter(s => s?.name).some(s => s?.name?.toLowerCase().includes(lowerSearchTerm)) ||
         reg.registration_code?.toLowerCase().includes(lowerSearchTerm);
 
       const sportMatch = !filters.sport || (reg.Sports || []).some(s => s && String(s.id) === filters.sport);

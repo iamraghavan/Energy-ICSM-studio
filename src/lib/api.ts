@@ -78,7 +78,7 @@ export type Registration = {
     state: string;
     college_id: string | null;
     other_college: string | null;
-    Sports: ApiSport[];
+    Sports?: ApiSport[];
     Team: {
         id: string;
         sport_id: number;
@@ -95,23 +95,6 @@ export type Registration = {
         verified_by: string | null;
         verified_at: string | null;
     } | null;
-    Student: {
-        id: string;
-        name: string;
-        email: string;
-        mobile: string;
-        whatsapp: string;
-        city: string;
-        state: string;
-        college_id: string | null;
-        other_college: string | null;
-        College: {
-            id: number;
-            name: string;
-            city: string;
-            state: string;
-        } | null;
-    };
 };
 
 
@@ -306,7 +289,7 @@ export const getRegistrations = async (): Promise<Registration[]> => {
 };
 
 export const getRegistration = async (id: string): Promise<Registration> => {
-    const response = await api.get(`/register/details?id=${encodeURIComponent(id)}`);
+    const response = await api.get(`/register/details`, { params: { id } });
     return response.data;
 };
 
