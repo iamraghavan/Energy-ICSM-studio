@@ -293,9 +293,9 @@ export const getRegistration = async (id: string): Promise<Registration> => {
     return response.data;
 };
 
-export const verifyPayment = async (registrationCode: string, status: 'approved' | 'rejected', remarks: string) => {
+export const verifyPayment = async (registrationId: string, status: 'approved' | 'rejected', remarks: string) => {
     const response = await api.post('/admin/verify-payment', {
-        registration_code: registrationCode,
+        registrationId: registrationId,
         status: status,
         remarks: remarks,
     });
