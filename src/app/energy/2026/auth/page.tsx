@@ -1,7 +1,7 @@
 
 'use client';
 import { useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/shared/logo';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Mail, KeyRound } from 'lucide-react';
 import { requestStudentOtp, verifyStudentOtp } from '@/lib/api';
 
 const requestOtpSchema = z.object({
@@ -105,36 +105,42 @@ function StudentAuthForm() {
 
   return (
     <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
-      <Card className="w-full max-w-sm">
+      <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center">
-            <div className="mx-auto">
+            <div className="mx-auto mb-4">
                 <Logo />
             </div>
-            <CardTitle className="font-headline text-2xl mt-4">Student Login</CardTitle>
+            <CardTitle className="font-headline text-3xl mt-4">Student Portal</CardTitle>
         </CardHeader>
         <CardContent>
             {step === 'request' && (
                 <>
-                <CardDescription className="text-center mb-4">Enter the email or WhatsApp number you used during registration.</CardDescription>
+                <CardDescription className="text-center mb-6">
+                    Enter the email or WhatsApp number you used during registration to receive a login code.
+                </CardDescription>
                 <Form {...requestForm}>
-                    <form onSubmit={requestForm.handleSubmit(handleRequestOtp)} className="space-y-4">
+                    <form onSubmit={requestForm.handleSubmit(handleRequestOtp)} className="space-y-6">
                     <FormField
                         control={requestForm.control}
                         name="identifier"
                         render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Email or WhatsApp Number</FormLabel>
+                            <FormLabel className="sr-only">Email or WhatsApp Number</FormLabel>
                             <FormControl>
-                            <Input
-                                placeholder="you@example.com or 9876543210"
-                                {...field}
-                            />
+                               <div className="relative">
+                                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                    <Input
+                                        placeholder="you@example.com or 9876543210"
+                                        className="pl-10"
+                                        {...field}
+                                    />
+                               </div>
                             </FormControl>
                             <FormMessage />
                         </FormItem>
                         )}
                     />
-                    <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Send OTP
                     </Button>
@@ -145,37 +151,46 @@ function StudentAuthForm() {
 
             {step === 'verify' && (
                  <>
-                <CardDescription className="text-center mb-4">An OTP has been sent to <span className="font-semibold">{identifier}</span>. Please enter it below.</CardDescription>
+                <CardDescription className="text-center mb-6">
+                    An OTP has been sent to <br/> <span className="font-semibold text-foreground">{identifier}</span>.
+                </CardDescription>
                 <Form {...verifyForm}>
-                    <form onSubmit={verifyForm.handleSubmit(handleVerifyOtp)} className="space-y-4">
+                    <form onSubmit={verifyForm.handleSubmit(handleVerifyOtp)} className="space-y-6">
                     <FormField
                         control={verifyForm.control}
                         name="otp"
                         render={({ field }) => (
                         <FormItem>
-                            <FormLabel>6-Digit OTP</FormLabel>
+                            <FormLabel className="sr-only">6-Digit OTP</FormLabel>
                             <FormControl>
-                            <Input
-                                placeholder="123456"
-                                maxLength={6}
-                                {...field}
-                            />
+                            <div className="relative">
+                                <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                <Input
+                                    placeholder="123456"
+                                    maxLength={6}
+                                    className="pl-10 text-center tracking-[0.5em] font-mono text-lg"
+                                    inputMode="numeric"
+                                    autoComplete="one-time-code"
+                                    pattern="\d{6}"
+                                    {...field}
+                                />
+                            </div>
                             </FormControl>
                             <FormMessage />
                         </FormItem>
                         )}
                     />
-                    <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Verify & Login
                     </Button>
                     </form>
                 </Form>
-                <Button variant="link" size="sm" className="mt-4 w-full" onClick={() => {
+                <Button variant="link" size="sm" className="mt-6 w-full text-muted-foreground" onClick={() => {
                     setStep('request');
                     setIdentifier('');
                 }}>
-                    Use a different email/number
+                    Use a different email or number
                 </Button>
                 </>
             )}
