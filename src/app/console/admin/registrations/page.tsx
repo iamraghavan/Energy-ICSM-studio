@@ -14,10 +14,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarIcon, MoreHorizontal, Search, X, Eye } from 'lucide-react';
+import { Calendar as CalendarIcon, MoreHorizontal, Search, X, Eye, Download, Printer, Settings2 } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { DateRange } from 'react-day-picker';
 import { cn } from '@/lib/utils';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 
 export default function AllRegistrationsPage() {
@@ -83,7 +84,7 @@ export default function AllRegistrationsPage() {
   };
 
   const filteredRegistrations = useMemo(() => {
-    return registrations.filter(reg => {
+    return (registrations || []).filter(reg => {
       if (!reg) return false;
 
       const lowerSearchTerm = searchTerm.toLowerCase();
@@ -181,7 +182,7 @@ export default function AllRegistrationsPage() {
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">{reg.college_name || 'N/A'}</TableCell>
                         <TableCell className="hidden md:table-cell">
-                            {(reg.Sports || []).filter(s => s && s.name).map(s => s.name).join(', ')}
+                           {(reg.Sports || []).filter(s => s && s.name).map(s => s.name).join(', ')}
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">{format(new Date(reg.created_at), 'PPP')}</TableCell>
                         <TableCell>
@@ -243,6 +244,13 @@ export default function AllRegistrationsPage() {
   }
 
   const hasActiveFilters = searchTerm || filters.sport || filters.college || filters.paymentStatus || filters.registrationStatus || date;
+  
+  const [ currentTime, setCurrentTime ] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, [])
+
 
   const renderFilterBar = () => {
        if (isLoading) {
@@ -293,39 +301,6 @@ export default function AllRegistrationsPage() {
                             <SelectItem value="rejected">Rejected</SelectItem>
                         </SelectContent>
                     </Select>
-                     <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
-                            variant={"outline"}
-                            className={cn(
-                                "w-full sm:w-auto justify-start text-left font-normal",
-                                !date && "text-muted-foreground"
-                            )}
-                            >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {date?.from ? (
-                                date.to ? (
-                                <>
-                                    {format(date.from, "LLL dd, y")} -{" "}
-                                    {format(date.to, "LLL dd, y")}
-                                </>
-                                ) : (
-                                format(date.from, "LLL dd, y")
-                                )
-                            ) : (
-                                <span>Pick a date</span>
-                            )}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                            mode="range"
-                            selected={date}
-                            onSelect={setDate}
-                            initialFocus
-                            />
-                        </PopoverContent>
-                    </Popover>
                     {hasActiveFilters && <Button variant="ghost" onClick={clearFilters}><X className="h-4 w-4 mr-2" />Clear</Button>}
                 </div>
             </div>
@@ -334,7 +309,54 @@ export default function AllRegistrationsPage() {
 
   return (
     <>
-    <div className="container py-8">
+    <div className="container py-8 space-y-6">
+       <div className="flex items-center justify-between">
+            <div>
+                <h1 className="text-2xl font-semibold">Registrations</h1>
+                <p className="text-sm text-muted-foreground">
+                    Page refresh time: {format(currentTime, "eeee, MMMM d, yyyy 'at' hh:mm:ss a zzz")}
+                </p>
+            </div>
+            <div className="flex items-center gap-2">
+                <Button variant="outline"><Download /> Download all to CSV</Button>
+                <Button variant="outline"><Printer/> Print</Button>
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button
+                        variant={"secondary"}
+                        className={cn(
+                            "w-full sm:w-[260px] justify-start text-left font-normal",
+                            !date && "text-muted-foreground"
+                        )}
+                        >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {date?.from ? (
+                            date.to ? (
+                            <>
+                                {format(date.from, "LLL dd, y")} -{" "}
+                                {format(date.to, "LLL dd, y")}
+                            </>
+                            ) : (
+                            format(date.from, "LLL dd, y")
+                            )
+                        ) : (
+                            <span>Billing period: February 2026</span>
+                        )}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                        <Calendar
+                        mode="range"
+                        selected={date}
+                        onSelect={setDate}
+                        initialFocus
+                        />
+                    </PopoverContent>
+                </Popover>
+                 <Button variant="ghost" size="icon"><Settings2/></Button>
+            </div>
+        </div>
+
       <Card>
         <CardHeader>
             <CardTitle>All Registrations</CardTitle>
