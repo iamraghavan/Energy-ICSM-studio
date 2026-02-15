@@ -1,3 +1,4 @@
+
 'use client';
 import { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
@@ -80,7 +81,7 @@ export function CommitteeDashboard() {
                                 <Card key={registration.id}>
                                     <CardHeader>
                                         <CardTitle className="flex items-center justify-between">
-                                            {registration.Student.name}
+                                            {registration.name}
                                             <Badge variant={registration.status === 'approved' ? 'default' : 'secondary'} className="capitalize">{registration.status}</Badge>
                                         </CardTitle>
                                         <CardDescription>{registration.registration_code}</CardDescription>
@@ -91,14 +92,14 @@ export function CommitteeDashboard() {
                                        <div>
                                            <p className="font-semibold">Sports:</p>
                                            <ul className="list-disc pl-5">
-                                               {registration.Sports.map(s => <li key={s.id}>{s.name} ({s.category})</li>)}
+                                               {(registration.Sports || []).map(s => <li key={s.id}>{s.name} ({s.category})</li>)}
                                            </ul>
                                        </div>
                                     </CardContent>
                                      <CardFooter>
                                         <Button 
                                             className="w-full" 
-                                            onClick={() => handleCheckIn(registration.id, registration.Student.name)} 
+                                            onClick={() => handleCheckIn(registration.id, registration.name || 'Student')} 
                                             disabled={registration.status === 'approved'}
                                         >
                                             <CheckCircle className="mr-2"/>

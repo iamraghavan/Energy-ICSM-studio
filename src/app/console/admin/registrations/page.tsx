@@ -18,7 +18,6 @@ import { Calendar as CalendarIcon, MoreHorizontal, Search, X, Eye } from 'lucide
 import { Calendar } from '@/components/ui/calendar';
 import { DateRange } from 'react-day-picker';
 import { cn } from '@/lib/utils';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 
 export default function AllRegistrationsPage() {
@@ -85,19 +84,18 @@ export default function AllRegistrationsPage() {
 
   const filteredRegistrations = useMemo(() => {
     return registrations.filter(reg => {
-      if (!reg || !reg.Student) { // Guard against malformed registration objects
-          return false;
-      }
+      if (!reg) return false;
+
       const lowerSearchTerm = searchTerm.toLowerCase();
       
       const searchMatch = lowerSearchTerm === '' ||
-        reg.Student.name?.toLowerCase().includes(lowerSearchTerm) ||
-        (reg.Student.other_college || reg.Student.College?.name || '').toLowerCase().includes(lowerSearchTerm) ||
+        (reg.name || '').toLowerCase().includes(lowerSearchTerm) ||
+        (reg.college_name || '').toLowerCase().includes(lowerSearchTerm) ||
         (reg.Sports || []).some(s => s && s.name && s.name.toLowerCase().includes(lowerSearchTerm)) ||
         reg.registration_code?.toLowerCase().includes(lowerSearchTerm);
 
       const sportMatch = !filters.sport || (reg.Sports || []).some(s => s && String(s.id) === filters.sport);
-      const collegeMatch = !filters.college || reg.Student.college_id === filters.college;
+      const collegeMatch = !filters.college || String(reg.college_id) === filters.college;
       const paymentStatusMatch = !filters.paymentStatus || reg.payment_status === filters.paymentStatus;
       const registrationStatusMatch = !filters.registrationStatus || reg.status === filters.registrationStatus;
 
@@ -167,7 +165,7 @@ export default function AllRegistrationsPage() {
                 <TableRow>
                     <TableHead>Student</TableHead>
                     <TableHead className="hidden lg:table-cell">College</TableHead>
-                    <TableHead className="hidden md:table-cell">Sport</TableHead>
+                    <TableHead className="hidden md:table-cell">Sport(s)</TableHead>
                     <TableHead className="hidden lg:table-cell">Date</TableHead>
                     <TableHead>Payment</TableHead>
                     <TableHead>Status</TableHead>
@@ -178,11 +176,13 @@ export default function AllRegistrationsPage() {
                 {filteredRegistrations.map((reg) => (
                     <TableRow key={reg.id}>
                         <TableCell>
-                            <div className="font-medium">{reg.Student?.name || 'N/A'}</div>
+                            <div className="font-medium">{reg.name || 'N/A'}</div>
                             <div className="text-xs text-muted-foreground font-mono">{reg.registration_code}</div>
                         </TableCell>
-                        <TableCell className="hidden lg:table-cell">{reg.Student?.other_college || reg.Student?.College?.name || 'N/A'}</TableCell>
-                        <TableCell className="hidden md:table-cell">{(reg.Sports || []).filter(s => s && s.name).map(s => s.name).join(', ')}</TableCell>
+                        <TableCell className="hidden lg:table-cell">{reg.college_name || 'N/A'}</TableCell>
+                        <TableCell className="hidden md:table-cell">
+                            {(reg.Sports || []).filter(s => s && s.name).map(s => s.name).join(', ')}
+                        </TableCell>
                         <TableCell className="hidden lg:table-cell">{format(new Date(reg.created_at), 'PPP')}</TableCell>
                         <TableCell>
                             <Badge

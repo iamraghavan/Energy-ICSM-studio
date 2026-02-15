@@ -50,7 +50,7 @@ export function VerifyPaymentModal({
         <DialogHeader className="p-4 border-b">
           <DialogTitle>Verify Payment</DialogTitle>
           <DialogDescription>
-            Review the payment details for {registration.Student.name}.
+            Review the payment details for {registration.name}.
           </DialogDescription>
         </DialogHeader>
 
@@ -58,10 +58,10 @@ export function VerifyPaymentModal({
             <ScrollArea className="h-full">
                  <div className="p-6 space-y-6">
                     <InfoRow label="Registration Code" value={registration.registration_code} isMono />
-                    <InfoRow label="Student Name" value={registration.Student.name} />
-                    <InfoRow label="Email" value={registration.Student.email} />
-                    <InfoRow label="Mobile" value={registration.Student.mobile} />
-                    <InfoRow label="College" value={registration.Student.other_college} />
+                    <InfoRow label="Student Name" value={registration.name} />
+                    <InfoRow label="Email" value={registration.email} />
+                    <InfoRow label="Mobile" value={registration.mobile} />
+                    <InfoRow label="College" value={registration.college_name} />
                     <InfoRow label="Sports" value={registration.Sports?.map(s => s.name).join(', ')} />
                     <InfoRow label="Team Name" value={registration.Team?.team_name} />
                     <InfoRow label="Transaction ID" value={registration.Payment?.txn_id} isMono />
@@ -132,5 +132,3 @@ function InfoRow({label, value, isMono = false}: {label: string, value: string |
         </div>
     )
 }
-
-    

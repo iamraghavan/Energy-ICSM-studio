@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
@@ -38,7 +39,7 @@ export function SportsHeadDashboard({ user }: { user: UserSession }) {
                 setSportName(assignedSport?.name || 'Your Sport');
 
                 const filtered = allRegistrations.filter(reg => 
-                    reg.Sports.some(sport => String(sport.id) === user.assigned_sport_id)
+                    (reg.Sports || []).some(sport => String(sport.id) === user.assigned_sport_id)
                 );
                 setRegistrations(filtered);
             } catch (error) {
@@ -92,7 +93,7 @@ export function SportsHeadDashboard({ user }: { user: UserSession }) {
                                             {registrations.map(reg => (
                                                 <TableRow key={reg.id}>
                                                     <TableCell>
-                                                        <div className="font-medium">{reg.Student.name}</div>
+                                                        <div className="font-medium">{reg.name}</div>
                                                         <div className="text-xs font-mono text-muted-foreground">{reg.registration_code}</div>
                                                     </TableCell>
                                                     <TableCell>{reg.college_name}</TableCell>
