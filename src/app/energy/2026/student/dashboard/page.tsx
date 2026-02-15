@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -14,11 +13,65 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
+import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 
-function CreateTeamDialog({ sport, onTeamCreated }: { sport: ApiSport, onTeamCreated: () => void }) {
+
+function RegistrationDetailsCard({ registration }: { registration: StudentDashboardOverview['registration'] }) {
+    if (!registration) return null;
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>My Profile</CardTitle>
+                <CardDescription>Your primary registration information.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableBody>
+                        <TableRow>
+                            <TableCell className="font-medium">Registration Code</TableCell>
+                            <TableCell className="font-mono">{registration.code}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                            <TableCell className="font-medium">Name</TableCell>
+                            <TableCell>{registration.name}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                            <TableCell className="font-medium">Email</TableCell>
+                            <TableCell>{registration.email}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                            <TableCell className="font-medium">College</TableCell>
+                            <TableCell>{registration.college}</TableCell>
+                        </TableRow>
+                         <TableRow>
+                            <TableCell className="font-medium">Registration Status</TableCell>
+                            <TableCell><Badge variant={registration.status === 'approved' ? 'default' : 'secondary'} className="capitalize">{registration.status}</Badge></TableCell>
+                        </TableRow>
+                         <TableRow>
+                            <TableCell className="font-medium">Payment Status</TableCell>
+                            <TableCell><Badge variant={registration.payment_status === 'approved' || registration.payment_status === 'verified' ? 'default' : registration.payment_status === 'rejected' ? 'destructive' : 'secondary'} className="capitalize">{registration.payment_status}</Badge></TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
+    );
+}
+
+function CreateTeamDialog({ sport, onTeamCreated, collegeName }: { sport: ApiSport, onTeamCreated: () => void, collegeName: string }) {
     const [teamName, setTeamName] = useState('');
     const [isCreating, setIsCreating] = useState(false);
     const { toast } = useToast();
+
+    useEffect(() => {
+        if (collegeName && sport) {
+            const generatedName = `${collegeName} - ${sport.name} - ${sport.category}`.toUpperCase();
+            setTeamName(generatedName);
+        }
+    }, [collegeName, sport]);
+
 
     const handleCreateTeam = async () => {
         if (!teamName) {
@@ -41,7 +94,7 @@ function CreateTeamDialog({ sport, onTeamCreated }: { sport: ApiSport, onTeamCre
         <DialogContent>
             <DialogHeader>
                 <DialogTitle>Create Team for {sport.name}</DialogTitle>
-                <DialogDescription>Enter a name for your team.</DialogDescription>
+                <DialogDescription>Enter a name for your team. An auto-generated name is provided.</DialogDescription>
             </DialogHeader>
             <div className="py-4">
                 <Label htmlFor="team-name">Team Name</Label>
@@ -60,7 +113,7 @@ function CreateTeamDialog({ sport, onTeamCreated }: { sport: ApiSport, onTeamCre
     )
 }
 
-function SportCard({ sport, onTeamCreated }: { sport: DashboardSport & { category: string }, onTeamCreated: () => void }) {
+function SportCard({ sport, onTeamCreated, collegeName }: { sport: DashboardSport & { category: string }, onTeamCreated: () => void, collegeName: string }) {
     const teamSport = sport as ApiSport; // To pass to Dialog
 
     return (
@@ -95,7 +148,7 @@ function SportCard({ sport, onTeamCreated }: { sport: DashboardSport & { categor
                             <DialogTrigger asChild>
                                 <Button className="w-full">Create Team</Button>
                             </DialogTrigger>
-                           <CreateTeamDialog sport={teamSport} onTeamCreated={onTeamCreated} />
+                           <CreateTeamDialog sport={teamSport} onTeamCreated={onTeamCreated} collegeName={collegeName} />
                         </Dialog>
                      )}
                  </CardFooter>
@@ -164,22 +217,24 @@ export default function StudentDashboardPage() {
     }
 
     return (
-        <div className="container py-8 md:py-12">
+        <div className="container py-8 md:py-12 space-y-8">
             <div className="mb-8">
                 <h1 className="text-4xl font-bold font-headline">Welcome, {session.name}!</h1>
                 <p className="text-muted-foreground mt-2">Manage your registrations and teams.</p>
             </div>
             
+            {dashboardData?.registration && <RegistrationDetailsCard registration={dashboardData.registration} />}
+            
             <Card>
                 <CardHeader>
-                    <CardTitle>My Registrations</CardTitle>
+                    <CardTitle>My Sports Registrations</CardTitle>
                     <CardDescription>An overview of the sports you have registered for.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     {processedSports.length > 0 ? (
                         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {processedSports.map(sport => (
-                                <SportCard key={sport.id} sport={sport} onTeamCreated={fetchDashboardData} />
+                                <SportCard key={sport.id} sport={sport} onTeamCreated={fetchDashboardData} collegeName={session.college_name} />
                             ))}
                         </div>
                     ) : (
@@ -190,7 +245,7 @@ export default function StudentDashboardPage() {
                 </CardContent>
             </Card>
             
-            <Card className="mt-8">
+            <Card>
                 <CardHeader>
                     <CardTitle>Account Settings</CardTitle>
                 </CardHeader>
