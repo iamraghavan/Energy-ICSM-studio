@@ -1,5 +1,6 @@
 
 
+
 'use client';
 import { useEffect, useState, useMemo } from 'react';
 import { getRegistrations, verifyPayment, type Registration, getSports, getColleges, type ApiSport, type College } from '@/lib/api';
@@ -135,7 +136,7 @@ export default function AllRegistrationsPage() {
   };
 
   const handleViewDetailsClick = (registrationCode: string) => {
-    router.push(`/console/admin/registrations/details?id=${encodeURIComponent(registrationCode)}`);
+    router.push(`/console/admin/registrations/details?id=${registrationCode}`);
   };
 
   const renderTable = () => {
