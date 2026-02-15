@@ -293,11 +293,13 @@ export const getRegistration = async (id: string): Promise<Registration> => {
     return response.data;
 };
 
-export const verifyPayment = async (registrationId: string, status: 'approved' | 'rejected', remarks: string) => {
+export const verifyPayment = async (registrationId: string, registration_code: string, status: 'approved' | 'rejected', remarks: string) => {
+    const finalRemarks = remarks || `Payment ${status} via admin dashboard at ${new Date().toLocaleString()}.`;
     const response = await api.post('/admin/verify-payment', {
-        registrationId: registrationId,
-        status: status,
-        remarks: remarks,
+        registrationId,
+        registration_code,
+        status,
+        remarks: finalRemarks,
     });
     return response.data;
 };
@@ -516,3 +518,4 @@ export type ApiMatch = {
     TeamA: ApiTeam;
     TeamB: ApiTeam;
 };
+

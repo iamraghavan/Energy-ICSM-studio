@@ -3,6 +3,7 @@
 
 
 
+
 'use client';
 import { useEffect, useState, useMemo } from 'react';
 import { getRegistrations, verifyPayment, type Registration, getSports, getColleges, type ApiSport, type College } from '@/lib/api';
@@ -120,9 +121,10 @@ export default function AllRegistrationsPage() {
     setSelectedRegistration(null);
   };
 
-  const handleVerification = async (registrationCode: string, status: 'approved' | 'rejected', remarks: string) => {
+  const handleVerification = async (registrationId: string, status: 'approved' | 'rejected', remarks: string) => {
+    if (!selectedRegistration) return;
     try {
-      await verifyPayment(registrationCode, status, remarks);
+      await verifyPayment(registrationId, selectedRegistration.registration_code, status, remarks);
       toast({
         title: 'Success',
         description: `Registration status updated to ${status}.`,

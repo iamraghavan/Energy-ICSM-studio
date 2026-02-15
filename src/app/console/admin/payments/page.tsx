@@ -79,9 +79,10 @@ export default function AllPaymentsPage() {
     setSelectedRegistration(null);
   };
 
-  const handleVerification = async (registrationCode: string, status: 'approved' | 'rejected', remarks: string) => {
+  const handleVerification = async (registrationId: string, status: 'approved' | 'rejected', remarks: string) => {
+    if (!selectedRegistration) return;
     try {
-      await verifyPayment(registrationCode, status, remarks);
+      await verifyPayment(registrationId, selectedRegistration.registration_code, status, remarks);
       toast({
         title: 'Success',
         description: `Payment status updated to ${status}.`,
@@ -97,8 +98,8 @@ export default function AllPaymentsPage() {
     }
   };
 
-  const handleViewDetailsClick = (registrationCode: string) => {
-    router.push(`/console/admin/registrations/${encodeURIComponent(registrationCode)}`);
+  const handleViewDetailsClick = (registrationId: string) => {
+    router.push(`/console/admin/registrations/details?id=${registrationId}`);
   };
 
   const renderTable = () => {
@@ -167,7 +168,7 @@ export default function AllPaymentsPage() {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                    <DropdownMenuItem onClick={() => handleViewDetailsClick(reg.registration_code)}>
+                                    <DropdownMenuItem onClick={() => handleViewDetailsClick(reg.id)}>
                                         <Eye className="mr-2 h-4 w-4" />
                                         View Details
                                     </DropdownMenuItem>
