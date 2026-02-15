@@ -14,6 +14,7 @@ const resourceLinks = [
   { href: '/energy/2026/rules', label: 'Rules' },
   { href: '/energy/2026/gallery', label: 'Gallery' },
   { href: '/energy/2026/contact', label: 'Contact Us' },
+  { href: '/auth/session', label: 'Console Login' },
 ];
 
 export function Footer() {
@@ -70,14 +71,14 @@ export function Footer() {
            </div>
         </div>
       </div>
-      <div className="bg-gray-800 text-gray-300">
+      <div className="bg-foreground text-primary-foreground/80">
         <div className="container flex flex-col md:flex-row items-center justify-between gap-y-4 py-4 text-sm">
             <p className="text-center md:text-left">
                 © {new Date().getFullYear()} Energy Sports Meet. All rights reserved.
             </p>
             <div className="flex flex-wrap items-center justify-center md:justify-end gap-x-6 gap-y-2">
-                <Link href="/privacy-policy" className="hover:text-white">Privacy Policy</Link>
-                <Link href="/terms-and-conditions" className="hover:text-white">Terms & Conditions</Link>
+                <Link href="/privacy-policy" className="hover:text-primary-foreground">Privacy Policy</Link>
+                <Link href="/terms-and-conditions" className="hover:text-primary-foreground">Terms & Conditions</Link>
                 <p>Developed by Raghavan Jeeva</p>
             </div>
         </div>
