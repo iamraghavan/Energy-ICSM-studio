@@ -124,7 +124,7 @@ export default function AllRegistrationsPage() {
   const handleVerification = async (registrationId: string, status: 'approved' | 'rejected', remarks: string) => {
     if (!selectedRegistration) return;
     try {
-      await verifyPayment(registrationId, selectedRegistration.registration_code, status, remarks);
+      await verifyPayment(registrationId, status, remarks);
       toast({
         title: 'Success',
         description: `Registration status updated to ${status}.`,

@@ -1,4 +1,5 @@
 
+
 'use client';
 import {
   Dialog,
@@ -22,7 +23,7 @@ interface VerifyPaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   registration: Registration;
-  onVerify: (registrationCode: string, status: 'approved' | 'rejected', remarks: string) => Promise<void>;
+  onVerify: (registrationId: string, status: 'approved' | 'rejected', remarks: string) => Promise<void>;
 }
 
 export function VerifyPaymentModal({

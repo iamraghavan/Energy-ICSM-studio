@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
@@ -82,7 +83,7 @@ export default function AllPaymentsPage() {
   const handleVerification = async (registrationId: string, status: 'approved' | 'rejected', remarks: string) => {
     if (!selectedRegistration) return;
     try {
-      await verifyPayment(registrationId, selectedRegistration.registration_code, status, remarks);
+      await verifyPayment(registrationId, status, remarks);
       toast({
         title: 'Success',
         description: `Payment status updated to ${status}.`,
