@@ -1,6 +1,7 @@
 
 'use client';
 import { useEffect, useState, useMemo } from 'react';
+import Link from 'next/link';
 import { getRegistrations, verifyPayment, type Registration, getSports, getColleges, type ApiSport, type College } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,11 +14,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarIcon, MoreHorizontal, Search, X, Eye, Download, Printer, Settings2 } from 'lucide-react';
-import { Calendar } from '@/components/ui/calendar';
-import { DateRange } from 'react-day-picker';
-import { cn } from '@/lib/utils';
+import { MoreHorizontal, Search, X, Eye } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 
@@ -43,7 +40,6 @@ export default function AllRegistrationsPage() {
     paymentStatus: '',
     registrationStatus: ''
   });
-  const [date, setDate] = useState<DateRange | undefined>();
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -80,12 +76,11 @@ export default function AllRegistrationsPage() {
   const clearFilters = () => {
     setSearchTerm('');
     setFilters({ sport: '', college: '', paymentStatus: '', registrationStatus: '' });
-    setDate(undefined);
   };
 
   const filteredRegistrations = useMemo(() => {
     return (registrations || []).filter(reg => {
-      if (!reg || !reg.name) return false; // Guard against null/undefined records
+      if (!reg || !reg.name) return false;
 
       const lowerSearchTerm = searchTerm.toLowerCase();
       
@@ -99,17 +94,10 @@ export default function AllRegistrationsPage() {
       const collegeMatch = !filters.college || String(reg.college_id) === filters.college;
       const paymentStatusMatch = !filters.paymentStatus || reg.payment_status === filters.paymentStatus;
       const registrationStatusMatch = !filters.registrationStatus || reg.status === filters.registrationStatus;
-
-      if (!reg.created_at) return false;
-      const regDate = new Date(reg.created_at);
-      const dateMatch = !date || (
-        (!date.from || regDate >= date.from) &&
-        (!date.to || regDate <= date.to)
-      );
-
-      return searchMatch && sportMatch && collegeMatch && paymentStatusMatch && registrationStatusMatch && dateMatch;
+      
+      return searchMatch && sportMatch && collegeMatch && paymentStatusMatch && registrationStatusMatch;
     });
-  }, [registrations, searchTerm, filters, date]);
+  }, [registrations, searchTerm, filters]);
 
 
   const handleVerifyClick = (registration: Registration) => {
@@ -243,16 +231,8 @@ export default function AllRegistrationsPage() {
       )
   }
 
-  const hasActiveFilters = searchTerm || filters.sport || filters.college || filters.paymentStatus || filters.registrationStatus || date;
+  const hasActiveFilters = searchTerm || filters.sport || filters.college || filters.paymentStatus || filters.registrationStatus;
   
-  const [ currentTime, setCurrentTime ] = useState<Date | null>(null);
-  useEffect(() => {
-    setCurrentTime(new Date());
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, [])
-
-
   const renderFilterBar = () => {
        if (isLoading) {
            return (
@@ -263,7 +243,6 @@ export default function AllRegistrationsPage() {
                              <Skeleton className="h-10 w-24" />
                              <Skeleton className="h-10 w-24" />
                              <Skeleton className="h-10 w-24" />
-                             <Skeleton className="h-10 w-32" />
                         </div>
                     </div>
                 </div>
@@ -311,57 +290,19 @@ export default function AllRegistrationsPage() {
   return (
     <>
     <div className="container py-8 space-y-6">
-       <div className="flex items-center justify-between">
-            <div>
-                <h1 className="text-2xl font-semibold">Registrations</h1>
-                <p className="text-sm text-muted-foreground">
-                    {currentTime ? `Page refresh time: ${format(currentTime, "eeee, MMMM d, yyyy 'at' hh:mm:ss a zzz")}` : <Skeleton className="h-4 w-64" />}
-                </p>
+        <div className="space-y-2">
+            <div className="text-sm text-muted-foreground flex items-center gap-2">
+                <Link href="/console/admin/dashboard" className="hover:text-primary">Dashboard</Link>
+                <span className="text-muted-foreground">/</span>
+                <span>Registrations</span>
             </div>
-            <div className="flex items-center gap-2">
-                <Button variant="outline"><Download /> Download all to CSV</Button>
-                <Button variant="outline"><Printer/> Print</Button>
-                <Popover>
-                    <PopoverTrigger asChild>
-                        <Button
-                        variant={"secondary"}
-                        className={cn(
-                            "w-full sm:w-[260px] justify-start text-left font-normal",
-                            !date && "text-muted-foreground"
-                        )}
-                        >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {date?.from ? (
-                            date.to ? (
-                            <>
-                                {format(date.from, "LLL dd, y")} -{" "}
-                                {format(date.to, "LLL dd, y")}
-                            </>
-                            ) : (
-                            format(date.from, "LLL dd, y")
-                            )
-                        ) : (
-                            <span>Billing period: February 2026</span>
-                        )}
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="end">
-                        <Calendar
-                        mode="range"
-                        selected={date}
-                        onSelect={setDate}
-                        initialFocus
-                        />
-                    </PopoverContent>
-                </Popover>
-                 <Button variant="ghost" size="icon"><Settings2/></Button>
-            </div>
+            <h1 className="text-3xl font-bold">All Registrations</h1>
         </div>
 
       <Card>
         <CardHeader>
-            <CardTitle>All Registrations</CardTitle>
-            <CardDescription>View, filter, and verify student registrations and payments.</CardDescription>
+            <CardTitle>Filter Registrations</CardTitle>
+            <CardDescription>Narrow down the list of registrations using the filters below.</CardDescription>
         </CardHeader>
         <CardContent>
             <div className="space-y-4">
