@@ -1,3 +1,4 @@
+
 'use client';
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/shared/logo";
@@ -7,12 +8,13 @@ import { getUserSession } from "@/lib/auth";
 import { useEffect, useState } from "react";
 import type { UserSession } from "@/lib/auth";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, ListChecks, Users, CalendarCog, Trophy, Building } from "lucide-react";
+import { LayoutDashboard, ListChecks, Users, CalendarCog, Trophy, Building, CreditCard } from "lucide-react";
 
 // Admin-specific nav links
 const navLinks = [
     { href: '/console/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/console/admin/registrations', label: 'Registrations', icon: ListChecks },
+    { href: '/console/admin/payments', label: 'Payments', icon: CreditCard },
     { href: '/console/admin/users', label: 'Users', icon: Users },
     { href: '/console/admin/sports', label: 'Sports', icon: Trophy },
     { href: '/console/admin/colleges', label: 'Colleges', icon: Building },

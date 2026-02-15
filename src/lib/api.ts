@@ -61,6 +61,7 @@ export type Registration = {
     payment_status: 'pending' | 'verified' | 'rejected' | 'approved';
     status: 'pending' | 'approved' | 'rejected';
     created_at: string;
+    name: string;
     college_name: string;
     college_city: string;
     college_state: string;
@@ -69,23 +70,13 @@ export type Registration = {
     college_email?: string | null;
     college_contact?: string | null;
     total_amount?: string;
-    Student: {
-        id: string;
-        name: string;
-        email: string;
-        mobile: string;
-        whatsapp: string;
-        city: string;
-        state: string;
-        college_id: string | null;
-        other_college: string | null;
-        College: {
-            id: number;
-            name: string;
-            city: string;
-            state: string;
-        } | null;
-    };
+    email: string;
+    mobile: string;
+    whatsapp: string;
+    city: string;
+    state: string;
+    college_id: string | null;
+    other_college: string | null;
     Sports: ApiSport[];
     Team: {
         id: string;
@@ -103,6 +94,23 @@ export type Registration = {
         verified_by: string | null;
         verified_at: string | null;
     } | null;
+    Student: {
+        id: string;
+        name: string;
+        email: string;
+        mobile: string;
+        whatsapp: string;
+        city: string;
+        state: string;
+        college_id: string | null;
+        other_college: string | null;
+        College: {
+            id: number;
+            name: string;
+            city: string;
+            state: string;
+        } | null;
+    };
 };
 
 
@@ -297,7 +305,7 @@ export const getRegistrations = async (): Promise<Registration[]> => {
 };
 
 export const getRegistration = async (id: string): Promise<Registration> => {
-    const response = await api.get(`/register/details/${id}`);
+    const response = await api.get(`/register/details/${encodeURIComponent(id)}`);
     return response.data;
 };
 
@@ -395,6 +403,12 @@ export const getAdminAnalytics = async () => {
     const response = await api.get('/admin/analytics');
     return response.data;
 }
+
+export const getPayments = async (filters: { status?: string, sport_id?: string }): Promise<Registration[]> => {
+    const response = await api.get('/admin/payments', { params: filters });
+    return Array.isArray(response.data) ? response.data : (response.data?.data || []);
+};
+
 
 // College Management
 export const getCollegesAdmin = async (): Promise<(Omit<College, 'id'> & {id: number})[]> => {

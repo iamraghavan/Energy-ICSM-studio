@@ -98,7 +98,7 @@ function SuccessPageContent() {
     }
     
     const ticketUrl = `${API_BASE_URL}/register/${registration.id}/ticket`;
-    const detailsUrl = `/energy/2026/registration/details?id=${registration.registration_code}`;
+    const detailsUrl = `/energy/2026/registration/details?id=${encodeURIComponent(registration.registration_code)}`;
     const absoluteDetailsUrl = typeof window !== 'undefined' ? `${window.location.origin}${detailsUrl}` : detailsUrl;
 
     return (
