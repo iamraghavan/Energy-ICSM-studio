@@ -47,7 +47,7 @@ function RegistrationClientActions({ ticketUrl, detailsUrl, registration }: { ti
             <ShareButton
                 url={absoluteDetailsUrl}
                 title={`Registration for ENERGY 2026`}
-                text={`Check out the registration details for ${registration.Student.name} in the ENERGY 2026 Sports Meet.`}
+                text={`Check out the registration details for ${registration.name} in the ENERGY 2026 Sports Meet.`}
             />
         </div>
     );
@@ -131,9 +131,9 @@ function PublicRegistrationDetailsContent() {
         )
     }
 
-    const { Student, Sports, Team, Payment, registration_code, payment_status, accommodation_needed, is_captain, status, created_at } = registration;
+    const { Sports, Team, Payment, registration_code, payment_status, accommodation_needed, is_captain, status, created_at, name, email, mobile, whatsapp } = registration;
     const ticketUrl = `${API_BASE_URL}/register/${registration.id}/ticket`;
-    const detailsUrl = `/energy/2026/registration/details?id=${registration.registration_code}`;
+    const detailsUrl = `/energy/2026/registration/details?id=${registration.id}`;
 
     return (
         <div className="container py-6 md:py-8 space-y-6">
@@ -174,11 +174,11 @@ function PublicRegistrationDetailsContent() {
                 <Card className="lg:col-span-1">
                     <CardHeader><CardTitle>Participant Information</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
-                        <InfoDetail icon={User} label="Name" value={Student.name} />
+                        <InfoDetail icon={User} label="Name" value={name} />
                         {is_captain && <InfoDetail icon={UserCheck} label="Role" value="Team Captain" />}
-                        <InfoDetail icon={Mail} label="Email" value={Student.email} />
-                        <InfoDetail icon={Phone} label="Mobile" value={Student.mobile} />
-                        <InfoDetail icon={Phone} label="WhatsApp" value={Student.whatsapp} />
+                        <InfoDetail icon={Mail} label="Email" value={email} />
+                        <InfoDetail icon={Phone} label="Mobile" value={mobile} />
+                        <InfoDetail icon={Phone} label="WhatsApp" value={whatsapp} />
                     </CardContent>
                 </Card>
 

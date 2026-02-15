@@ -2,6 +2,7 @@
 
 
 
+
 'use client';
 import { useEffect, useState, useMemo } from 'react';
 import { getRegistrations, verifyPayment, type Registration, getSports, getColleges, type ApiSport, type College } from '@/lib/api';
@@ -46,6 +47,7 @@ export default function AllRegistrationsPage() {
   });
   
   useEffect(() => {
+    // This effect runs only on the client
     setLastRefreshed(new Date().toLocaleString());
   }, []);
 
@@ -136,8 +138,8 @@ export default function AllRegistrationsPage() {
     }
   };
 
-  const handleViewDetailsClick = (registrationCode: string) => {
-    router.push(`/console/admin/registrations/details?id=${registrationCode}`);
+  const handleViewDetailsClick = (registrationId: string) => {
+    router.push(`/console/admin/registrations/details?id=${registrationId}`);
   };
 
   const renderTable = () => {
@@ -219,7 +221,7 @@ export default function AllRegistrationsPage() {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                    <DropdownMenuItem onClick={() => handleViewDetailsClick(reg.registration_code)}>
+                                    <DropdownMenuItem onClick={() => handleViewDetailsClick(reg.id)}>
                                         <Eye className="mr-2 h-4 w-4" />
                                         View Details
                                     </DropdownMenuItem>
@@ -308,6 +310,9 @@ export default function AllRegistrationsPage() {
                 <span>Registrations</span>
             </div>
             <h1 className="text-3xl font-bold">All Registrations</h1>
+            <p className="text-sm text-muted-foreground">
+                Page refresh time: {lastRefreshed}
+            </p>
         </div>
 
       <Card>

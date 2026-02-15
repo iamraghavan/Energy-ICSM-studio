@@ -35,13 +35,13 @@ function SuccessPageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const { toast } = useToast();
-    const registrationCode = searchParams.get('id');
+    const registrationId = searchParams.get('id');
 
     const [registration, setRegistration] = useState<Registration | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        if (!registrationCode) {
+        if (!registrationId) {
             router.replace('/energy/2026/registration');
             return;
         }
@@ -49,7 +49,7 @@ function SuccessPageContent() {
         const fetchDetails = async () => {
             setIsLoading(true);
             try {
-                const data = await getRegistration(registrationCode);
+                const data = await getRegistration(registrationId);
                 setRegistration(data);
             } catch (error) {
                 console.error("Failed to fetch registration details on success page:", error);
@@ -64,9 +64,9 @@ function SuccessPageContent() {
         }
 
         fetchDetails();
-    }, [registrationCode, router, toast]);
+    }, [registrationId, router, toast]);
 
-    if (isLoading || !registrationCode) {
+    if (isLoading || !registrationId) {
         return <LoadingSkeleton />;
     }
     
@@ -78,13 +78,12 @@ function SuccessPageContent() {
                     <div className="space-y-2">
                         <CardTitle className="text-2xl font-bold font-headline">Registration Submitted!</CardTitle>
                         <CardDescription>
-                            Your registration code is <span className="font-mono">{registrationCode}</span>. You
-                            will receive a confirmation email shortly.
+                            Your registration has been submitted. You will receive a confirmation email shortly.
                         </CardDescription>
                     </div>
                 </CardHeader>
                 <CardContent className="text-center">
-                    <p className="text-sm text-muted-foreground">Could not load full details. You can still access them later from the student portal.</p>
+                    <p className="text-sm text-muted-foreground">Could not load full details. You can access them later from the student portal.</p>
                 </CardContent>
                 <CardFooter className="flex-col gap-2 pt-4">
                      <Button asChild className="w-full">
@@ -99,7 +98,7 @@ function SuccessPageContent() {
     }
     
     const ticketUrl = `${API_BASE_URL}/register/${registration.id}/ticket`;
-    const detailsUrl = `/energy/2026/registration/details?id=${registration.registration_code}`;
+    const detailsUrl = `/energy/2026/registration/details?id=${registration.id}`;
     const absoluteDetailsUrl = typeof window !== 'undefined' ? `${window.location.origin}${detailsUrl}` : detailsUrl;
 
     return (
@@ -109,15 +108,15 @@ function SuccessPageContent() {
                 <div className="space-y-2">
                     <CardTitle className="text-2xl font-bold font-headline">Registration Submitted!</CardTitle>
                     <CardDescription>
-                        Your registration is successful. Your details are below.
+                        Your registration is successful! Your code is <span className="font-mono font-bold">{registration.registration_code}</span>.
                     </CardDescription>
                 </div>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="border bg-muted/50 rounded-lg p-4 space-y-4">
-                    <InfoDetail icon={User} label="Name" value={registration.Student.name} />
-                    <InfoDetail icon={Mail} label="Email" value={registration.Student.email} />
-                    <InfoDetail icon={Phone} label="Mobile" value={registration.Student.mobile} />
+                    <InfoDetail icon={User} label="Name" value={registration.name} />
+                    <InfoDetail icon={Mail} label="Email" value={registration.email} />
+                    <InfoDetail icon={Phone} label="Mobile" value={registration.mobile} />
                     <InfoDetail icon={IndianRupee} label="Amount Paid" value={`₹${registration.Payment?.amount || '0.00'}`} />
                      <InfoDetail icon={Dribbble} label="Registered Sports">
                         <div className="flex flex-wrap gap-2 pt-1">
@@ -138,7 +137,7 @@ function SuccessPageContent() {
                     <ShareButton 
                         url={absoluteDetailsUrl}
                         title={`Registration for ENERGY 2026`}
-                        text={`Check out the registration details for ${registration.Student.name} in the ENERGY 2026 Sports Meet.`}
+                        text={`Check out the registration details for ${registration.name} in the ENERGY 2026 Sports Meet.`}
                     />
                 </div>
             </CardContent>
