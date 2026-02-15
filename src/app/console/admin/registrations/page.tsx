@@ -1,9 +1,4 @@
 
-
-
-
-
-
 'use client';
 import { useEffect, useState, useMemo } from 'react';
 import { getRegistrations, verifyPayment, type Registration, getSports, getColleges, type ApiSport, type College } from '@/lib/api';
@@ -49,7 +44,9 @@ export default function AllRegistrationsPage() {
   
   useEffect(() => {
     // This effect runs only on the client
-    setLastRefreshed(new Date().toLocaleString());
+    if (typeof window !== 'undefined') {
+        setLastRefreshed(new Date().toLocaleString());
+    }
   }, []);
 
   const fetchData = async () => {
@@ -130,13 +127,14 @@ export default function AllRegistrationsPage() {
         description: `Registration status updated to ${status}.`,
       });
       fetchData(); // Refresh the list
-      handleModalClose();
     } catch (err: any) {
       toast({
         variant: 'destructive',
         title: 'Verification Failed',
         description: err.response?.data?.message || 'Could not update status.',
       });
+    } finally {
+        handleModalClose();
     }
   };
 

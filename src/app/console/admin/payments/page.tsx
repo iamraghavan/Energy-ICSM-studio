@@ -63,7 +63,7 @@ export default function AllPaymentsPage() {
   }, [filters]);
 
   const handleFilterChange = (filterName: keyof typeof filters, value: string) => {
-    setFilters(prev => ({ ...prev, [filterName]: value }));
+    setFilters(prev => ({ ...prev, [filterName]: value === 'all' ? '' : v }));
   };
 
   const clearFilters = () => {
@@ -89,13 +89,14 @@ export default function AllPaymentsPage() {
         description: `Payment status updated to ${status}.`,
       });
       fetchData(); // Refresh the list
-      handleModalClose();
     } catch (err: any) {
       toast({
         variant: 'destructive',
         title: 'Verification Failed',
         description: err.response?.data?.message || 'Could not update status.',
       });
+    } finally {
+        handleModalClose();
     }
   };
 
@@ -204,14 +205,14 @@ export default function AllPaymentsPage() {
        return (
              <div className="flex flex-col md:flex-row gap-2">
                  <div className="grid grid-cols-2 sm:flex gap-2">
-                     <Select value={filters.sport_id} onValueChange={(v) => handleFilterChange('sport_id', v === 'all' ? '' : v)}>
+                     <Select value={filters.sport_id} onValueChange={(v) => handleFilterChange('sport_id', v)}>
                         <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="All Sports" /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Sports</SelectItem>
                             {sports.map(s => s && <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
-                     <Select value={filters.status} onValueChange={(v) => handleFilterChange('status', v === 'all' ? '' : v)}>
+                     <Select value={filters.status} onValueChange={(v) => handleFilterChange('status', v)}>
                         <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="All Statuses" /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Statuses</SelectItem>
