@@ -224,8 +224,7 @@ api.interceptors.response.use(
         const isAdminRoute = pathname.startsWith('/admin') ||
                              pathname.startsWith('/sports-head') ||
                              pathname.startsWith('/scorer') ||
-                             pathname.startsWith('/committee') ||
-                             pathname.startsWith('/console');
+                             pathname.startsWith('/committee');
 
         if (isAdminRoute) {
             clearUserSession();
@@ -455,7 +454,7 @@ export const createStudentTeam = async (sportId: number, teamName: string) => {
 
 export const getStudentTeamDetails = async (teamId: string): Promise<FullTeamDetails> => {
     const response = await api.get(`/dashboard/teams/${teamId}`);
-    return response.data;
+    return response.data.data || response.data;
 };
 
 export const addTeamMember = async (teamId: string, memberData: Omit<StudentTeamMember, 'id'>) => {
