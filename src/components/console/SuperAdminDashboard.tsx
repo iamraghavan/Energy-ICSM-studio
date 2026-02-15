@@ -1,14 +1,12 @@
-
 "use client"
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
     Card,
     CardContent,
     CardHeader,
     CardTitle,
-    CardDescription,
   } from "@/components/ui/card"
-import { Users, TrendingUp, Percent, Download, Printer, Settings2, CalendarIcon, Info, ArrowUp } from "lucide-react"
+import { Download, Printer, Settings2, CalendarIcon, Info, ArrowUp } from "lucide-react"
 import { getAdminAnalytics } from "@/lib/api";
 import { Skeleton } from "../ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -26,12 +24,13 @@ import _ from 'lodash';
 export function SuperAdminDashboard() {
     const [analytics, setAnalytics] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [currentTime, setCurrentTime] = useState(new Date());
+    const [currentTime, setCurrentTime] = useState<Date | null>(null);
     const [date, setDate] = useState<Date | undefined>();
 
     const { toast } = useToast();
 
     useEffect(() => {
+        setCurrentTime(new Date());
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
         return () => clearInterval(timer);
     }, []);
@@ -75,7 +74,7 @@ export function SuperAdminDashboard() {
                 <div>
                     <h1 className="text-2xl font-semibold">Admin Overview</h1>
                     <p className="text-sm text-muted-foreground">
-                         Page refresh time: {format(currentTime, "eeee, MMMM d, yyyy 'at' hh:mm:ss a zzz")}
+                         {currentTime ? `Page refresh time: ${format(currentTime, "eeee, MMMM d, yyyy 'at' hh:mm:ss a zzz")}` : <Skeleton className="h-4 w-64" />}
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -180,8 +179,8 @@ export function SuperAdminDashboard() {
                                 </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {aggregatedSports.map((s: any) => (
-                                        <TableRow key={s.Sport.name}>
+                                    {aggregatedSports.map((s: any, index: number) => (
+                                        <TableRow key={index}>
                                             <TableCell>{s.Sport.name}</TableCell>
                                             <TableCell className="text-right">{s.count}</TableCell>
                                         </TableRow>
@@ -215,5 +214,3 @@ export function SuperAdminDashboard() {
         </div>
     )
 }
-
-    

@@ -85,14 +85,14 @@ export default function AllRegistrationsPage() {
 
   const filteredRegistrations = useMemo(() => {
     return (registrations || []).filter(reg => {
-      if (!reg) return false;
+      if (!reg || !reg.name) return false; // Guard against null/undefined records
 
       const lowerSearchTerm = searchTerm.toLowerCase();
       
       const searchMatch = lowerSearchTerm === '' ||
         (reg.name || '').toLowerCase().includes(lowerSearchTerm) ||
         (reg.college_name || '').toLowerCase().includes(lowerSearchTerm) ||
-        (reg.Sports || []).some(s => s && s.name && s.name.toLowerCase().includes(lowerSearchTerm)) ||
+        (reg.Sports || []).some(s => s?.name?.toLowerCase().includes(lowerSearchTerm)) ||
         reg.registration_code?.toLowerCase().includes(lowerSearchTerm);
 
       const sportMatch = !filters.sport || (reg.Sports || []).some(s => s && String(s.id) === filters.sport);
@@ -182,7 +182,7 @@ export default function AllRegistrationsPage() {
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">{reg.college_name || 'N/A'}</TableCell>
                         <TableCell className="hidden md:table-cell">
-                           {(reg.Sports || []).filter(s => s && s.name).map(s => s.name).join(', ')}
+                           {(reg.Sports || []).filter(s => s?.name).map(s => s.name).join(', ')}
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">{format(new Date(reg.created_at), 'PPP')}</TableCell>
                         <TableCell>
@@ -245,8 +245,9 @@ export default function AllRegistrationsPage() {
 
   const hasActiveFilters = searchTerm || filters.sport || filters.college || filters.paymentStatus || filters.registrationStatus || date;
   
-  const [ currentTime, setCurrentTime ] = useState(new Date());
+  const [ currentTime, setCurrentTime ] = useState<Date | null>(null);
   useEffect(() => {
+    setCurrentTime(new Date());
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, [])
@@ -314,7 +315,7 @@ export default function AllRegistrationsPage() {
             <div>
                 <h1 className="text-2xl font-semibold">Registrations</h1>
                 <p className="text-sm text-muted-foreground">
-                    Page refresh time: {format(currentTime, "eeee, MMMM d, yyyy 'at' hh:mm:ss a zzz")}
+                    {currentTime ? `Page refresh time: ${format(currentTime, "eeee, MMMM d, yyyy 'at' hh:mm:ss a zzz")}` : <Skeleton className="h-4 w-64" />}
                 </p>
             </div>
             <div className="flex items-center gap-2">
