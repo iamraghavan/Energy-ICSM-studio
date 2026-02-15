@@ -3,11 +3,11 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDashboard } from '@/app/energy/2026/student/dashboard/layout';
-import { bulkAddTeamMembers, bulkDeleteTeamMembers, updateTeamName, deleteTeam, deleteTeamMember, getStudentTeamDetails, type StudentTeamMember, type FullTeamDetails } from '@/lib/api';
+import { bulkAddTeamMembers, bulkDeleteTeamMembers, updateTeamName, deleteTeam, deleteTeamMember, getStudentTeamDetails, type StudentTeamMember, type FullTeamDetails, type TeamMemberRole } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, UserPlus, Trash2, Edit, Save, Upload, X } from 'lucide-react';
+import { ArrowLeft, UserPlus, Trash2, Edit, Save, Upload, X, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -18,76 +18,120 @@ import { MemberFormDialog } from './MemberFormDialog';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, FormControl, FormField, FormItem, FormMessage } from '../ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const bulkAddSchema = z.object({
-  membersJson: z.string().refine(val => {
-    try {
-        const parsed = JSON.parse(val);
-        return Array.isArray(parsed) && parsed.every(item => 
-            typeof item.name === 'string' &&
-            (typeof item.email === 'string' || typeof item.email === 'undefined' || item.email === null) &&
-            (typeof item.mobile === 'string' || typeof item.mobile === 'undefined' || item.mobile === null)
-        );
-    } catch {
-        return false;
-    }
-  }, { message: 'Invalid JSON format. Must be an array of member objects with at least a name.' }),
-});
+
+const roles: TeamMemberRole[] = ['Player', 'Vice-Captain', 'Captain'];
 
 function BulkAddDialog({ teamId, onSuccess }: { teamId: string, onSuccess: () => void }) {
     const { toast } = useToast();
     const [isOpen, setIsOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const form = useForm<z.infer<typeof bulkAddSchema>>({
-        resolver: zodResolver(bulkAddSchema),
-        defaultValues: { membersJson: '[\n  {\n    "name": "Player One",\n    "email": "player1@example.com",\n    "mobile": "9876543210",\n    "role": "Player"\n  }\n]' },
-    });
+    const [members, setMembers] = useState<{name: string, role: TeamMemberRole}[]>([]);
+    const [currentName, setCurrentName] = useState('');
+    const [currentRole, setCurrentRole] = useState<TeamMemberRole>('Player');
 
-    const onSubmit = async (values: z.infer<typeof bulkAddSchema>) => {
+    const handleAddToList = () => {
+        if (!currentName.trim()) {
+            toast({ variant: 'destructive', title: 'Name is required' });
+            return;
+        }
+        setMembers(prev => [...prev, { name: currentName, role: currentRole }]);
+        setCurrentName('');
+        setCurrentRole('Player');
+    };
+
+    const handleRemoveFromList = (index: number) => {
+        setMembers(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleSubmit = async () => {
+        if (members.length === 0) {
+            toast({ variant: 'destructive', title: 'No members to add' });
+            return;
+        }
+        setIsSubmitting(true);
         try {
-            const members = JSON.parse(values.membersJson);
             await bulkAddTeamMembers(teamId, members);
             toast({ title: "Bulk Add Successful", description: `${members.length} members have been added.` });
+            setMembers([]); // Clear list on success
             onSuccess();
             setIsOpen(false);
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Bulk Add Failed', description: error.response?.data?.message || 'An error occurred.' });
+        } finally {
+            setIsSubmitting(false);
         }
     };
+    
+    useEffect(() => {
+        if (!isOpen) {
+            setMembers([]);
+            setCurrentName('');
+            setCurrentRole('Player');
+            setIsSubmitting(false);
+        }
+    }, [isOpen]);
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
                 <Button variant="outline"><Upload className="mr-2 h-4 w-4" /> Bulk Add</Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle>Bulk Add Members</DialogTitle>
-                    <DialogDescription>Paste a JSON array of member objects to add them in bulk.</DialogDescription>
+                    <DialogDescription>Add multiple team members using the form below. They will all be added at once when you submit.</DialogDescription>
                 </DialogHeader>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                        <FormField control={form.control} name="membersJson" render={({ field }) => (
-                            <FormItem>
-                                <Label>Members JSON</Label>
-                                <FormControl>
-                                    <Textarea {...field} rows={10} placeholder='[{"name": "...", "email": "...", "mobile": "..."}]' />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
-                        <DialogFooter>
-                            <DialogClose asChild><Button type="button" variant="ghost">Cancel</Button></DialogClose>
-                            <Button type="submit" disabled={form.formState.isSubmitting}>Submit</Button>
-                        </DialogFooter>
-                    </form>
-                </Form>
+                
+                <div className="space-y-4 py-4">
+                    <div className="flex items-end gap-2">
+                        <div className="grid flex-1 gap-2">
+                            <Label htmlFor="new-member-name">Member Name</Label>
+                            <Input id="new-member-name" value={currentName} onChange={e => setCurrentName(e.target.value)} placeholder="Enter name"/>
+                        </div>
+                        <div className="grid w-[150px] gap-2">
+                            <Label htmlFor="new-member-role">Role</Label>
+                            <Select value={currentRole} onValueChange={(value) => setCurrentRole(value as TeamMemberRole)}>
+                                <SelectTrigger id="new-member-role">
+                                    <SelectValue placeholder="Select role" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {roles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <Button type="button" onClick={handleAddToList}>Add</Button>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label>Members to Add ({members.length})</Label>
+                        <div className="border rounded-md max-h-60 overflow-y-auto p-2 space-y-2">
+                            {members.length === 0 && <p className="text-center text-sm text-muted-foreground py-4">No members added yet.</p>}
+                            {members.map((member, index) => (
+                                <div key={index} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
+                                    <div>
+                                        <p className="font-medium">{member.name}</p>
+                                        <p className="text-xs text-muted-foreground">{member.role}</p>
+                                    </div>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemoveFromList(index)}>
+                                        <X className="h-4 w-4"/>
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                <DialogFooter>
+                    <DialogClose asChild><Button type="button" variant="ghost">Cancel</Button></DialogClose>
+                    <Button onClick={handleSubmit} disabled={isSubmitting || members.length === 0}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                        Add {members.length > 0 ? members.length : ''} Members
+                    </Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     );
