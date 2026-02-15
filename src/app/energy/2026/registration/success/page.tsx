@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -5,7 +6,7 @@ import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle, CardFooter, CardContent } from '@/components/ui/card';
-import { CheckCircle, Loader2, Download, ArrowRight, User, Mail, Phone, IndianRupee, Dribbble } from 'lucide-react';
+import { CheckCircle, Loader2, Download, ArrowRight, User, Mail, Phone, IndianRupee, Dribbble, FileText } from 'lucide-react';
 import { getRegistration, type Registration } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { ShareButton } from '@/components/shared/share-button';
@@ -141,6 +142,12 @@ function SuccessPageContent() {
                 </div>
             </CardContent>
             <CardFooter className="flex-col gap-2 border-t pt-6">
+                <Button asChild className="w-full">
+                    <Link href={detailsUrl}>
+                        <FileText className="mr-2 h-4 w-4" />
+                        View Details
+                    </Link>
+                </Button>
                  <Button asChild className="w-full" variant="outline">
                     <Link href="/energy/2026/auth">Login to Your Portal <ArrowRight className="ml-2"/></Link>
                 </Button>
