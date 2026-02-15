@@ -1,20 +1,21 @@
+
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import { getStudentSession, type StudentSession } from '@/lib/auth';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import React, { useMemo, useState } from 'react';
+import { useDashboard } from './layout';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { getStudentDashboardOverview, createStudentTeam, type StudentDashboardOverview, type DashboardSport, type ApiSport } from '@/lib/api';
 import { Progress } from '@/components/ui/progress';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { createStudentTeam, type ApiSport } from '@/lib/api';
+import type { StudentDashboardOverview } from '@/lib/api';
 
 
 function RegistrationDetailsCard({ registration }: { registration: StudentDashboardOverview['registration'] }) {
@@ -65,7 +66,7 @@ function CreateTeamDialog({ sport, onTeamCreated, collegeName }: { sport: ApiSpo
     const [isCreating, setIsCreating] = useState(false);
     const { toast } = useToast();
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (collegeName && sport) {
             const generatedName = `${collegeName} - ${sport.name} - ${sport.category}`.toUpperCase();
             setTeamName(generatedName);
@@ -113,9 +114,8 @@ function CreateTeamDialog({ sport, onTeamCreated, collegeName }: { sport: ApiSpo
     )
 }
 
-function SportCard({ sport, onTeamCreated, collegeName }: { sport: DashboardSport & { category: string }, onTeamCreated: () => void, collegeName: string }) {
-    const teamSport = sport as ApiSport; // To pass to Dialog
-
+function SportCard({ sport, onTeamCreated, collegeName }: { sport: any, onTeamCreated: () => void, collegeName: string }) {
+    
     return (
         <Card>
             <CardHeader>
@@ -148,7 +148,7 @@ function SportCard({ sport, onTeamCreated, collegeName }: { sport: DashboardSpor
                             <DialogTrigger asChild>
                                 <Button className="w-full">Create Team</Button>
                             </DialogTrigger>
-                           <CreateTeamDialog sport={teamSport} onTeamCreated={onTeamCreated} collegeName={collegeName} />
+                           <CreateTeamDialog sport={sport} onTeamCreated={onTeamCreated} collegeName={collegeName} />
                         </Dialog>
                      )}
                  </CardFooter>
@@ -158,35 +158,9 @@ function SportCard({ sport, onTeamCreated, collegeName }: { sport: DashboardSpor
 }
 
 export default function StudentDashboardPage() {
-    const router = useRouter();
-    const { toast } = useToast();
-    const [session, setSession] = useState<StudentSession | null>(null);
-    const [dashboardData, setDashboardData] = useState<StudentDashboardOverview | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-
-    const fetchDashboardData = async () => {
-        setIsLoading(true);
-        try {
-            const data = await getStudentDashboardOverview();
-            setDashboardData(data);
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not load your dashboard.' });
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        const studentSession = getStudentSession();
-        if (!studentSession) {
-            router.replace('/energy/2026/auth?action=login');
-        } else {
-            setSession(studentSession);
-            fetchDashboardData();
-        }
-    }, [router]);
-
-    const processedSports: (DashboardSport & {category: string})[] = useMemo(() => {
+    const { dashboardData, isLoading, refetch } = useDashboard();
+    
+    const processedSports = useMemo(() => {
         if (!dashboardData) return [];
         return dashboardData.registered_sports.map(sport => {
             const teamInfo = dashboardData.teams.find(t => t.sport_id === sport.id);
@@ -195,34 +169,24 @@ export default function StudentDashboardPage() {
                 team: teamInfo ? {
                     id: teamInfo.id,
                     team_name: teamInfo.team_name,
-                    members_count: teamInfo.members_count,
+                    members_count: teamInfo.Members.length,
                 } : null
             };
         });
     }, [dashboardData]);
 
-    const handleLogout = () => {
-        localStorage.removeItem('student_token');
-        localStorage.removeItem('student_session');
-        toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
-        router.push('/energy/2026');
-    };
 
-    if (isLoading || !session) {
+    if (isLoading) {
         return (
-            <div className="flex h-[50vh] items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin" />
+            <div className="space-y-6">
+                <Card><CardHeader><CardTitle>My Profile</CardTitle></CardHeader><CardContent><Loader2 className="h-8 w-8 animate-spin" /></CardContent></Card>
+                <Card><CardHeader><CardTitle>My Sports Registrations</CardTitle></CardHeader><CardContent><Loader2 className="h-8 w-8 animate-spin" /></CardContent></Card>
             </div>
         );
     }
-
+    
     return (
-        <div className="container py-8 md:py-12 space-y-8">
-            <div className="mb-8">
-                <h1 className="text-4xl font-bold font-headline">Welcome, {session.name}!</h1>
-                <p className="text-muted-foreground mt-2">Manage your registrations and teams.</p>
-            </div>
-            
+        <div className="space-y-6">
             {dashboardData?.registration && <RegistrationDetailsCard registration={dashboardData.registration} />}
             
             <Card>
@@ -234,7 +198,12 @@ export default function StudentDashboardPage() {
                     {processedSports.length > 0 ? (
                         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {processedSports.map(sport => (
-                                <SportCard key={sport.id} sport={sport} onTeamCreated={fetchDashboardData} collegeName={session.college_name} />
+                                <SportCard 
+                                    key={sport.id} 
+                                    sport={sport} 
+                                    onTeamCreated={refetch} 
+                                    collegeName={dashboardData?.registration.college || ''} 
+                                />
                             ))}
                         </div>
                     ) : (
@@ -242,15 +211,6 @@ export default function StudentDashboardPage() {
                             {isLoading ? 'Loading your registrations...' : 'You have not registered for any sports yet.'}
                         </p>
                     )}
-                </CardContent>
-            </Card>
-            
-            <Card>
-                <CardHeader>
-                    <CardTitle>Account Settings</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <Button variant="destructive" onClick={handleLogout}>Logout</Button>
                 </CardContent>
             </Card>
         </div>

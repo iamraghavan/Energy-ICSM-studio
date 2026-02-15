@@ -140,16 +140,12 @@ export type StudentTeamMember = {
     additional_details?: any;
 };
 
-export type DashboardSport = {
-    id: number;
-    name: string;
-    type: 'Team' | 'Individual';
-    max_players: number;
-    team: {
-        id: string;
-        team_name: string;
-        members_count: number;
-    } | null;
+export type FullTeamDetails = {
+    id: string;
+    team_name: string;
+    sport_id: number;
+    Sport: ApiSport;
+    Members: StudentTeamMember[];
 };
 
 export type StudentDashboardOverview = {
@@ -163,20 +159,7 @@ export type StudentDashboardOverview = {
         payment_status: string;
     };
     registered_sports: ApiSport[];
-    teams: {
-        id: string;
-        sport_id: number;
-        team_name: string;
-        members_count: number;
-    }[];
-};
-
-export type FullTeamDetails = {
-    id: string;
-    team_name: string;
-    sport_id: number;
-    Sport: ApiSport;
-    Members: StudentTeamMember[];
+    teams: FullTeamDetails[];
 };
 
 export type StudentLoginResponse = {
@@ -500,6 +483,15 @@ export const deleteTeam = async (teamId: string) => {
     return response.data;
 };
 
+export const bulkAddTeamMembers = async (teamId: string, members: Omit<StudentTeamMember, 'id'>[]) => {
+    const response = await api.post(`/dashboard/teams/${teamId}/members/bulk`, { members });
+    return response.data;
+};
+
+export const bulkDeleteTeamMembers = async (memberIds: string[]) => {
+    const response = await api.delete(`/dashboard/members/bulk`, { data: { memberIds } });
+    return response.data;
+};
 
 export type ApiMatch = {
     id: string;

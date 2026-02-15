@@ -1,50 +1,119 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
-import { getStudentTeamDetails, deleteTeam, deleteTeamMember, updateTeamName, type FullTeamDetails, type StudentTeamMember } from '@/lib/api';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useDashboard } from '@/app/energy/2026/student/dashboard/layout';
+import { bulkAddTeamMembers, bulkDeleteTeamMembers, updateTeamName, deleteTeam, deleteTeamMember, type StudentTeamMember, type FullTeamDetails } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, UserPlus, Trash2, Edit, Save } from 'lucide-react';
+import { ArrowLeft, UserPlus, Trash2, Edit, Save, Upload, X } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { MemberFormDialog } from './MemberFormDialog';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Form, FormControl, FormField, FormItem, FormMessage } from '../ui/form';
+
+const bulkAddSchema = z.object({
+  membersJson: z.string().refine(val => {
+    try {
+        const parsed = JSON.parse(val);
+        return Array.isArray(parsed) && parsed.every(item => 
+            typeof item.name === 'string' &&
+            typeof item.email === 'string' &&
+            typeof item.mobile === 'string'
+        );
+    } catch {
+        return false;
+    }
+  }, { message: 'Invalid JSON format. Must be an array of member objects with name, email, and mobile.' }),
+});
+
+function BulkAddDialog({ teamId, onSuccess }: { teamId: string, onSuccess: () => void }) {
+    const { toast } = useToast();
+    const [isOpen, setIsOpen] = useState(false);
+
+    const form = useForm<z.infer<typeof bulkAddSchema>>({
+        resolver: zodResolver(bulkAddSchema),
+        defaultValues: { membersJson: '[\n  {\n    "name": "Player One",\n    "email": "player1@example.com",\n    "mobile": "9876543210",\n    "role": "Player"\n  }\n]' },
+    });
+
+    const onSubmit = async (values: z.infer<typeof bulkAddSchema>) => {
+        try {
+            const members = JSON.parse(values.membersJson);
+            await bulkAddTeamMembers(teamId, members);
+            toast({ title: "Bulk Add Successful", description: `${members.length} members have been added.` });
+            onSuccess();
+            setIsOpen(false);
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Bulk Add Failed', description: error.response?.data?.message || 'An error occurred.' });
+        }
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline"><Upload className="mr-2 h-4 w-4" /> Bulk Add</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Bulk Add Members</DialogTitle>
+                    <DialogDescription>Paste a JSON array of member objects to add them in bulk.</DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <FormField control={form.control} name="membersJson" render={({ field }) => (
+                            <FormItem>
+                                <Label>Members JSON</Label>
+                                <FormControl>
+                                    <Textarea {...field} rows={10} placeholder='[{"name": "...", "email": "...", "mobile": "..."}]' />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <DialogFooter>
+                            <DialogClose asChild><Button type="button" variant="ghost">Cancel</Button></DialogClose>
+                            <Button type="submit" disabled={form.formState.isSubmitting}>Submit</Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+    );
+}
 
 export function ManageTeamClientPage({ teamId }: { teamId: string }) {
-    const [team, setTeam] = useState<FullTeamDetails | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const { dashboardData, isLoading: isDashboardLoading, refetch } = useDashboard();
     const [isEditingName, setIsEditingName] = useState(false);
     const [newTeamName, setNewTeamName] = useState('');
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [selectedMember, setSelectedMember] = useState<StudentTeamMember | null>(null);
+    const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
 
     const { toast } = useToast();
     const router = useRouter();
 
-    const fetchTeamDetails = async () => {
-        setIsLoading(true);
-        try {
-            const data = await getStudentTeamDetails(teamId);
-            setTeam(data);
-            setNewTeamName(data.team_name);
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch team details.' });
-            router.push('/energy/2026/student/dashboard');
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    const team = useMemo(() => {
+        if (!dashboardData) return null;
+        return dashboardData.teams.find(t => t.id === teamId) || null;
+    }, [dashboardData, teamId]);
 
     useEffect(() => {
-        if (teamId) {
-            fetchTeamDetails();
+        if (team) {
+            setNewTeamName(team.team_name);
         }
-    }, [teamId]);
+    }, [team]);
 
     const handleUpdateTeamName = async () => {
         if (!team || newTeamName === team.team_name) {
@@ -53,8 +122,8 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
         }
         try {
             await updateTeamName(team.id, newTeamName);
-            setTeam(prev => prev ? { ...prev, team_name: newTeamName } : null);
             toast({ title: 'Success', description: 'Team name updated.' });
+            refetch(); // Refetch all dashboard data
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to update team name.' });
         } finally {
@@ -77,9 +146,21 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
         try {
             await deleteTeamMember(memberId);
             toast({ title: 'Success', description: 'Team member removed.' });
-            fetchTeamDetails();
+            refetch();
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to remove member.' });
+        }
+    };
+    
+    const handleBulkDelete = async () => {
+        if (selectedMemberIds.length === 0) return;
+        try {
+            await bulkDeleteTeamMembers(selectedMemberIds);
+            toast({ title: "Bulk Delete Successful", description: `${selectedMemberIds.length} members removed.` });
+            setSelectedMemberIds([]);
+            refetch();
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Bulk Delete Failed', description: 'Could not remove members.' });
         }
     };
 
@@ -88,7 +169,11 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
         setIsFormOpen(true);
     };
 
-    if (isLoading) {
+    const handleSelectMember = (memberId: string, isSelected: boolean) => {
+        setSelectedMemberIds(prev => isSelected ? [...prev, memberId] : prev.filter(id => id !== memberId));
+    };
+
+    if (isDashboardLoading) {
         return (
             <div className="container py-8 space-y-6">
                 <Skeleton className="h-10 w-48" />
@@ -98,15 +183,23 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
     }
     
     if (!team) {
-        return null;
+        return (
+             <div className="container py-8 text-center">
+                <p>Team not found or data is still loading...</p>
+                <Button variant="outline" onClick={() => router.push('/energy/2026/student/dashboard')} className="mt-4">
+                    <ArrowLeft className="mr-2 h-4 w-4"/> Back to Dashboard
+                </Button>
+            </div>
+        );
     }
     
     const memberCount = team.Members.length;
     const maxPlayers = team.Sport.max_players;
     const progressValue = (memberCount / maxPlayers) * 100;
+    const allMembersSelected = selectedMemberIds.length === team.Members.length && team.Members.length > 0;
 
     return (
-        <div className="container py-8 space-y-6">
+        <div className="space-y-6">
             <Button variant="outline" onClick={() => router.push('/energy/2026/student/dashboard')}><ArrowLeft className="mr-2 h-4 w-4"/> Back to Dashboard</Button>
             
             <Card>
@@ -133,18 +226,50 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
                         <Progress value={progressValue} />
                     </div>
 
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
                         <h3 className="text-xl font-semibold">Team Roster</h3>
-                        <Button onClick={() => handleOpenForm(null)} disabled={memberCount >= maxPlayers}>
-                            <UserPlus className="mr-2 h-4 w-4" />
-                            Add Member
-                        </Button>
+                        <div className="flex gap-2">
+                            {selectedMemberIds.length > 0 ? (
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="destructive">
+                                            <Trash2 className="mr-2 h-4 w-4" /> Delete ({selectedMemberIds.length})
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Delete {selectedMemberIds.length} members?</AlertDialogTitle>
+                                            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction onClick={handleBulkDelete}>Confirm Delete</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            ) : (
+                                <>
+                                 <BulkAddDialog teamId={team.id} onSuccess={refetch} />
+                                <Button onClick={() => handleOpenForm(null)} disabled={memberCount >= maxPlayers}>
+                                    <UserPlus className="mr-2 h-4 w-4" />
+                                    Add Member
+                                </Button>
+                                </>
+                            )}
+                        </div>
                     </div>
 
                      <div className="border rounded-lg">
                         <Table>
                             <TableHeader>
                                 <TableRow>
+                                    <TableHead className="w-[50px]">
+                                        <Checkbox 
+                                            checked={allMembersSelected} 
+                                            onCheckedChange={(checked) => setSelectedMemberIds(checked ? team.Members.map(m => m.id) : [])}
+                                            aria-label="Select all rows"
+                                        />
+                                    </TableHead>
                                     <TableHead>Name</TableHead>
                                     <TableHead className="hidden sm:table-cell">Email</TableHead>
                                     <TableHead>Role</TableHead>
@@ -153,9 +278,16 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
                             </TableHeader>
                             <TableBody>
                                 {team.Members.length === 0 ? (
-                                    <TableRow><TableCell colSpan={4} className="text-center h-24">No members added yet.</TableCell></TableRow>
+                                    <TableRow><TableCell colSpan={5} className="text-center h-24">No members added yet.</TableCell></TableRow>
                                 ) : team.Members.map(member => (
-                                    <TableRow key={member.id}>
+                                    <TableRow key={member.id} data-state={selectedMemberIds.includes(member.id) && "selected"}>
+                                        <TableCell>
+                                            <Checkbox
+                                                checked={selectedMemberIds.includes(member.id)}
+                                                onCheckedChange={(checked) => handleSelectMember(member.id, !!checked)}
+                                                aria-label={`Select row for ${member.name}`}
+                                            />
+                                        </TableCell>
                                         <TableCell className="font-medium">{member.name}</TableCell>
                                         <TableCell className="hidden sm:table-cell">{member.email}</TableCell>
                                         <TableCell><Badge variant={member.role === 'Captain' ? 'default' : 'secondary'}>{member.role}</Badge></TableCell>
@@ -210,7 +342,7 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
                 teamId={team.id}
                 sportName={team.Sport.name}
                 existingMember={selectedMember}
-                onSuccess={fetchTeamDetails}
+                onSuccess={refetch}
             />
         </div>
     );
