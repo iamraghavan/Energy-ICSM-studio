@@ -402,9 +402,14 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
         formData.append('mobile', data.mobile);
         formData.append('whatsapp', data.isWhatsappSame ? data.mobile : data.whatsapp || '');
         
-        const [city, state] = data.cityState.split(',').map(s => s.trim());
-        if(city) formData.append('city', city);
-        if(state) formData.append('state', state || city);
+        const cityStateParts = data.cityState.split(',').map(s => s.trim());
+        const city = cityStateParts[0];
+        const state = cityStateParts[1] || city;
+        
+        if (city) {
+            formData.append('city', city);
+            formData.append('state', state);
+        }
 
         formData.append('other_college', data.collegeName);
         
