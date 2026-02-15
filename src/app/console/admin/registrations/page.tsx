@@ -18,7 +18,6 @@ import { Calendar as CalendarIcon, MoreHorizontal, Search, X, Eye } from 'lucide
 import { Calendar } from '@/components/ui/calendar';
 import { DateRange } from 'react-day-picker';
 import { cn } from '@/lib/utils';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 
 export default function AllRegistrationsPage() {
@@ -53,9 +52,9 @@ export default function AllRegistrationsPage() {
         getSports(),
         getColleges()
       ]);
-      setRegistrations(regData);
-      setSports(sportsData);
-      setColleges(collegeData.filter(c => c.id !== 'other')); // Exclude 'Other' option
+      setRegistrations(regData || []);
+      setSports(sportsData || []);
+      setColleges(collegeData?.filter(c => c && c.id !== 'other') || []); // Exclude 'Other' option
       setError(null);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch data.');
@@ -85,18 +84,23 @@ export default function AllRegistrationsPage() {
 
   const filteredRegistrations = useMemo(() => {
     return registrations.filter(reg => {
+      if (!reg || !reg.Student) { // Guard against malformed registration objects
+          return false;
+      }
       const lowerSearchTerm = searchTerm.toLowerCase();
+      
       const searchMatch = lowerSearchTerm === '' ||
-        reg.Student.name.toLowerCase().includes(lowerSearchTerm) ||
+        reg.Student.name?.toLowerCase().includes(lowerSearchTerm) ||
         (reg.Student.other_college || reg.Student.College?.name || '').toLowerCase().includes(lowerSearchTerm) ||
         (reg.Sports || []).some(s => s?.name?.toLowerCase().includes(lowerSearchTerm)) ||
-        reg.registration_code.toLowerCase().includes(lowerSearchTerm);
+        reg.registration_code?.toLowerCase().includes(lowerSearchTerm);
 
       const sportMatch = !filters.sport || (reg.Sports || []).some(s => s && String(s.id) === filters.sport);
       const collegeMatch = !filters.college || reg.Student.college_id === filters.college;
       const paymentStatusMatch = !filters.paymentStatus || reg.payment_status === filters.paymentStatus;
       const registrationStatusMatch = !filters.registrationStatus || reg.status === filters.registrationStatus;
 
+      if (!reg.created_at) return false;
       const regDate = new Date(reg.created_at);
       const dateMatch = !date || (
         (!date.from || regDate >= date.from) &&
@@ -173,10 +177,10 @@ export default function AllRegistrationsPage() {
                 {filteredRegistrations.map((reg) => (
                     <TableRow key={reg.id}>
                         <TableCell>
-                            <div className="font-medium">{reg.Student.name}</div>
+                            <div className="font-medium">{reg.Student?.name || 'N/A'}</div>
                             <div className="text-xs text-muted-foreground font-mono">{reg.registration_code}</div>
                         </TableCell>
-                        <TableCell className="hidden lg:table-cell">{reg.Student.other_college || reg.Student.College?.name}</TableCell>
+                        <TableCell className="hidden lg:table-cell">{reg.Student?.other_college || reg.Student?.College?.name || 'N/A'}</TableCell>
                         <TableCell className="hidden md:table-cell">{(reg.Sports || []).map(s => s?.name).filter(Boolean).join(', ')}</TableCell>
                         <TableCell className="hidden lg:table-cell">{format(new Date(reg.created_at), 'PPP')}</TableCell>
                         <TableCell>
@@ -270,13 +274,13 @@ export default function AllRegistrationsPage() {
                      <Select value={filters.sport} onValueChange={(v) => handleFilterChange('sport', v)}>
                         <SelectTrigger className="w-full sm:w-auto"><SelectValue placeholder="Sport" /></SelectTrigger>
                         <SelectContent>
-                            {sports.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
+                            {sports.map(s => s && <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
                     <Select value={filters.college} onValueChange={(v) => handleFilterChange('college', v)}>
                         <SelectTrigger className="w-full sm:w-auto"><SelectValue placeholder="College" /></SelectTrigger>
                         <SelectContent>
-                            {colleges.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
+                            {colleges.map(c => c && <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
                      <Select value={filters.paymentStatus} onValueChange={(v) => handleFilterChange('paymentStatus', v)}>
@@ -354,5 +358,3 @@ export default function AllRegistrationsPage() {
     </>
   );
 }
-
-    
