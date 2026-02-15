@@ -16,13 +16,21 @@ import { Loader2 } from 'lucide-react';
 
 const memberFormSchema = z.object({
   name: z.string().min(3, "Name is required."),
-  email: z.string().email("A valid email is required."),
-  mobile: z.string().length(10, "Must be a 10-digit mobile number."),
+  email: z.string().email({ message: "Please enter a valid email." }).optional().or(z.literal('')),
+  mobile: z.string().optional().or(z.literal('')),
   role: z.enum(['Captain', 'Vice-Captain', 'Player']),
   sport_role: z.string().optional(),
   batting_style: z.string().optional(),
   bowling_style: z.string().optional(),
   is_wicket_keeper: z.boolean().default(false),
+}).refine(data => {
+    if (data.mobile && data.mobile.length > 0) {
+        return /^\d{10}$/.test(data.mobile);
+    }
+    return true;
+}, {
+    message: "Mobile number must be 10 digits.",
+    path: ['mobile'],
 });
 
 type MemberFormValues = z.infer<typeof memberFormSchema>;
