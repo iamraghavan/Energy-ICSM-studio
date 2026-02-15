@@ -11,13 +11,21 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/shared/logo';
-import { Loader2, Mail, KeyRound } from 'lucide-react';
+import { Loader2, Mail, KeyRound, Phone } from 'lucide-react';
 import { requestStudentOtp, verifyStudentOtp } from '@/lib/api';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const requestOtpSchema = z.object({
-  identifier: z.string().min(1, { message: "Please enter your email or WhatsApp number." }),
+
+// Schemas for each login method
+const emailSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email address." }),
 });
-type RequestOtpFormValues = z.infer<typeof requestOtpSchema>;
+type EmailFormValues = z.infer<typeof emailSchema>;
+
+const whatsappSchema = z.object({
+  whatsapp: z.string().length(10, { message: "WhatsApp number must be 10 digits." }).regex(/^\d+$/, "Only digits are allowed."),
+});
+type WhatsappFormValues = z.infer<typeof whatsappSchema>;
 
 const verifyOtpSchema = z.object({
     otp: z.string().length(6, { message: "OTP must be 6 digits."}),
@@ -32,9 +40,14 @@ function StudentAuthForm() {
   const [step, setStep] = useState<'request' | 'verify'>('request');
   const [identifier, setIdentifier] = useState('');
   
-  const requestForm = useForm<RequestOtpFormValues>({
-    resolver: zodResolver(requestOtpSchema),
-    defaultValues: { identifier: '' },
+  const emailForm = useForm<EmailFormValues>({
+    resolver: zodResolver(emailSchema),
+    defaultValues: { email: '' },
+  });
+
+  const whatsappForm = useForm<WhatsappFormValues>({
+    resolver: zodResolver(whatsappSchema),
+    defaultValues: { whatsapp: '' },
   });
 
   const verifyForm = useForm<VerifyOtpFormValues>({
@@ -42,17 +55,7 @@ function StudentAuthForm() {
     defaultValues: { otp: '' },
   });
 
-  const handleRequestOtp = async (data: RequestOtpFormValues) => {
-    setIsSubmitting(true);
-    try {
-      await requestStudentOtp(data.identifier);
-      setIdentifier(data.identifier);
-      setStep('verify');
-      toast({
-        title: 'OTP Sent!',
-        description: 'Please check your email or WhatsApp for the OTP.',
-      });
-    } catch (error: any) {
+  const handleApiError = (error: any) => {
       if (error.response?.data?.needsRegistration) {
          toast({
           variant: 'destructive',
@@ -67,6 +70,20 @@ function StudentAuthForm() {
           description: error.response?.data?.message || 'An error occurred. Please try again.',
         });
       }
+  }
+
+  const handleRequestOtp = async (id: string) => {
+    setIsSubmitting(true);
+    try {
+      await requestStudentOtp(id);
+      setIdentifier(id);
+      setStep('verify');
+      toast({
+        title: 'OTP Sent!',
+        description: 'Please check your email or WhatsApp for the OTP.',
+      });
+    } catch (error: any) {
+      handleApiError(error);
     } finally {
         setIsSubmitting(false);
     }
@@ -113,43 +130,60 @@ function StudentAuthForm() {
             <CardTitle className="font-headline text-3xl mt-4">Student Portal</CardTitle>
         </CardHeader>
         <CardContent>
-            {step === 'request' && (
-                <>
-                <CardDescription className="text-center mb-6">
-                    Enter the email or WhatsApp number you used during registration to receive a login code.
-                </CardDescription>
-                <Form {...requestForm}>
-                    <form onSubmit={requestForm.handleSubmit(handleRequestOtp)} className="space-y-6">
-                    <FormField
-                        control={requestForm.control}
-                        name="identifier"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel className="sr-only">Email or WhatsApp Number</FormLabel>
-                            <FormControl>
-                               <div className="relative">
-                                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                    <Input
-                                        placeholder="you@example.com or 9876543210"
-                                        className="pl-10"
-                                        {...field}
-                                    />
-                               </div>
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
-                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Send OTP
-                    </Button>
-                    </form>
-                </Form>
-                </>
-            )}
-
-            {step === 'verify' && (
+            {step === 'request' ? (
+                <Tabs defaultValue="email" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="email"><Mail className="mr-2 h-4 w-4"/> Email</TabsTrigger>
+                        <TabsTrigger value="whatsapp"><Phone className="mr-2 h-4 w-4"/> WhatsApp</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="email">
+                        <CardDescription className="text-center my-6">
+                            Enter the email you used during registration to receive a login code.
+                        </CardDescription>
+                        <Form {...emailForm}>
+                            <form onSubmit={emailForm.handleSubmit((data) => handleRequestOtp(data.email))} className="space-y-6">
+                                <FormField control={emailForm.control} name="email" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="sr-only">Email Address</FormLabel>
+                                        <FormControl>
+                                            <div className="relative">
+                                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                                <Input type="email" placeholder="you@example.com" className="pl-10" {...field} />
+                                            </div>
+                                        </FormControl><FormMessage />
+                                    </FormItem>
+                                )} />
+                                <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+                                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Send OTP
+                                </Button>
+                            </form>
+                        </Form>
+                    </TabsContent>
+                    <TabsContent value="whatsapp">
+                        <CardDescription className="text-center my-6">
+                            Enter the WhatsApp number you used during registration to receive a login code.
+                        </CardDescription>
+                        <Form {...whatsappForm}>
+                            <form onSubmit={whatsappForm.handleSubmit((data) => handleRequestOtp(data.whatsapp))} className="space-y-6">
+                                <FormField control={whatsappForm.control} name="whatsapp" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="sr-only">WhatsApp Number</FormLabel>
+                                        <FormControl>
+                                            <div className="relative">
+                                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><span className="text-muted-foreground">+91</span></div>
+                                                <Input type="tel" placeholder="Enter 10-digit number" inputMode="numeric" maxLength={10} className="pl-12" {...field} />
+                                            </div>
+                                        </FormControl><FormMessage />
+                                    </FormItem>
+                                )} />
+                                <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+                                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Send OTP
+                                </Button>
+                            </form>
+                        </Form>
+                    </TabsContent>
+                </Tabs>
+            ) : (
                  <>
                 <CardDescription className="text-center mb-6">
                     An OTP has been sent to <br/> <span className="font-semibold text-foreground">{identifier}</span>.

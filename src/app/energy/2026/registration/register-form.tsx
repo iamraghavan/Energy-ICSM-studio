@@ -16,10 +16,12 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
 import { registerStudent, type ApiSport } from "@/lib/api";
-import { Loader2, Check, Copy, Download, AlertTriangle } from "lucide-react";
+import { Loader2, Check, Copy, Download, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/shared/logo";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "application/pdf"];
@@ -482,6 +484,13 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                             
                             <FormSection title="Personal Details">
+                                <Alert>
+                                    <Info className="h-4 w-4" />
+                                    <AlertTitle>Login Information</AlertTitle>
+                                    <AlertDescription>
+                                        Please note: Your <strong>Email Address</strong> and <strong>WhatsApp Number</strong> will be used to log into the student portal.
+                                    </AlertDescription>
+                                </Alert>
                                 <div className="grid md:grid-cols-2 gap-4">
                                     <FormField name="fullName" control={control} render={({ field }) => (
                                         <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="Enter your full name" {...field} /></FormControl><FormMessage /></FormItem>
