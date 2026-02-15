@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Dialog,
@@ -61,7 +62,7 @@ export function VerifyPaymentModal({
                     <InfoRow label="Email" value={registration.Student.email} />
                     <InfoRow label="Mobile" value={registration.Student.mobile} />
                     <InfoRow label="College" value={registration.Student.other_college} />
-                    <InfoRow label="Sport" value={registration.Sport?.name} />
+                    <InfoRow label="Sports" value={registration.Sports?.map(s => s.name).join(', ')} />
                     <InfoRow label="Team Name" value={registration.Team?.team_name} />
                     <InfoRow label="Transaction ID" value={registration.Payment?.txn_id} isMono />
                     <InfoRow label="Amount" value={registration.Payment?.amount ? `₹${registration.Payment.amount}` : 'N/A'} />
@@ -131,3 +132,5 @@ function InfoRow({label, value, isMono = false}: {label: string, value: string |
         </div>
     )
 }
+
+    
