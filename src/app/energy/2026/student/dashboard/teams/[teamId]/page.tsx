@@ -1,4 +1,3 @@
-'use client';
 
 import { Suspense } from 'react';
 import { ManageTeamClientPage } from '@/components/student-dashboard/ManageTeamClientPage';

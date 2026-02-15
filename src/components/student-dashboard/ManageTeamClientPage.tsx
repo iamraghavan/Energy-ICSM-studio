@@ -210,6 +210,17 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
             </div>
         );
     }
+
+    if (!team.Sport || !team.Members) {
+        return (
+             <div className="container py-8 text-center">
+                <p className="text-destructive">Incomplete team data received. Cannot display page.</p>
+                <Button variant="outline" onClick={() => router.push('/energy/2026/student/dashboard')} className="mt-4">
+                    <ArrowLeft className="mr-2 h-4 w-4"/> Back to Dashboard
+                </Button>
+            </div>
+        );
+    }
     
     const memberCount = team.Members.length;
     const maxPlayers = team.Sport.max_players;
