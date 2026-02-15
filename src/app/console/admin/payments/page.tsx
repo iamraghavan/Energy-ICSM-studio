@@ -1,15 +1,12 @@
-
-
 'use client';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getPayments, verifyPayment, type Registration, getSports, type ApiSport } from '@/lib/api';
+import { getPayments, type Registration, getSports, type ApiSport } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
-import { VerifyPaymentModal } from '@/components/console/admin/VerifyPaymentModal';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,8 +22,6 @@ export default function AllPaymentsPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedRegistration, setSelectedRegistration] = useState<Registration | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   
   const { toast } = useToast();
 
@@ -63,41 +58,15 @@ export default function AllPaymentsPage() {
   }, [filters]);
 
   const handleFilterChange = (filterName: keyof typeof filters, value: string) => {
-    setFilters(prev => ({ ...prev, [filterName]: value === 'all' ? '' : v }));
+    setFilters(prev => ({ ...prev, [filterName]: value === 'all' ? '' : value }));
   };
 
   const clearFilters = () => {
     setFilters({ sport_id: '', status: '' });
   };
   
-  const handleVerifyClick = (registration: Registration) => {
-    setSelectedRegistration(registration);
-    setIsModalOpen(true);
-  };
-
-  const handleModalClose = () => {
-    setIsModalOpen(false);
-    setSelectedRegistration(null);
-  };
-
-  const handleVerification = async (registrationId: string, status: 'approved' | 'rejected', remarks: string) => {
-    if (!selectedRegistration) return;
-    try {
-      await verifyPayment(registrationId, status, remarks);
-      toast({
-        title: 'Success',
-        description: `Payment status updated to ${status}.`,
-      });
-      fetchData(); // Refresh the list
-    } catch (err: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Verification Failed',
-        description: err.response?.data?.message || 'Could not update status.',
-      });
-    } finally {
-        handleModalClose();
-    }
+  const handleVerifyClick = (registrationId: string) => {
+    router.push(`/console/admin/payments/verify?id=${registrationId}`);
   };
 
   const handleViewDetailsClick = (registrationId: string) => {
@@ -175,7 +144,7 @@ export default function AllPaymentsPage() {
                                         View Details
                                     </DropdownMenuItem>
                                     {reg.payment_status === 'pending' && (
-                                        <DropdownMenuItem onClick={() => handleVerifyClick(reg)}>
+                                        <DropdownMenuItem onClick={() => handleVerifyClick(reg.id)}>
                                             <CreditCard className="mr-2 h-4 w-4" />
                                             Verify Payment
                                         </DropdownMenuItem>
@@ -253,14 +222,6 @@ export default function AllPaymentsPage() {
         </CardContent>
       </Card>
       </div>
-      {selectedRegistration && (
-          <VerifyPaymentModal
-          isOpen={isModalOpen}
-          onClose={handleModalClose}
-          registration={selectedRegistration}
-          onVerify={handleVerification}
-          />
-      )}
     </>
   );
 }
