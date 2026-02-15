@@ -1,3 +1,4 @@
+
 "use client"
 import { useState, useEffect } from "react";
 import {
@@ -19,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import _ from 'lodash';
 
 
 export function SuperAdminDashboard() {
@@ -44,6 +46,15 @@ export function SuperAdminDashboard() {
             setIsLoading(false);
         })
     }, [toast]);
+    
+    const aggregatedSports = useMemo(() => {
+        if (!analytics?.sports) return [];
+        const grouped = _.groupBy(analytics.sports, 'Sport.name');
+        return _.map(grouped, (group, name) => ({
+            Sport: { name },
+            count: _.sumBy(group, 'count')
+        })).sort((a, b) => b.count - a.count);
+    }, [analytics?.sports]);
 
     if (isLoading) {
         return (
@@ -57,14 +68,12 @@ export function SuperAdminDashboard() {
             </div>
         )
     }
-
-    const sportWiseData = analytics?.sports.map((s: any) => ({name: s.Sport.name, count: s.count})) || [];
     
     return (
         <div className="container py-8 space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-semibold">Bills</h1>
+                    <h1 className="text-2xl font-semibold">Admin Overview</h1>
                     <p className="text-sm text-muted-foreground">
                          Page refresh time: {format(currentTime, "eeee, MMMM d, yyyy 'at' hh:mm:ss a zzz")}
                     </p>
@@ -81,7 +90,7 @@ export function SuperAdminDashboard() {
                             )}
                             >
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {date ? format(date, "LLL dd, y") : <span>Billing period: February 2026</span>}
+                            {date ? format(date, "LLL dd, y") : <span>Date filter</span>}
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="end">
@@ -99,9 +108,9 @@ export function SuperAdminDashboard() {
 
             <div className="border rounded-lg p-6">
                 <h2 className="font-semibold flex items-center gap-2">
-                    Energy Meet Estimated Bill Summary <Info className="h-4 w-4 text-muted-foreground"/>
+                    Energy Meet Registration Summary <Info className="h-4 w-4 text-muted-foreground"/>
                 </h2>
-                <p className="text-sm text-muted-foreground">Total charges and payment information</p>
+                <p className="text-sm text-muted-foreground">High-level registration and payment metrics</p>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
                     <div>
@@ -117,31 +126,13 @@ export function SuperAdminDashboard() {
                         <p className="text-2xl font-medium">{parseFloat(analytics?.stats.collectionRate || 0).toFixed(2)}%</p>
                     </div>
                 </div>
-
-                 <div className="mt-6 border-t pt-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="md:col-span-2">
-                            <p className="text-sm text-muted-foreground">Service provider</p>
-                            <p className="font-medium">Energy Meet Org</p>
-                        </div>
-                        <div className="text-left md:text-right">
-                            <p className="text-sm text-muted-foreground">Total in INR</p>
-                            <p className="text-lg font-semibold">₹{analytics?.stats.totalCollection || '0.00'}</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="mt-6 border-t pt-4 flex justify-between items-center">
-                    <p className="text-lg font-semibold">Estimated grand total:</p>
-                    <p className="text-2xl font-bold">₹{analytics?.stats.totalCollection || '0.00'}</p>
-                </div>
             </div>
 
             <div className="border rounded-lg p-6">
                  <div className="flex items-center justify-between">
                     <div>
                         <h2 className="font-semibold flex items-center gap-2">
-                            Highest estimated cost by service provider <Info className="h-4 w-4 text-muted-foreground"/>
+                            Top Sport by Registration <Info className="h-4 w-4 text-muted-foreground"/>
                         </h2>
                         <p className="text-sm text-muted-foreground">Viewing Energy Meet Org</p>
                     </div>
@@ -158,9 +149,9 @@ export function SuperAdminDashboard() {
                 </div>
                  <div className="grid md:grid-cols-2 gap-6 mt-6">
                     <div>
-                        <p className="text-sm text-muted-foreground">Highest Sport Spend</p>
-                        <p className="text-2xl font-bold">₹{analytics?.sports[0]?.totalAmount || '0.00'}</p>
-                        <p className="text-sm font-medium mt-2">{analytics?.sports[0]?.Sport.name}</p>
+                        <p className="text-sm text-muted-foreground">Most Registered Sport</p>
+                        <p className="text-2xl font-bold">{aggregatedSports[0]?.Sport.name || 'N/A'}</p>
+                        <p className="text-sm font-medium mt-2">{aggregatedSports[0]?.count || 0} registrations</p>
                     </div>
                      <div>
                         <p className="text-sm text-muted-foreground">Trend compared to prior month</p>
@@ -171,30 +162,28 @@ export function SuperAdminDashboard() {
 
             <Tabs defaultValue="by-service">
                 <TabsList>
-                    <TabsTrigger value="by-service">Charges by service</TabsTrigger>
-                    <TabsTrigger value="by-account">Charges by account</TabsTrigger>
+                    <TabsTrigger value="by-service">Registrations by service</TabsTrigger>
+                    <TabsTrigger value="by-account">Registrations by account</TabsTrigger>
                     <TabsTrigger value="invoices">Invoices</TabsTrigger>
                 </TabsList>
                 <TabsContent value="by-service" className="mt-4">
                      <Card>
                         <CardHeader>
-                            <CardTitle>Energy Meet Org charges by service</CardTitle>
+                            <CardTitle>Energy Meet Org registrations by service</CardTitle>
                         </CardHeader>
                         <CardContent>
                              <Table>
                                 <TableHeader>
                                 <TableRow>
                                     <TableHead>Service name</TableHead>
-                                    <TableHead>Registrations</TableHead>
-                                    <TableHead className="text-right">Amount (INR)</TableHead>
+                                    <TableHead className="text-right">Registrations</TableHead>
                                 </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {analytics?.sports.map((s: any) => (
-                                        <TableRow key={s.Sport.id}>
+                                    {aggregatedSports.map((s: any) => (
+                                        <TableRow key={s.Sport.name}>
                                             <TableCell>{s.Sport.name}</TableCell>
-                                            <TableCell>{s.count}</TableCell>
-                                            <TableCell className="text-right">{s.totalAmount}</TableCell>
+                                            <TableCell className="text-right">{s.count}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -202,7 +191,29 @@ export function SuperAdminDashboard() {
                         </CardContent>
                     </Card>
                 </TabsContent>
+                 <TabsContent value="by-account" className="mt-4">
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>Registrations by account</CardTitle>
+                        </CardHeader>
+                         <CardContent>
+                            <p className="text-muted-foreground text-center py-8">Data for this view is not yet available.</p>
+                         </CardContent>
+                    </Card>
+                 </TabsContent>
+                 <TabsContent value="invoices" className="mt-4">
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>Invoices</CardTitle>
+                        </CardHeader>
+                         <CardContent>
+                            <p className="text-muted-foreground text-center py-8">Invoice data is not yet available.</p>
+                         </CardContent>
+                    </Card>
+                 </TabsContent>
             </Tabs>
         </div>
     )
 }
+
+    
