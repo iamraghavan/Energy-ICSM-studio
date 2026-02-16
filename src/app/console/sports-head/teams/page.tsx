@@ -1,9 +1,10 @@
 
+
 'use client';
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { getSportsHeadTeams, createSportsHeadTeam, type SportsHeadTeam } from "@/lib/api";
+import { getSportsHeadTeams, createSportsHeadTeam, getSportsHeadStudents, type SportsHeadTeam, type SportStudent } from "@/lib/api";
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,18 +16,30 @@ import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import Link from 'next/link';
 
 const teamFormSchema = z.object({
   team_name: z.string().min(3, 'Team name must be at least 3 characters long.'),
+  captain_id: z.string().optional(),
 });
 
 function CreateTeamDialog({ onTeamCreated }: { onTeamCreated: () => void }) {
     const { toast } = useToast();
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState(false);
+    const [students, setStudents] = useState<SportStudent[]>([]);
+
+    useEffect(() => {
+        if (isOpen) {
+            getSportsHeadStudents()
+                .then(data => setStudents(data.filter(s => !s.team_id)))
+                .catch(() => toast({ variant: 'destructive', title: 'Error', description: 'Could not load unassigned students.' }));
+        }
+    }, [isOpen, toast]);
     
     const form = useForm<z.infer<typeof teamFormSchema>>({
         resolver: zodResolver(teamFormSchema),
-        defaultValues: { team_name: '' },
+        defaultValues: { team_name: '', captain_id: '' },
     });
 
     const onSubmit = async (values: z.infer<typeof teamFormSchema>) => {
@@ -34,15 +47,15 @@ function CreateTeamDialog({ onTeamCreated }: { onTeamCreated: () => void }) {
             await createSportsHeadTeam(values);
             toast({ title: 'Team Created', description: `${values.team_name} has been created.` });
             onTeamCreated();
-            setIsModalOpen(false);
+            setIsOpen(false);
             form.reset();
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to create team.' });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error', description: error.response?.data?.message || 'Failed to create team.' });
         }
     };
 
     return (
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
                 <Button><PlusCircle className="mr-2 h-4 w-4"/>Create Team</Button>
             </DialogTrigger>
@@ -57,6 +70,18 @@ function CreateTeamDialog({ onTeamCreated }: { onTeamCreated: () => void }) {
                             <FormItem>
                                 <FormLabel>Team Name</FormLabel>
                                 <FormControl><Input placeholder="e.g. College Strikers" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}/>
+                        <FormField control={form.control} name="captain_id" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Assign Captain (Optional)</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a player to be captain" /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        {students.map(s => <SelectItem key={s.registration_id} value={s.registration_id}>{s.name} ({s.college})</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
                                 <FormMessage />
                             </FormItem>
                         )}/>
@@ -129,9 +154,11 @@ export default function SportsHeadTeamsPage() {
                                         <TableRow key={team.id}>
                                             <TableCell className="font-medium">{team.team_name}</TableCell>
                                             <TableCell>{team.Captain?.name || 'Not Assigned'}</TableCell>
-                                            <TableCell>{team._count.Members}</TableCell>
+                                            <TableCell>{team.player_count}</TableCell>
                                             <TableCell className="text-right">
-                                                <Button variant="outline" size="sm">Manage</Button>
+                                                <Button asChild variant="outline" size="sm">
+                                                    <Link href={`/console/sports-head/teams/${team.id}`}>Manage</Link>
+                                                </Button>
                                             </TableCell>
                                         </TableRow>
                                     ))}

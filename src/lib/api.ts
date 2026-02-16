@@ -121,6 +121,7 @@ export type BowlingStyle =
 
 export type StudentTeamMember = {
     id: string;
+    student_id: string;
     name: string;
     email: string;
     mobile: string;
@@ -130,6 +131,11 @@ export type StudentTeamMember = {
     bowling_style?: BowlingStyle;
     is_wicket_keeper?: boolean;
     additional_details?: any;
+    Student: {
+        id: string;
+        name: string;
+        mobile: string;
+    }
 };
 
 export type FullTeamDetails = {
@@ -138,6 +144,10 @@ export type FullTeamDetails = {
     sport_id: number;
     Sport: ApiSport;
     Members: StudentTeamMember[];
+    Captain: {
+        name: string;
+        mobile: string;
+    } | null;
 };
 
 export type StudentDashboardOverview = {
@@ -201,7 +211,15 @@ export type SportsHeadTeam = {
     team_name: string;
     captain_id: string;
     Captain: { name: string } | null;
-    _count: { Members: number };
+    player_count: number;
+};
+
+export type SportStudent = {
+    registration_id: string;
+    name: string;
+    college: string;
+    team_id: string | null;
+    team_name: string | null;
 };
 
 const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
@@ -307,10 +325,10 @@ export const getRegistration = async (id: string): Promise<Registration> => {
     return response.data;
 };
 
-export const verifyPayment = async (registrationId: string, status: 'approved' | 'rejected', remarks: string) => {
+export const verifyPayment = async (registrationCode: string, status: 'approved' | 'rejected', remarks: string) => {
     const finalRemarks = remarks || `Payment ${status} via admin dashboard at ${new Date().toLocaleString()}.`;
     const response = await api.post('/admin/verify-payment', {
-        registrationId: registrationId,
+        registrationId: registrationCode,
         status: status,
         remarks: finalRemarks,
     });
@@ -519,12 +537,23 @@ export const bulkDeleteTeamMembers = async (memberIds: string[]) => {
 };
 
 // Sports Head
-export const getSportsHeadAnalytics = async (): Promise<SportsHeadAnalytics> => {
+export const getSportsHeadStats = async () => {
+    const response = await api.get('/sports-head/stats');
+    return response.data;
+}
+
+export const getSportsHeadAnalytics = async () => {
     const response = await api.get('/sports-head/analytics');
     return response.data;
 }
+
 export const getSportsHeadRegistrations = async (): Promise<Registration[]> => {
     const response = await api.get('/sports-head/registrations');
+    return response.data;
+}
+
+export const getSportsHeadStudents = async (): Promise<SportStudent[]> => {
+    const response = await api.get('/sports-head/students');
     return response.data;
 }
 
@@ -533,10 +562,35 @@ export const getSportsHeadTeams = async (): Promise<SportsHeadTeam[]> => {
     return response.data;
 };
 
+export const getSportsHeadTeamDetails = async (teamId: string): Promise<FullSportsHeadTeam> => {
+    const response = await api.get(`/sports-head/teams/${teamId}`);
+    return response.data;
+}
+
 export const createSportsHeadTeam = async (data: { team_name: string; captain_id?: string }) => {
     const response = await api.post('/sports-head/teams', data);
     return response.data;
 };
+
+export const updateSportsHeadTeam = async (teamId: string, data: { team_name: string }) => {
+    const response = await api.put(`/sports-head/teams/${teamId}`, data);
+    return response.data;
+};
+
+export const deleteSportsHeadTeam = async (teamId: string) => {
+    const response = await api.delete(`/sports-head/teams/${teamId}`);
+    return response.data;
+}
+
+export const addPlayerToTeam = async (teamId: string, studentId: string) => {
+    const response = await api.post(`/sports-head/teams/${teamId}/players/${studentId}`);
+    return response.data;
+};
+
+export const removePlayerFromTeam = async (teamId: string, studentId: string) => {
+    const response = await api.delete(`/sports-head/teams/${teamId}/players/${studentId}`);
+    return response.data;
+}
 
 export const getSportsHeadMatches = async (status?: 'scheduled' | 'live' | 'completed'): Promise<ApiMatch[]> => {
     const response = await api.get('/sports-head/matches', { params: { status } });

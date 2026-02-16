@@ -2,13 +2,13 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { getSportsHeadAnalytics, getSportsHeadRegistrations, type SportsHeadAnalytics, type Registration } from "@/lib/api";
+import { getSportsHeadStats, getSportsHeadRegistrations, type Registration } from "@/lib/api";
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { Users, Trophy, Calendar } from 'lucide-react';
+import { Users, Trophy, Calendar, Clapperboard } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 function StatCard({ title, value, icon: Icon, isLoading }: { title: string, value: number | string, icon: React.ElementType, isLoading: boolean }) {
@@ -26,7 +26,7 @@ function StatCard({ title, value, icon: Icon, isLoading }: { title: string, valu
 }
 
 export default function SportsHeadDashboardPage() {
-    const [analytics, setAnalytics] = useState<SportsHeadAnalytics | null>(null);
+    const [stats, setStats] = useState<any>(null);
     const [registrations, setRegistrations] = useState<Registration[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
@@ -36,11 +36,11 @@ export default function SportsHeadDashboardPage() {
         const fetchData = async () => {
             setIsLoading(true);
             try {
-                const [analyticsData, registrationsData] = await Promise.all([
-                    getSportsHeadAnalytics(),
+                const [statsData, registrationsData] = await Promise.all([
+                    getSportsHeadStats(),
                     getSportsHeadRegistrations()
                 ]);
-                setAnalytics(analyticsData);
+                setStats(statsData.stats);
                 setRegistrations(registrationsData);
             } catch (error: any) {
                 if (error.response?.status === 403) {
@@ -63,10 +63,11 @@ export default function SportsHeadDashboardPage() {
                 <p className="text-muted-foreground">An overview of your assigned sport.</p>
             </div>
             
-            <div className="grid gap-4 md:grid-cols-3">
-                <StatCard title="Total Teams" value={analytics?.totalTeams ?? 0} icon={Trophy} isLoading={isLoading} />
-                <StatCard title="Total Players" value={analytics?.totalPlayers ?? 0} icon={Users} isLoading={isLoading} />
-                <StatCard title="Upcoming Matches" value={analytics?.upcomingMatches ?? 0} icon={Calendar} isLoading={isLoading} />
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <StatCard title="Total Teams" value={stats?.total_teams ?? 0} icon={Trophy} isLoading={isLoading} />
+                <StatCard title="Total Players" value={stats?.total_players ?? 0} icon={Users} isLoading={isLoading} />
+                <StatCard title="Upcoming Matches" value={stats?.upcoming_matches ?? 0} icon={Calendar} isLoading={isLoading} />
+                <StatCard title="Live Matches" value={stats?.live_matches ?? 0} icon={Clapperboard} isLoading={isLoading} />
             </div>
 
             <Card>
