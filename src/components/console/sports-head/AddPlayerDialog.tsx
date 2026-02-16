@@ -17,10 +17,9 @@ interface AddPlayerDialogProps {
     onClose: () => void;
     teamId: string;
     onSuccess: () => void;
-    currentMemberIds: string[];
 }
 
-export function AddPlayerDialog({ isOpen, onClose, teamId, onSuccess, currentMemberIds }: AddPlayerDialogProps) {
+export function AddPlayerDialog({ isOpen, onClose, teamId, onSuccess }: AddPlayerDialogProps) {
     const { toast } = useToast();
     const [allStudents, setAllStudents] = useState<SportStudent[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -33,7 +32,7 @@ export function AddPlayerDialog({ isOpen, onClose, teamId, onSuccess, currentMem
             setIsLoading(true);
             getSportsHeadStudents()
                 .then(data => {
-                    const unassigned = data.filter(s => !s.team_id && !currentMemberIds.includes(s.registration_id));
+                    const unassigned = data.filter(s => !s.team_id);
                     setAllStudents(unassigned);
                 })
                 .catch(() => {
@@ -45,7 +44,7 @@ export function AddPlayerDialog({ isOpen, onClose, teamId, onSuccess, currentMem
             setSelectedStudentIds([]);
             setSearchTerm('');
         }
-    }, [isOpen, toast, currentMemberIds]);
+    }, [isOpen, toast]);
 
     const filteredStudents = useMemo(() => {
         if (!searchTerm) return allStudents;

@@ -197,7 +197,6 @@ export default function SportsHeadManageTeamPage() {
                 onClose={() => setIsAddPlayerOpen(false)}
                 teamId={teamId}
                 onSuccess={fetchTeamDetails}
-                currentMemberIds={team.members.map(m => m.student_id)}
             />
         </div>
     )
