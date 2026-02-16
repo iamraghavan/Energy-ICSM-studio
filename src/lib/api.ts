@@ -150,7 +150,17 @@ export type FullTeamDetails = {
     } | null;
 };
 
-export type FullSportsHeadTeam = FullTeamDetails;
+export type FullSportsHeadTeam = {
+    id: string;
+    team_name: string;
+    sport_id: number;
+    Sport: ApiSport;
+    members: StudentTeamMember[];
+    Captain: {
+        name: string;
+        mobile: string;
+    } | null;
+};
 
 export type StudentDashboardOverview = {
     registration: {

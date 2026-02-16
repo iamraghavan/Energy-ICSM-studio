@@ -1,166 +1,138 @@
+
 'use client';
 
-import { useForm } from 'react-hook-form';
-import * as z from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { addTeamMember, updateTeamMember, type StudentTeamMember, type CricketSportRole, type BattingStyle, type BowlingStyle, type TeamMemberRole } from '@/lib/api';
-import { useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import { getSportsHeadStudents, addPlayerToTeam, type SportStudent } from '@/lib/api';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Loader2, Search, UserPlus } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '../ui/checkbox';
+import { ScrollArea } from '../ui/scroll-area';
 
-const memberFormSchema = z.object({
-  name: z.string().min(3, "Name is required."),
-  role: z.enum(['Captain', 'Vice-Captain', 'Player']),
-  email: z.string().email({ message: "Please enter a valid email." }).optional().or(z.literal('')),
-  mobile: z.string().optional().or(z.literal('')).refine(val => !val || /^\d{10}$/.test(val), { message: "Mobile number must be 10 digits." }),
-  
-  // Cricket specific
-  sport_role: z.string().optional(),
-  batting_style: z.string().optional(),
-  bowling_style: z.string().optional(),
-  is_wicket_keeper: z.boolean().default(false),
-
-  // Generic position for other sports
-  position: z.string().optional(),
-});
-
-type MemberFormValues = z.infer<typeof memberFormSchema>;
-
-const roles: TeamMemberRole[] = ['Player', 'Vice-Captain', 'Captain'];
-const cricketRoles: CricketSportRole[] = ['Batsman', 'Bowler', 'All-rounder', 'Wicket Keeper'];
-const battingStyles: BattingStyle[] = ['Right Hand', 'Left Hand'];
-const bowlingStyles: BowlingStyle[] = ['Right Arm Fast', 'Right Arm Medium', 'Right Arm Spin', 'Left Arm Fast', 'Left Arm Medium', 'Left Arm Spin', 'N/A'];
-const sportsWithPositions = ['Football', 'Basketball', 'Volleyball', 'Kabaddi'];
-
-
-interface MemberFormDialogProps {
+interface AddPlayerDialogProps {
     isOpen: boolean;
     onClose: () => void;
     teamId: string;
-    sportName: string;
-    existingMember: StudentTeamMember | null;
     onSuccess: () => void;
 }
 
-export function MemberFormDialog({ isOpen, onClose, teamId, sportName, existingMember, onSuccess }: MemberFormDialogProps) {
+export function MemberFormDialog({ isOpen, onClose, teamId, onSuccess }: AddPlayerDialogProps) {
     const { toast } = useToast();
-    const isCricket = sportName === 'Cricket';
-    const showPositionField = sportsWithPositions.includes(sportName);
+    const [allStudents, setAllStudents] = useState<SportStudent[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
 
-
-    const form = useForm<MemberFormValues>({
-        resolver: zodResolver(memberFormSchema),
-        defaultValues: {
-            name: '',
-            role: 'Player',
-            email: '',
-            mobile: '',
-            is_wicket_keeper: false,
-            position: '',
-        }
-    });
-    
     useEffect(() => {
         if (isOpen) {
-            if (existingMember) {
-                form.reset({
-                    ...existingMember,
-                    sport_role: existingMember.sport_role || undefined,
-                    batting_style: existingMember.batting_style || undefined,
-                    bowling_style: existingMember.bowling_style || undefined,
-                    position: existingMember.additional_details?.position || '',
-                });
-            } else {
-                form.reset({
-                    name: '', role: 'Player', email: '', mobile: '',
-                    sport_role: undefined, batting_style: undefined, bowling_style: undefined,
-                    is_wicket_keeper: false, position: '',
-                });
-            }
+            setIsLoading(true);
+            getSportsHeadStudents()
+                .then(data => {
+                    const unassigned = data.filter(s => !s.team_id);
+                    setAllStudents(unassigned);
+                })
+                .catch(() => {
+                    toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch list of available students.' });
+                })
+                .finally(() => setIsLoading(false));
+        } else {
+            setSelectedStudentIds([]);
+            setSearchTerm('');
         }
-    }, [existingMember, isOpen, form]);
+    }, [isOpen, toast]);
 
-    const onSubmit = async (values: MemberFormValues) => {
-        const { position, ...rest } = values;
-        const submissionData: any = { ...rest };
+    const filteredStudents = useMemo(() => {
+        if (!searchTerm) return allStudents;
+        return allStudents.filter(s => 
+            s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            s.college.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [searchTerm, allStudents]);
 
-        if (showPositionField && position) {
-            submissionData.additional_details = { position };
+    const handleSelectStudent = (regId: string) => {
+        setSelectedStudentIds(prev =>
+            prev.includes(regId)
+                ? prev.filter(id => id !== regId)
+                : [...prev, regId]
+        );
+    };
+
+    const handleAddPlayers = async () => {
+        if (selectedStudentIds.length === 0) {
+            toast({ variant: 'destructive', title: 'No players selected' });
+            return;
         }
-
+        setIsSubmitting(true);
         try {
-            if (existingMember) {
-                await updateTeamMember(existingMember.id, submissionData);
-                toast({ title: 'Success', description: 'Member details updated.' });
-            } else {
-                await addTeamMember(teamId, submissionData as Omit<StudentTeamMember, 'id'>);
-                toast({ title: 'Success', description: 'New member added to the team.' });
-            }
+            const promises = selectedStudentIds.map(regId => addPlayerToTeam(teamId, regId));
+            await Promise.all(promises);
+            toast({ title: 'Success', description: `${selectedStudentIds.length} players added to the team.` });
             onSuccess();
             onClose();
         } catch (error: any) {
-             toast({ variant: 'destructive', title: 'Operation Failed', description: error.response?.data?.message || 'An error occurred.' });
+            toast({ variant: 'destructive', title: 'Failed to add players', description: error.response?.data?.message || 'An error occurred.' });
+        } finally {
+            setIsSubmitting(false);
         }
-    }
+    };
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
-                    <DialogTitle>{existingMember ? 'Edit' : 'Add'} Team Member</DialogTitle>
-                    <DialogDescription>Fill in the details for the team member.</DialogDescription>
+                    <DialogTitle>Add Players to Team</DialogTitle>
+                    <DialogDescription>Select students from the list of unassigned players for this sport.</DialogDescription>
                 </DialogHeader>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-                        <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="Member's full name" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        
-                        <FormField control={form.control} name="role" render={({ field }) => (<FormItem><FormLabel>Team Role</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger></FormControl><SelectContent>{roles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                        
-                        <div className="grid grid-cols-2 gap-4">
-                             <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email (Optional)</FormLabel><FormControl><Input type="email" placeholder="member@email.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                             <FormField control={form.control} name="mobile" render={({ field }) => (<FormItem><FormLabel>Mobile (Optional)</FormLabel><FormControl><Input type="tel" placeholder="10-digit number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        </div>
-                        
-                        {showPositionField && (
-                             <>
-                                <h4 className="text-sm font-medium pt-2 border-t">Sport Details</h4>
-                                <FormField control={form.control} name="position" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Position</FormLabel>
-                                        <FormControl><Input placeholder="e.g. Defender, Setter, Center" {...field} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}/>
-                             </>
-                        )}
-
-                        {isCricket && (
-                             <>
-                                <h4 className="text-sm font-medium pt-2 border-t">Cricket Details</h4>
-                                <FormField control={form.control} name="sport_role" render={({ field }) => (<FormItem><FormLabel>Playing Role</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select playing role" /></SelectTrigger></FormControl><SelectContent>{cricketRoles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                                <div className="grid grid-cols-2 gap-4">
-                                     <FormField control={form.control} name="batting_style" render={({ field }) => (<FormItem><FormLabel>Batting Style</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select batting style" /></SelectTrigger></FormControl><SelectContent>{battingStyles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                                     <FormField control={form.control} name="bowling_style" render={({ field }) => (<FormItem><FormLabel>Bowling Style</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select bowling style" /></SelectTrigger></FormControl><SelectContent>{bowlingStyles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                                </div>
-                                <FormField control={form.control} name="is_wicket_keeper" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><div className="space-y-1 leading-none"><FormLabel>Is Wicket Keeper?</FormLabel></div></FormItem>)} />
-                             </>
-                        )}
-                        
-                        <DialogFooter>
-                            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-                            <Button type="submit" disabled={form.formState.isSubmitting}>
-                                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                                {existingMember ? 'Save Changes' : 'Add Member'}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </Form>
+                <div className="py-4 space-y-4">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                            placeholder="Search by name or college..."
+                            className="pl-10"
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <ScrollArea className="h-72">
+                         <div className="border rounded-md">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-[50px]"></TableHead>
+                                        <TableHead>Name</TableHead>
+                                        <TableHead>College</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {isLoading ? (
+                                        <TableRow><TableCell colSpan={3} className="text-center"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
+                                    ) : filteredStudents.length > 0 ? (
+                                        filteredStudents.map(student => (
+                                            <TableRow key={student.registration_id} onClick={() => handleSelectStudent(student.registration_id)} className="cursor-pointer">
+                                                <TableCell className="p-2"><Checkbox checked={selectedStudentIds.includes(student.registration_id)} /></TableCell>
+                                                <TableCell>{student.name}</TableCell>
+                                                <TableCell>{student.college}</TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow><TableCell colSpan={3} className="h-24 text-center">No unassigned players found.</TableCell></TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                         </div>
+                    </ScrollArea>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
+                    <Button onClick={handleAddPlayers} disabled={isSubmitting || selectedStudentIds.length === 0}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Add {selectedStudentIds.length > 0 ? selectedStudentIds.length : ''} Player(s)
+                    </Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     );
