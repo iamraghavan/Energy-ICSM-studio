@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { getSportsHeadTeams, getSportsHeadRegistrations, createSportsHeadTeam, type SportsHeadTeam, type SportsHeadRegistration } from "@/lib/api";
+import { getSportsHeadTeams, createSportsHeadTeam, getSportsHeadRegistrations, type SportsHeadTeam, type SportsHeadRegistration, getSports, type ApiSport } from "@/lib/api";
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,20 +16,26 @@ import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 
-function CreateTeamDialog({ student, onTeamCreated, onClose }: { student: SportsHeadRegistration | null, onTeamCreated: () => void, onClose: () => void }) {
+function CreateTeamDialog({ student, sports, onTeamCreated, onClose }: { student: SportsHeadRegistration | null, sports: ApiSport[], onTeamCreated: () => void, onClose: () => void }) {
     const { toast } = useToast();
     const [teamName, setTeamName] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     
     useEffect(() => {
-        if (student) {
-            const sport = student.Sports[0];
-            const sportCategory = sport ? ` - ${sport.category.toUpperCase()}` : '';
-            const sportName = sport ? ` - ${sport.name.toUpperCase()}` : '';
+        if (student && sports.length > 0) {
+            const registrationSport = student.Sports[0];
+            if (!registrationSport) return;
+
+            const fullSport = sports.find(s => s.id === registrationSport.id);
+            if (!fullSport) return;
+
+            const sportCategory = fullSport.category ? ` - ${fullSport.category.toUpperCase()}` : '';
+            const sportName = fullSport.name ? ` - ${fullSport.name.toUpperCase()}` : '';
+            
             const generatedName = `${student.college_name}${sportName}${sportCategory}`;
             setTeamName(generatedName);
         }
-    }, [student]);
+    }, [student, sports]);
 
     if (!student) return null;
 
@@ -78,6 +84,7 @@ function CreateTeamDialog({ student, onTeamCreated, onClose }: { student: Sports
 export default function SportsHeadTeamsPage() {
     const [teams, setTeams] = useState<SportsHeadTeam[]>([]);
     const [registrations, setRegistrations] = useState<SportsHeadRegistration[]>([]);
+    const [sports, setSports] = useState<ApiSport[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [studentToCreateFor, setStudentToCreateFor] = useState<SportsHeadRegistration | null>(null);
     const { toast } = useToast();
@@ -87,12 +94,14 @@ export default function SportsHeadTeamsPage() {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const [teamsData, regsData] = await Promise.all([
+            const [teamsData, regsData, sportsData] = await Promise.all([
                 getSportsHeadTeams(),
-                getSportsHeadRegistrations()
+                getSportsHeadRegistrations(),
+                getSports(),
             ]);
             setTeams(teamsData);
             setRegistrations(regsData);
+            setSports(sportsData);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch teams and registrations.' });
         } finally {
@@ -102,6 +111,7 @@ export default function SportsHeadTeamsPage() {
 
     useEffect(() => {
         fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return (
@@ -204,6 +214,7 @@ export default function SportsHeadTeamsPage() {
 
             <CreateTeamDialog
                 student={studentToCreateFor}
+                sports={sports}
                 onClose={() => setStudentToCreateFor(null)}
                 onTeamCreated={() => {
                     setStudentToCreateFor(null);
@@ -213,4 +224,3 @@ export default function SportsHeadTeamsPage() {
         </div>
     );
 }
-

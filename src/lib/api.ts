@@ -256,7 +256,6 @@ export type SportsHeadRegistration = {
     Sports: {
         id: number;
         name: string;
-        category: 'Boys' | 'Girls';
     }[];
 };
 
@@ -675,6 +674,7 @@ export type ApiMatch = {
     TeamA: ApiTeam;
     TeamB: ApiTeam;
 };
+
 
 
 
