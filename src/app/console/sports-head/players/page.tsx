@@ -1,7 +1,7 @@
 
 'use client';
 import { useEffect, useState, useMemo } from 'react';
-import { getSportsHeadStudents, type SportStudent } from '@/lib/api';
+import { getSportsHeadStudents, createSportsHeadTeam, type SportStudent } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -10,8 +10,105 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { MoreHorizontal, Search, X, Eye } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Loader2, Search, X, Users, Eye, Mail, Phone } from 'lucide-react';
+import Link from 'next/link';
+
+// Schema for the create team dialog form
+const createTeamSchema = z.object({
+  team_name: z.string().min(3, 'Team name must be at least 3 characters.'),
+});
+
+// Dialog component for creating a team for a specific student
+function CreateTeamDialog({
+  student,
+  isOpen,
+  onClose,
+  onTeamCreated,
+}: {
+  student: SportStudent | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onTeamCreated: () => void;
+}) {
+  const { toast } = useToast();
+  const form = useForm<z.infer<typeof createTeamSchema>>({
+    resolver: zodResolver(createTeamSchema),
+  });
+
+  useEffect(() => {
+    if (student) {
+      form.setValue('team_name', `${student.college} Team`);
+    }
+  }, [student, form]);
+
+  const onSubmit = async (values: z.infer<typeof createTeamSchema>) => {
+    if (!student) return;
+
+    try {
+      await createSportsHeadTeam({
+        team_name: values.team_name,
+        registration_id: student.registration_id,
+      });
+      toast({
+        title: 'Team Created!',
+        description: `Team "${values.team_name}" has been created with ${student.name} as captain.`,
+      });
+      onTeamCreated();
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to create team',
+        description: error.response?.data?.message || 'An error occurred.',
+      });
+    }
+  };
+
+  if (!student) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create Team for {student.name}</DialogTitle>
+          <DialogDescription>
+            You are creating a new team with {student.name} as the captain. The team will be associated with {student.college}.
+          </DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+            <FormField
+              control={form.control}
+              name="team_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Team Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter a team name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="ghost">Cancel</Button>
+              </DialogClose>
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Create Team
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function SportsHeadPlayersPage() {
   const router = useRouter();
@@ -20,6 +117,10 @@ export default function SportsHeadPlayersPage() {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
+
+  // State for the dialog
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<SportStudent | null>(null);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -44,31 +145,42 @@ export default function SportsHeadPlayersPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const handleTeamCreated = () => {
+    setIsModalOpen(false);
+    setSelectedStudent(null);
+    fetchData(); // Refresh data
+  };
+
+  const handleOpenCreateTeamModal = (student: SportStudent) => {
+    setSelectedStudent(student);
+    setIsModalOpen(true);
+  };
+  
+  const handleViewTeam = (teamId: string) => {
+      router.push(`/console/sports-head/teams/${teamId}`);
+  };
+
+
   const filteredPlayers = useMemo(() => {
     return (players || []).filter(player => {
       if (!player || !player.name) return false;
-
       const lowerSearchTerm = searchTerm.toLowerCase();
       
       const searchMatch = lowerSearchTerm === '' ||
-        (player.name || '').toLowerCase().includes(lowerSearchTerm) ||
-        (player.college || '').toLowerCase().includes(lowerSearchTerm) ||
-        (player.team_name || '').toLowerCase().includes(lowerSearchTerm) ||
-        player.registration_id?.toLowerCase().includes(lowerSearchTerm);
+        player.name.toLowerCase().includes(lowerSearchTerm) ||
+        player.college.toLowerCase().includes(lowerSearchTerm) ||
+        player.registration_id.toLowerCase().includes(lowerSearchTerm) ||
+        (player.email || '').toLowerCase().includes(lowerSearchTerm);
 
       return searchMatch;
     });
   }, [players, searchTerm]);
 
-  const handleViewDetailsClick = (registrationId: string) => {
-    router.push(`/console/admin/registrations/details?id=${registrationId}`);
-  };
-
   const renderTable = () => {
       if (isLoading) {
         return (
             <div className="space-y-2">
-                {[...Array(10)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
+                {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
             </div>
         )
       }
@@ -85,9 +197,10 @@ export default function SportsHeadPlayersPage() {
                 <TableHeader>
                 <TableRow>
                     <TableHead>Student</TableHead>
-                    <TableHead>College</TableHead>
-                    <TableHead>Team</TableHead>
-                    <TableHead className="text-right w-[100px]">Actions</TableHead>
+                    <TableHead className="hidden md:table-cell">College</TableHead>
+                    <TableHead className="hidden lg:table-cell">Contact</TableHead>
+                    <TableHead>Team Status</TableHead>
+                    <TableHead className="text-right w-[120px]">Actions</TableHead>
                 </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -97,30 +210,28 @@ export default function SportsHeadPlayersPage() {
                             <div className="font-medium">{player.name || 'N/A'}</div>
                             <div className="text-xs text-muted-foreground font-mono">{player.registration_id}</div>
                         </TableCell>
-                        <TableCell>{player.college || 'N/A'}</TableCell>
+                        <TableCell className="hidden md:table-cell">{player.college || 'N/A'}</TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          {player.mobile && <div className="flex items-center gap-2 text-sm"><Phone className="h-3 w-3" /> {player.mobile}</div>}
+                          {player.email && <div className="flex items-center gap-2 text-sm"><Mail className="h-3 w-3" /> {player.email}</div>}
+                        </TableCell>
                         <TableCell>
-                           {player.team_name ? (
-                               <Badge variant="secondary">{player.team_name}</Badge>
+                           {player.team_id ? (
+                               <Badge variant="secondary">{player.team_name || 'In a Team'}</Badge>
                            ) : (
-                               <span className="text-muted-foreground">Unassigned</span>
+                               <Badge variant="outline">Pending Team</Badge>
                            )}
                         </TableCell>
                         <TableCell className="text-right">
-                           <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" className="h-8 w-8 p-0">
-                                        <span className="sr-only">Open menu</span>
-                                        <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                    <DropdownMenuItem onClick={() => handleViewDetailsClick(player.registration_id)}>
-                                        <Eye className="mr-2 h-4 w-4" />
-                                        View Details
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                           {player.team_id ? (
+                                <Button variant="outline" size="sm" onClick={() => handleViewTeam(player.team_id!)}>
+                                    <Eye className="mr-2 h-4 w-4" /> View Team
+                                </Button>
+                           ) : (
+                                <Button size="sm" onClick={() => handleOpenCreateTeamModal(player)}>
+                                    <Users className="mr-2 h-4 w-4" /> Create Team
+                                </Button>
+                           )}
                         </TableCell>
                     </TableRow>
                 ))}
@@ -141,7 +252,7 @@ export default function SportsHeadPlayersPage() {
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input 
-                        placeholder="Search by name, college, team, code..."
+                        placeholder="Search by name, college, email, code..."
                         className="pl-10"
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
@@ -153,19 +264,28 @@ export default function SportsHeadPlayersPage() {
   }
 
   return (
-    <div className="container py-8 space-y-6">
-      <Card>
-        <CardHeader>
-            <CardTitle>Player Management</CardTitle>
-            <CardDescription>View all approved players registered for your assigned sport.</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <div className="space-y-4">
-                {renderFilterBar()}
-                {renderTable()}
-            </div>
-        </CardContent>
-      </Card>
-      </div>
+    <>
+        <div className="container py-8 space-y-6">
+        <Card>
+            <CardHeader>
+                <CardTitle>Player Management</CardTitle>
+                <CardDescription>View all approved players for your sport and manage their teams.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-4">
+                    {renderFilterBar()}
+                    {renderTable()}
+                </div>
+            </CardContent>
+        </Card>
+        </div>
+        <CreateTeamDialog
+            student={selectedStudent}
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onTeamCreated={handleTeamCreated}
+        />
+    </>
   );
 }
+

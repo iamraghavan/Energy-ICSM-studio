@@ -232,6 +232,7 @@ export type SportsHeadTeam = {
 export type SportStudent = {
     registration_id: string;
     name: string;
+    email: string;
     college: string;
     team_id: string | null;
     team_name: string | null;
@@ -648,6 +649,7 @@ export type ApiMatch = {
     TeamA: ApiTeam;
     TeamB: ApiTeam;
 };
+
 
 
 
