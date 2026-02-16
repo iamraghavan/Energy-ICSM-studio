@@ -11,6 +11,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 
 interface AddPlayerDialogProps {
     isOpen: boolean;
@@ -107,16 +109,23 @@ export function AddPlayerDialog({ isOpen, onClose, teamId, onSuccess }: AddPlaye
                                         key={student.registration_id} 
                                         onClick={() => handleSelectStudent(student.registration_id)}
                                         className={cn(
-                                            "cursor-pointer transition-all border rounded-lg p-4 flex items-center gap-4 hover:bg-muted/50",
+                                            "cursor-pointer transition-all border rounded-lg p-4 flex flex-col items-start gap-4 hover:bg-muted/50 relative",
                                             selectedStudentIds.includes(student.registration_id) && "border-primary ring-2 ring-primary bg-primary/5"
                                         )}
                                     >
-                                        <Checkbox checked={selectedStudentIds.includes(student.registration_id)} onCheckedChange={() => handleSelectStudent(student.registration_id)} />
-                                        <div className="flex-1">
-                                            <p className="font-semibold">{student.name}</p>
-                                            <p className="text-sm text-muted-foreground">{student.college}</p>
-                                            {student.mobile && <p className="text-xs text-muted-foreground font-mono">{student.mobile}</p>}
+                                        <div className="absolute top-2 right-2">
+                                            <Checkbox checked={selectedStudentIds.includes(student.registration_id)} onCheckedChange={() => handleSelectStudent(student.registration_id)} />
                                         </div>
+                                         <div className="flex items-center gap-3">
+                                            <Avatar className="h-10 w-10">
+                                                <AvatarFallback>{student.name.split(' ').map(n => n[0]).join('').substring(0,2)}</AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <p className="font-semibold">{student.name}</p>
+                                                <p className="text-sm text-muted-foreground">{student.college}</p>
+                                            </div>
+                                        </div>
+                                        {student.mobile && <Badge variant="outline" className="font-mono">{student.mobile}</Badge>}
                                     </div>
                                 ))
                             ) : (
