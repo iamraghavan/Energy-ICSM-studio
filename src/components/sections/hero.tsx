@@ -14,4 +14,4 @@ export function Hero() {
     </section>
   );
 }
-// 05
+// 06
