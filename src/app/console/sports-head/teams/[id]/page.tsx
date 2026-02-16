@@ -8,17 +8,16 @@ import {
     updateSportsHeadTeam,
     deleteSportsHeadTeam,
     type FullSportsHeadTeam, 
-    type SportStudent,
 } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, UserPlus, Trash2, Edit, Save, Loader2, UserX } from 'lucide-react';
+import { ArrowLeft, UserPlus, Trash2, Edit, Save, UserX } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { AddPlayerDialog } from '@/components/console/sports-head/AddPlayerDialog';
 
 
 export default function SportsHeadManageTeamPage() {
@@ -31,6 +30,7 @@ export default function SportsHeadManageTeamPage() {
     const [error, setError] = useState<string | null>(null);
     const [isEditingName, setIsEditingName] = useState(false);
     const [newTeamName, setNewTeamName] = useState('');
+    const [isAddPlayerOpen, setIsAddPlayerOpen] = useState(false);
     const { toast } = useToast();
 
     const fetchTeamDetails = useCallback(async () => {
@@ -132,18 +132,9 @@ export default function SportsHeadManageTeamPage() {
                 <CardContent>
                     <div className="flex items-center justify-between mb-4">
                          <h3 className="text-xl font-semibold">Player Roster ({team.members.length})</h3>
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <span tabIndex={0}>
-                                        <Button disabled><UserPlus className="mr-2 h-4 w-4"/> Add Player</Button>
-                                    </span>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>Adding players from console is under development.</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                        <Button onClick={() => setIsAddPlayerOpen(true)} disabled={team.members.length >= team.Sport.max_players}>
+                            <UserPlus className="mr-2 h-4 w-4"/> Add Player
+                        </Button>
                     </div>
                      <div className="border rounded-lg">
                         <Table>
@@ -201,6 +192,13 @@ export default function SportsHeadManageTeamPage() {
                     </AlertDialog>
                 </CardFooter>
             </Card>
+             <AddPlayerDialog
+                isOpen={isAddPlayerOpen}
+                onClose={() => setIsAddPlayerOpen(false)}
+                teamId={teamId}
+                onSuccess={fetchTeamDetails}
+                currentMemberIds={team.members.map(m => m.student_id)}
+            />
         </div>
     )
 }
