@@ -61,6 +61,9 @@ export type Registration = {
     accommodation_needed: boolean;
     payment_status: 'pending' | 'verified' | 'rejected' | 'approved';
     status: 'pending' | 'approved' | 'rejected';
+    checked_in: boolean;
+    kit_delivered: boolean;
+    id_verified: boolean;
     created_at: string;
     name: string;
     college_name: string;
@@ -246,6 +249,7 @@ export type SportsHeadRegistration = {
     name: string;
     mobile: string;
     email: string;
+    college_id: number;
     college_name: string;
     college_city: string;
     college_state: string;
@@ -504,15 +508,23 @@ export const deleteSport = async (sportId: number) => {
 }
 
 // Committee Module
-export const searchCommitteeRegistrations = async (query: string): Promise<Registration[]> => {
-    const response = await api.get('/committee/registrations', { params: { search: query } });
+export type CommitteeRegistrationFilters = {
+    search?: string;
+    sport_id?: string;
+    status?: string;
+    payment_status?: string;
+    college_id?: string;
+}
+export const getCommitteeRegistrations = async (filters: CommitteeRegistrationFilters): Promise<Registration[]> => {
+    const response = await api.get('/committee/registrations', { params: filters });
     return Array.isArray(response.data) ? response.data : (response.data?.data || []);
-}
+};
 
-export const checkInStudent = async (registrationId: string) => {
-    const response = await api.patch(`/committee/checkin/${registrationId}`);
+export const updateCheckIn = async (registrationId: string, data: { checked_in?: boolean; kit_delivered?: boolean; id_verified?: boolean; }) => {
+    const response = await api.patch(`/committee/checkin/${registrationId}`, data);
     return response.data;
-}
+};
+
 
 // Student Auth
 export const requestStudentOtp = async (identifier: string) => {
@@ -606,8 +618,13 @@ export const getSportsHeadAnalytics = async () => {
 
 export const getSportsHeadRegistrations = async (): Promise<SportsHeadRegistration[]> => {
     const response = await api.get('/sports-head/registrations');
-    return Array.isArray(response.data) ? response.data : (response.data?.data || []);
+    return Array.isArray(response.data) ? response.data.map(reg => ({
+        ...reg,
+        // Ensure college_name exists, falling back to other_college
+        college_name: reg.college_name || reg.other_college || 'N/A'
+    })) : (response.data?.data || []);
 };
+
 
 export const getSportsHeadStudents = async (): Promise<SportStudent[]> => {
     const response = await api.get('/sports-head/students');
@@ -688,6 +705,7 @@ export type ApiMatch = {
     TeamA: ApiTeam;
     TeamB: ApiTeam;
 };
+
 
 
 
