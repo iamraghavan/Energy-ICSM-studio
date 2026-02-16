@@ -1,8 +1,16 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { getSportsHeadTeamDetails, removePlayerFromTeam, updateSportsHeadTeam, deleteSportsHeadTeam, type FullSportsHeadTeam, type StudentTeamMember } from '@/lib/api';
+import { 
+    getStudentTeamDetails, 
+    deleteTeamMember, 
+    updateTeamName, 
+    deleteTeam, 
+    type FullTeamDetails, 
+    type StudentTeamMember 
+} from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,16 +22,19 @@ import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
-import { MemberFormDialog as AddPlayerDialog } from './MemberFormDialog';
+import { AddMemberDialog } from './AddMemberDialog';
+import { EditMemberDialog } from './EditMemberDialog';
 
 export function ManageTeamClientPage({ teamId }: { teamId: string }) {
-    const [team, setTeam] = useState<FullSportsHeadTeam | null>(null);
+    const [team, setTeam] = useState<FullTeamDetails | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     const [isEditingName, setIsEditingName] = useState(false);
     const [newTeamName, setNewTeamName] = useState('');
-    const [isAddPlayerOpen, setIsAddPlayerOpen] = useState(false);
+    const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
+    const [editingMember, setEditingMember] = useState<StudentTeamMember | null>(null);
+
 
     const { toast } = useToast();
     const router = useRouter();
@@ -32,7 +43,7 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
         setIsLoading(true);
         setError(null);
         try {
-            const teamData = await getSportsHeadTeamDetails(teamId);
+            const teamData = await getStudentTeamDetails(teamId);
             setTeam(teamData);
             setNewTeamName(teamData.team_name);
         } catch (err) {
@@ -57,7 +68,7 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
             return;
         }
         try {
-            await updateSportsHeadTeam(team.id, { team_name: newTeamName });
+            await updateTeamName(team.id, newTeamName);
             toast({ title: 'Success', description: 'Team name updated.' });
             handleSuccess();
         } catch (error) {
@@ -70,17 +81,17 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
     const handleDeleteTeam = async () => {
         if (!team) return;
         try {
-            await deleteSportsHeadTeam(team.id);
+            await deleteTeam(team.id);
             toast({ title: 'Success', description: 'Team deleted successfully.' });
-            router.push('/console/sports-head/teams');
+            router.push('/energy/2026/student/dashboard');
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete team.' });
         }
     };
     
-    const handleRemovePlayer = async (studentId: string) => {
+    const handleRemovePlayer = async (memberId: string) => {
         try {
-            await removePlayerFromTeam(teamId, studentId);
+            await deleteTeamMember(memberId);
             toast({ title: 'Player Removed', description: 'The player has been removed from the team.' });
             handleSuccess();
         } catch (error: any) {
@@ -101,8 +112,8 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
         return (
              <div className="container py-8 text-center">
                 <p>{error || 'Team not found.'}</p>
-                <Button variant="outline" onClick={() => router.push('/console/sports-head/teams')} className="mt-4">
-                    <ArrowLeft className="mr-2 h-4 w-4"/> Back to Teams
+                <Button variant="outline" onClick={() => router.push('/energy/2026/student/dashboard')} className="mt-4">
+                    <ArrowLeft className="mr-2 h-4 w-4"/> Back to Dashboard
                 </Button>
             </div>
         );
@@ -112,8 +123,8 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
         return (
              <div className="container py-8 text-center">
                 <p className="text-destructive">Incomplete team data received. Cannot display page.</p>
-                <Button variant="outline" onClick={() => router.push('/console/sports-head/teams')} className="mt-4">
-                    <ArrowLeft className="mr-2 h-4 w-4"/> Back to Teams
+                <Button variant="outline" onClick={() => router.push('/energy/2026/student/dashboard')} className="mt-4">
+                    <ArrowLeft className="mr-2 h-4 w-4"/> Back to Dashboard
                 </Button>
             </div>
         );
@@ -124,8 +135,8 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
     const progressValue = (memberCount / maxPlayers) * 100;
     
     return (
-        <div className="container py-8 space-y-6">
-            <Button variant="outline" onClick={() => router.push('/console/sports-head/teams')}><ArrowLeft className="mr-2 h-4 w-4"/> Back to Teams</Button>
+        <div className="space-y-6">
+            <Button variant="outline" onClick={() => router.push('/energy/2026/student/dashboard')}><ArrowLeft className="mr-2 h-4 w-4"/> Back to Dashboard</Button>
             
             <Card>
                 <CardHeader>
@@ -153,9 +164,9 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
 
                     <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
                         <h3 className="text-xl font-semibold">Team Roster</h3>
-                        <Button onClick={() => setIsAddPlayerOpen(true)} disabled={memberCount >= maxPlayers}>
+                        <Button onClick={() => setIsAddMemberOpen(true)} disabled={memberCount >= maxPlayers}>
                             <UserPlus className="mr-2 h-4 w-4" />
-                            Add Players
+                            Add Member
                         </Button>
                     </div>
 
@@ -164,7 +175,7 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Name</TableHead>
-                                    <TableHead>Mobile</TableHead>
+                                    <TableHead className="hidden md:table-cell">Mobile</TableHead>
                                     <TableHead>Role</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
@@ -174,22 +185,23 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
                                     <TableRow><TableCell colSpan={4} className="text-center h-24">No members added yet.</TableCell></TableRow>
                                 ) : team.members.map(member => (
                                     <TableRow key={member.id}>
-                                        <TableCell className="font-medium">{member.Student.name}</TableCell>
-                                        <TableCell>{member.Student.mobile}</TableCell>
+                                        <TableCell className="font-medium">{member.name}</TableCell>
+                                        <TableCell className="hidden md:table-cell">{member.mobile}</TableCell>
                                         <TableCell><Badge variant={member.role === 'Captain' ? 'default' : 'secondary'}>{member.role}</Badge></TableCell>
                                         <TableCell className="text-right">
+                                             <Button variant="ghost" size="icon" onClick={() => setEditingMember(member)}><Edit className="h-4 w-4" /></Button>
                                              <AlertDialog>
                                                 <AlertDialogTrigger asChild>
                                                     <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
                                                 </AlertDialogTrigger>
                                                 <AlertDialogContent>
                                                     <AlertDialogHeader>
-                                                        <AlertDialogTitle>Remove {member.Student.name}?</AlertDialogTitle>
+                                                        <AlertDialogTitle>Remove {member.name}?</AlertDialogTitle>
                                                         <AlertDialogDescription>This will permanently remove the member from your team. This action cannot be undone.</AlertDialogDescription>
                                                     </AlertDialogHeader>
                                                     <AlertDialogFooter>
                                                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                        <AlertDialogAction onClick={() => handleRemovePlayer(member.student_id)}>Remove</AlertDialogAction>
+                                                        <AlertDialogAction onClick={() => handleRemovePlayer(member.id)}>Remove</AlertDialogAction>
                                                     </AlertDialogFooter>
                                                 </AlertDialogContent>
                                             </AlertDialog>
@@ -221,12 +233,23 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
                 </CardFooter>
             </Card>
 
-            <AddPlayerDialog 
-                isOpen={isAddPlayerOpen}
-                onClose={() => setIsAddPlayerOpen(false)}
+             <AddMemberDialog
+                isOpen={isAddMemberOpen}
+                onClose={() => setIsAddMemberOpen(false)}
                 teamId={team.id}
+                sport={team.Sport}
                 onSuccess={handleSuccess}
             />
+
+            {editingMember && (
+                <EditMemberDialog
+                    isOpen={!!editingMember}
+                    onClose={() => setEditingMember(null)}
+                    member={editingMember}
+                    sport={team.Sport}
+                    onSuccess={handleSuccess}
+                />
+            )}
         </div>
     );
 }

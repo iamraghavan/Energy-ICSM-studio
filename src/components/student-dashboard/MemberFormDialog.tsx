@@ -1,139 +1,124 @@
 
+
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useForm, useFieldArray } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
-import { getSportsHeadStudents, addPlayerToTeam, type SportStudent } from '@/lib/api';
+import { bulkAddTeamMembers, type ApiSport } from '@/lib/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, Search, UserPlus } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Checkbox } from '../ui/checkbox';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { ScrollArea } from '../ui/scroll-area';
+import { Separator } from '../ui/separator';
 
-interface AddPlayerDialogProps {
+const memberSchema = z.object({
+  name: z.string().min(3, "Name is required."),
+  email: z.string().email("Invalid email.").optional().or(z.literal('')),
+  mobile: z.string().length(10, "Must be 10 digits.").optional().or(z.literal('')),
+});
+
+const formSchema = z.object({
+  members: z.array(memberSchema).min(1, "You must add at least one member."),
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
+interface AddMemberDialogProps {
     isOpen: boolean;
     onClose: () => void;
     teamId: string;
+    sport: ApiSport;
     onSuccess: () => void;
 }
 
-export function MemberFormDialog({ isOpen, onClose, teamId, onSuccess }: AddPlayerDialogProps) {
+export function AddMemberDialog({ isOpen, onClose, teamId, sport, onSuccess }: AddMemberDialogProps) {
     const { toast } = useToast();
-    const [allStudents, setAllStudents] = useState<SportStudent[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+    
+    const form = useForm<FormValues>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            members: [{ name: '', email: '', mobile: '' }]
+        },
+    });
 
-    useEffect(() => {
-        if (isOpen) {
-            setIsLoading(true);
-            getSportsHeadStudents()
-                .then(data => {
-                    const unassigned = data.filter(s => !s.team_id);
-                    setAllStudents(unassigned);
-                })
-                .catch(() => {
-                    toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch list of available students.' });
-                })
-                .finally(() => setIsLoading(false));
-        } else {
-            setSelectedStudentIds([]);
-            setSearchTerm('');
-        }
-    }, [isOpen, toast]);
+    const { control, handleSubmit, formState: { isSubmitting } } = form;
 
-    const filteredStudents = useMemo(() => {
-        if (!searchTerm) return allStudents;
-        return allStudents.filter(s => 
-            s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            s.college.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }, [searchTerm, allStudents]);
+    const { fields, append, remove } = useFieldArray({
+        control,
+        name: "members"
+    });
 
-    const handleSelectStudent = (regId: string) => {
-        setSelectedStudentIds(prev =>
-            prev.includes(regId)
-                ? prev.filter(id => id !== regId)
-                : [...prev, regId]
-        );
-    };
-
-    const handleAddPlayers = async () => {
-        if (selectedStudentIds.length === 0) {
-            toast({ variant: 'destructive', title: 'No players selected' });
-            return;
-        }
-        setIsSubmitting(true);
+    const onSubmit = async (data: FormValues) => {
         try {
-            const promises = selectedStudentIds.map(regId => addPlayerToTeam(teamId, regId));
-            await Promise.all(promises);
-            toast({ title: 'Success', description: `${selectedStudentIds.length} players added to the team.` });
+            await bulkAddTeamMembers(teamId, data.members);
+            toast({ title: 'Success', description: `${data.members.length} member(s) added.` });
             onSuccess();
             onClose();
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Failed to add players', description: error.response?.data?.message || 'An error occurred.' });
-        } finally {
-            setIsSubmitting(false);
+             toast({ variant: 'destructive', title: 'Failed to add members', description: error.response?.data?.message || 'An error occurred.' });
         }
     };
+    
+     useEffect(() => {
+        if (!isOpen) {
+            form.reset({ members: [{ name: '', email: '', mobile: '' }] });
+        }
+    }, [isOpen, form]);
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
-                    <DialogTitle>Add Players to Team</DialogTitle>
-                    <DialogDescription>Select students from the list of unassigned players for this sport.</DialogDescription>
+                    <DialogTitle>Bulk Add Members to {sport.name} Team</DialogTitle>
+                    <DialogDescription>Add player details below. At least a name is required for each player.</DialogDescription>
                 </DialogHeader>
-                <div className="py-4 space-y-4">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                            placeholder="Search by name or college..."
-                            className="pl-10"
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                    <ScrollArea className="h-72">
-                         <div className="border rounded-md">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[50px]"></TableHead>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>College</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {isLoading ? (
-                                        <TableRow><TableCell colSpan={3} className="text-center"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
-                                    ) : filteredStudents.length > 0 ? (
-                                        filteredStudents.map(student => (
-                                            <TableRow key={student.registration_id} onClick={() => handleSelectStudent(student.registration_id)} className="cursor-pointer">
-                                                <TableCell className="p-2"><Checkbox checked={selectedStudentIds.includes(student.registration_id)} /></TableCell>
-                                                <TableCell>{student.name}</TableCell>
-                                                <TableCell>{student.college}</TableCell>
-                                            </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow><TableCell colSpan={3} className="h-24 text-center">No unassigned players found.</TableCell></TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                         </div>
-                    </ScrollArea>
-                </div>
-                <DialogFooter>
-                    <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
-                    <Button onClick={handleAddPlayers} disabled={isSubmitting || selectedStudentIds.length === 0}>
-                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Add {selectedStudentIds.length > 0 ? selectedStudentIds.length : ''} Player(s)
-                    </Button>
-                </DialogFooter>
+                <Form {...form}>
+                    <form onSubmit={handleSubmit(onSubmit)}>
+                        <ScrollArea className="h-72 my-4">
+                            <div className="space-y-6 pr-4">
+                                {fields.map((field, index) => (
+                                    <div key={field.id} className="p-4 border rounded-lg relative">
+                                        <div className="space-y-4">
+                                            <FormField control={control} name={`members.${index}.name`} render={({ field }) => (
+                                                <FormItem><FormLabel>Player {index + 1} Name</FormLabel><FormControl><Input placeholder="Full Name" {...field} /></FormControl><FormMessage /></FormItem>
+                                            )} />
+                                            <div className="grid grid-cols-2 gap-4">
+                                                 <FormField control={control} name={`members.${index}.email`} render={({ field }) => (
+                                                    <FormItem><FormLabel>Email (Optional)</FormLabel><FormControl><Input type="email" placeholder="player@example.com" {...field} /></FormControl><FormMessage /></FormItem>
+                                                )} />
+                                                 <FormField control={control} name={`members.${index}.mobile`} render={({ field }) => (
+                                                    <FormItem><FormLabel>Mobile (Optional)</FormLabel><FormControl><Input type="tel" maxLength={10} placeholder="10-digit number" {...field} /></FormControl><FormMessage /></FormItem>
+                                                )} />
+                                            </div>
+                                        </div>
+                                        {index > 0 && (
+                                            <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2" onClick={() => remove(index)}>
+                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                ))}
+                                <Button type="button" variant="outline" onClick={() => append({ name: '', email: '', mobile: '' })}>
+                                    <PlusCircle className="mr-2 h-4 w-4" /> Add Another Player
+                                </Button>
+                            </div>
+                        </ScrollArea>
+                        <DialogFooter>
+                            <DialogClose asChild><Button type="button" variant="ghost">Cancel</Button></DialogClose>
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Add {fields.length} Member(s)
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
             </DialogContent>
         </Dialog>
     );
 }
+

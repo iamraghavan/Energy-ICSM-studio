@@ -323,8 +323,10 @@ export const getSports = async (): Promise<ApiSport[]> => {
 };
 
 export const registerStudent = async (formData: FormData) => {
-  const response = await api.post('/register', formData);
-  return response.data.data || response.data.registration || response.data;
+    const response = await api.post('/register', formData);
+    const result = response.data.data || response.data.registration || response.data;
+    // Ensure the top-level ID is returned if nested
+    return result.registration ? result.registration : result;
 };
 
 export const getRegistrations = async (): Promise<Registration[]> => {
@@ -510,16 +512,16 @@ export const createStudentTeam = async (sportId: number, teamName: string) => {
 
 export const getStudentTeamDetails = async (teamId: string): Promise<FullTeamDetails> => {
     const response = await api.get(`/dashboard/teams/${teamId}`);
-    return response.data.data || response.data;
+    return response.data;
 };
 
-export const addTeamMember = async (teamId: string, memberData: Omit<StudentTeamMember, 'id'>) => {
+export const addTeamMember = async (teamId: string, memberData: Omit<StudentTeamMember, 'id' | 'Student' >) => {
     const response = await api.post(`/dashboard/teams/${teamId}/members`, memberData);
     return response.data;
 };
 
-export const updateTeamMember = async (memberId: string, memberData: Partial<Omit<StudentTeamMember, 'id'>>) => {
-    const response = await api.patch(`/dashboard/members/${memberId}`, memberData);
+export const updateTeamMember = async (memberId: string, memberData: Partial<Omit<StudentTeamMember, 'id' | 'student_id' | 'Student'>>) => {
+    const response = await api.put(`/dashboard/members/${memberId}`, memberData);
     return response.data;
 };
 
@@ -538,7 +540,7 @@ export const deleteTeam = async (teamId: string) => {
     return response.data;
 };
 
-export const bulkAddTeamMembers = async (teamId: string, members: Omit<StudentTeamMember, 'id'>[]) => {
+export const bulkAddTeamMembers = async (teamId: string, members: Omit<StudentTeamMember, 'id' | 'student_id' | 'Student'>[]) => {
     const response = await api.post(`/dashboard/teams/${teamId}/members/bulk`, { members });
     return response.data;
 };
@@ -576,7 +578,13 @@ export const getSportsHeadTeams = async (): Promise<SportsHeadTeam[]> => {
 
 export const getSportsHeadTeamDetails = async (teamId: string): Promise<FullSportsHeadTeam> => {
     const response = await api.get(`/sports-head/teams/${teamId}`);
-    return response.data.data || response.data;
+    const data = response.data.data || response.data;
+    // The backend sends "members" but the type was "Members", correcting it here
+    if (data.Members && !data.members) {
+        data.members = data.Members;
+        delete data.Members;
+    }
+    return data;
 }
 
 export const createSportsHeadTeam = async (data: { team_name: string; registration_id: string }) => {
@@ -642,5 +650,6 @@ export type ApiMatch = {
     TeamA: ApiTeam;
     TeamB: ApiTeam;
 };
+
 
 
