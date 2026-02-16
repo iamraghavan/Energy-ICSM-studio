@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { getSportsHeadTeams, createSportsHeadTeam, getSportsHeadStudents, type SportsHeadTeam, type SportStudent } from "@/lib/api";
+import { getSportsHeadTeams, createSportsHeadTeam, getSportsHeadRegistrations, type SportsHeadTeam, type SportsHeadRegistration } from "@/lib/api";
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -27,7 +27,7 @@ const teamFormSchema = z.object({
 function CreateTeamDialog({ onTeamCreated }: { onTeamCreated: () => void }) {
     const { toast } = useToast();
     const [isOpen, setIsOpen] = useState(false);
-    const [students, setStudents] = useState<SportStudent[]>([]);
+    const [students, setStudents] = useState<SportsHeadRegistration[]>([]);
 
     const form = useForm<z.infer<typeof teamFormSchema>>({
         resolver: zodResolver(teamFormSchema),
@@ -36,8 +36,8 @@ function CreateTeamDialog({ onTeamCreated }: { onTeamCreated: () => void }) {
 
     useEffect(() => {
         if (isOpen) {
-            getSportsHeadStudents()
-                .then(data => setStudents(data.filter(s => !s.team_id)))
+            getSportsHeadRegistrations()
+                .then(data => setStudents(data.filter(s => !s.team_created)))
                 .catch(() => toast({ variant: 'destructive', title: 'Error', description: 'Could not load unassigned students.' }));
         }
     }, [isOpen, toast]);
@@ -79,7 +79,7 @@ function CreateTeamDialog({ onTeamCreated }: { onTeamCreated: () => void }) {
                                 <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl><SelectTrigger><SelectValue placeholder="Select a player to create the team" /></SelectTrigger></FormControl>
                                     <SelectContent>
-                                        {students.map(s => <SelectItem key={s.registration_id} value={s.registration_id}>{s.name} ({s.college})</SelectItem>)}
+                                        {students.map(s => <SelectItem key={s.id} value={s.id}>{s.name} ({s.college_name})</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                                 <FormDescription>This player will be the team captain.</FormDescription>
@@ -178,4 +178,3 @@ export default function SportsHeadTeamsPage() {
         </div>
     );
 }
-

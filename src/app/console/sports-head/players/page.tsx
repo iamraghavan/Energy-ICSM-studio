@@ -1,7 +1,8 @@
 
+
 'use client';
 import { useEffect, useState, useMemo } from 'react';
-import { getSportsHeadStudents, createSportsHeadTeam, type SportStudent } from '@/lib/api';
+import { getSportsHeadRegistrations, createSportsHeadTeam, type SportsHeadRegistration } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -30,7 +31,7 @@ function CreateTeamDialog({
   onClose,
   onTeamCreated,
 }: {
-  student: SportStudent | null;
+  student: SportsHeadRegistration | null;
   isOpen: boolean;
   onClose: () => void;
   onTeamCreated: () => void;
@@ -42,7 +43,7 @@ function CreateTeamDialog({
 
   useEffect(() => {
     if (student) {
-      form.setValue('team_name', `${student.college} Team`);
+      form.setValue('team_name', `${student.college_name} Team`);
     }
   }, [student, form]);
 
@@ -52,7 +53,7 @@ function CreateTeamDialog({
     try {
       await createSportsHeadTeam({
         team_name: values.team_name,
-        registration_id: student.registration_id,
+        registration_id: student.id,
       });
       toast({
         title: 'Team Created!',
@@ -76,7 +77,7 @@ function CreateTeamDialog({
         <DialogHeader>
           <DialogTitle>Create Team for {student.name}</DialogTitle>
           <DialogDescription>
-            You are creating a new team with {student.name} as the captain. The team will be associated with {student.college}.
+            You are creating a new team with {student.name} as the captain. The team will be associated with {student.college_name}.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -112,7 +113,7 @@ function CreateTeamDialog({
 
 export default function SportsHeadPlayersPage() {
   const router = useRouter();
-  const [players, setPlayers] = useState<SportStudent[]>([]);
+  const [registrations, setRegistrations] = useState<SportsHeadRegistration[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -120,13 +121,13 @@ export default function SportsHeadPlayersPage() {
 
   // State for the dialog
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState<SportStudent | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<SportsHeadRegistration | null>(null);
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const data = await getSportsHeadStudents();
-      setPlayers(data || []);
+      const data = await getSportsHeadRegistrations();
+      setRegistrations(data || []);
       setError(null);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch data.');
@@ -151,7 +152,7 @@ export default function SportsHeadPlayersPage() {
     fetchData(); // Refresh data
   };
 
-  const handleOpenCreateTeamModal = (student: SportStudent) => {
+  const handleOpenCreateTeamModal = (student: SportsHeadRegistration) => {
     setSelectedStudent(student);
     setIsModalOpen(true);
   };
@@ -161,20 +162,20 @@ export default function SportsHeadPlayersPage() {
   };
 
 
-  const filteredPlayers = useMemo(() => {
-    return (players || []).filter(player => {
-      if (!player || !player.name) return false;
+  const filteredRegistrations = useMemo(() => {
+    return (registrations || []).filter(reg => {
+      if (!reg || !reg.name) return false;
       const lowerSearchTerm = searchTerm.toLowerCase();
       
       const searchMatch = lowerSearchTerm === '' ||
-        player.name.toLowerCase().includes(lowerSearchTerm) ||
-        player.college.toLowerCase().includes(lowerSearchTerm) ||
-        player.registration_id.toLowerCase().includes(lowerSearchTerm) ||
-        (player.email || '').toLowerCase().includes(lowerSearchTerm);
+        reg.name.toLowerCase().includes(lowerSearchTerm) ||
+        reg.college_name.toLowerCase().includes(lowerSearchTerm) ||
+        reg.registration_code.toLowerCase().includes(lowerSearchTerm) ||
+        (reg.email || '').toLowerCase().includes(lowerSearchTerm);
 
       return searchMatch;
     });
-  }, [players, searchTerm]);
+  }, [registrations, searchTerm]);
 
   const renderTable = () => {
       if (isLoading) {
@@ -187,7 +188,7 @@ export default function SportsHeadPlayersPage() {
       if (error) {
         return <p className="text-destructive text-center py-10">{error}</p>;
       }
-      if (filteredPlayers.length === 0) {
+      if (filteredRegistrations.length === 0) {
         return <p className="text-muted-foreground text-center py-16">No players match your filters.</p>;
       }
       
@@ -204,31 +205,33 @@ export default function SportsHeadPlayersPage() {
                 </TableRow>
                 </TableHeader>
                 <TableBody>
-                {filteredPlayers.map((player) => (
-                    <TableRow key={player.registration_id}>
+                {filteredRegistrations.map((reg) => (
+                    <TableRow key={reg.id}>
                         <TableCell>
-                            <div className="font-medium">{player.name || 'N/A'}</div>
-                            <div className="text-xs text-muted-foreground font-mono">{player.registration_id}</div>
+                            <div className="font-medium">{reg.name || 'N/A'}</div>
+                            <div className="text-xs text-muted-foreground font-mono">{reg.registration_code}</div>
                         </TableCell>
-                        <TableCell className="hidden md:table-cell">{player.college || 'N/A'}</TableCell>
+                        <TableCell className="hidden md:table-cell">{reg.college_name || 'N/A'}</TableCell>
                         <TableCell className="hidden lg:table-cell">
-                          {player.mobile && <div className="flex items-center gap-2 text-sm"><Phone className="h-3 w-3" /> {player.mobile}</div>}
-                          {player.email && <div className="flex items-center gap-2 text-sm"><Mail className="h-3 w-3" /> {player.email}</div>}
+                          {reg.mobile && <div className="flex items-center gap-2 text-sm"><Phone className="h-3 w-3" /> {reg.mobile}</div>}
+                          {reg.email && <div className="flex items-center gap-2 text-sm"><Mail className="h-3 w-3" /> {reg.email}</div>}
                         </TableCell>
                         <TableCell>
-                           {player.team_id ? (
-                               <Badge variant="secondary">{player.team_name || 'In a Team'}</Badge>
+                           {reg.team_created ? (
+                               <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-100/80">
+                                   Team: {reg.team_info?.name || 'Created'}
+                                </Badge>
                            ) : (
-                               <Badge variant="outline">Pending Team</Badge>
+                               <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100/80">Pending Team</Badge>
                            )}
                         </TableCell>
                         <TableCell className="text-right">
-                           {player.team_id ? (
-                                <Button variant="outline" size="sm" onClick={() => handleViewTeam(player.team_id!)}>
+                           {reg.team_created && reg.team_info?.id ? (
+                                <Button variant="outline" size="sm" onClick={() => handleViewTeam(reg.team_info!.id)}>
                                     <Eye className="mr-2 h-4 w-4" /> View Team
                                 </Button>
                            ) : (
-                                <Button size="sm" onClick={() => handleOpenCreateTeamModal(player)}>
+                                <Button size="sm" onClick={() => handleOpenCreateTeamModal(reg)}>
                                     <Users className="mr-2 h-4 w-4" /> Create Team
                                 </Button>
                            )}
@@ -288,4 +291,5 @@ export default function SportsHeadPlayersPage() {
     </>
   );
 }
+
 

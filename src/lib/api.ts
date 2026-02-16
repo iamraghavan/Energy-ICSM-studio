@@ -229,14 +229,18 @@ export type SportsHeadTeam = {
     Captain: { name: string } | null;
 };
 
-export type SportStudent = {
-    registration_id: string;
+export type SportsHeadRegistration = {
+    id: string;
+    registration_code: string;
     name: string;
-    email: string;
-    college: string;
-    team_id: string | null;
-    team_name: string | null;
     mobile: string;
+    email: string;
+    college_name: string;
+    team_created: boolean;
+    team_info: {
+        id: string;
+        name: string;
+    } | null;
 };
 
 const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
@@ -565,15 +569,10 @@ export const getSportsHeadAnalytics = async () => {
     return response.data;
 }
 
-export const getSportsHeadRegistrations = async (): Promise<Registration[]> => {
+export const getSportsHeadRegistrations = async (): Promise<SportsHeadRegistration[]> => {
     const response = await api.get('/sports-head/registrations');
-    return response.data;
-}
-
-export const getSportsHeadStudents = async (): Promise<SportStudent[]> => {
-    const response = await api.get('/sports-head/students');
-    return response.data;
-}
+    return Array.isArray(response.data) ? response.data : (response.data?.data || []);
+};
 
 export const getSportsHeadTeams = async (): Promise<SportsHeadTeam[]> => {
     const response = await api.get('/sports-head/teams');
@@ -649,6 +648,7 @@ export type ApiMatch = {
     TeamA: ApiTeam;
     TeamB: ApiTeam;
 };
+
 
 
 
