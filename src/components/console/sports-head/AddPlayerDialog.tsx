@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { getSportsHeadStudents, addPlayerToTeam, type SportStudent } from '@/lib/api';
+import { getSportsHeadStudents, bulkAddPlayersToTeam, type SportStudent } from '@/lib/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Loader2, Search } from 'lucide-react';
@@ -69,9 +69,7 @@ export function AddPlayerDialog({ isOpen, onClose, teamId, onSuccess }: AddPlaye
         }
         setIsSubmitting(true);
         try {
-            // The endpoint is /:teamId/players/:studentId, where studentId is actually the registrationId
-            const promises = selectedStudentIds.map(regId => addPlayerToTeam(teamId, regId));
-            await Promise.all(promises);
+            await bulkAddPlayersToTeam(teamId, selectedStudentIds);
             toast({ title: 'Success', description: `${selectedStudentIds.length} player(s) added to the team.` });
             onSuccess();
             onClose();

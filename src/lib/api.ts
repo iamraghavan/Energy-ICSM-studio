@@ -221,9 +221,9 @@ export type SportsHeadAnalytics = {
 export type SportsHeadTeam = {
     id: string;
     team_name: string;
+    player_count: number;
     captain_id: string;
     Captain: { name: string } | null;
-    player_count: number;
 };
 
 export type SportStudent = {
@@ -597,6 +597,11 @@ export const addPlayerToTeam = async (teamId: string, registrationId: string) =>
     const response = await api.post(`/sports-head/teams/${teamId}/players/${registrationId}`);
     return response.data;
 };
+
+export const bulkAddPlayersToTeam = async (teamId: string, registration_ids: string[]) => {
+    const response = await api.post(`/sports-head/teams/${teamId}/players/bulk`, { registration_ids });
+    return response.data;
+}
 
 export const removePlayerFromTeam = async (teamId: string, studentId: string) => {
     const response = await api.delete(`/sports-head/teams/${teamId}/players/${studentId}`);
