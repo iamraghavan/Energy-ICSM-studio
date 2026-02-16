@@ -180,7 +180,7 @@ export default function StudentDashboardPage() {
                 team: teamInfo ? {
                     id: teamInfo.id,
                     team_name: teamInfo.team_name,
-                    members_count: teamInfo.Members?.length || 0,
+                    members_count: teamInfo.members?.length || 0,
                 } : null
             };
         });

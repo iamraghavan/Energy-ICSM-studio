@@ -146,7 +146,7 @@ export type FullTeamDetails = {
     team_name: string;
     sport_id: number;
     Sport: ApiSport;
-    Members: StudentTeamMember[];
+    members: StudentTeamMember[];
     Captain: {
         name: string;
         mobile: string;
@@ -256,6 +256,7 @@ export type SportsHeadRegistration = {
     Sports: {
         id: number;
         name: string;
+        category: 'Boys' | 'Girls';
     }[];
 };
 
@@ -674,6 +675,7 @@ export type ApiMatch = {
     TeamA: ApiTeam;
     TeamB: ApiTeam;
 };
+
 
 
 
