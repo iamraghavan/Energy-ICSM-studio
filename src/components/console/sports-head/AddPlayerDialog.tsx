@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -9,9 +7,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { Loader2, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 interface AddPlayerDialogProps {
     isOpen: boolean;
@@ -99,41 +98,40 @@ export function AddPlayerDialog({ isOpen, onClose, teamId, onSuccess }: AddPlaye
                         />
                     </div>
                     <ScrollArea className="h-72">
-                         <div className="border rounded-md">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[50px]"></TableHead>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>College</TableHead>
-                                        <TableHead>Mobile</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {isLoading ? (
-                                        <TableRow><TableCell colSpan={4} className="text-center"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
-                                    ) : filteredStudents.length > 0 ? (
-                                        filteredStudents.map(student => (
-                                            <TableRow key={student.registration_id} onClick={() => handleSelectStudent(student.registration_id)} className="cursor-pointer">
-                                                <TableCell className="p-2"><Checkbox checked={selectedStudentIds.includes(student.registration_id)} /></TableCell>
-                                                <TableCell>{student.name}</TableCell>
-                                                <TableCell>{student.college}</TableCell>
-                                                <TableCell>{student.mobile}</TableCell>
-                                            </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow><TableCell colSpan={4} className="h-24 text-center">No unassigned players found.</TableCell></TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                         </div>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pr-4">
+                            {isLoading ? (
+                                [...Array(4)].map((_, i) => <Skeleton key={i} className="h-24" />)
+                            ) : filteredStudents.length > 0 ? (
+                                filteredStudents.map(student => (
+                                    <div 
+                                        key={student.registration_id} 
+                                        onClick={() => handleSelectStudent(student.registration_id)}
+                                        className={cn(
+                                            "cursor-pointer transition-all border rounded-lg p-4 flex items-center gap-4 hover:bg-muted/50",
+                                            selectedStudentIds.includes(student.registration_id) && "border-primary ring-2 ring-primary bg-primary/5"
+                                        )}
+                                    >
+                                        <Checkbox checked={selectedStudentIds.includes(student.registration_id)} onCheckedChange={() => handleSelectStudent(student.registration_id)} />
+                                        <div className="flex-1">
+                                            <p className="font-semibold">{student.name}</p>
+                                            <p className="text-sm text-muted-foreground">{student.college}</p>
+                                            {student.mobile && <p className="text-xs text-muted-foreground font-mono">{student.mobile}</p>}
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="md:col-span-2 text-center py-16 text-muted-foreground border rounded-lg">
+                                    <p>No unassigned players found.</p>
+                                </div>
+                            )}
+                        </div>
                     </ScrollArea>
                 </div>
                 <DialogFooter>
                     <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
                     <Button onClick={handleAddPlayers} disabled={isSubmitting || selectedStudentIds.length === 0}>
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Add {selectedStudentIds.length > 0 ? selectedStudentIds.length : ''} Player(s)
+                        Add {selectedStudentIds.length > 0 ? `${selectedStudentIds.length} Player(s)` : 'Player(s)'}
                     </Button>
                 </DialogFooter>
             </DialogContent>
