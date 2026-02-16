@@ -131,7 +131,7 @@ export type StudentTeamMember = {
     bowling_style?: BowlingStyle | null;
     is_wicket_keeper?: boolean | null;
     additional_details?: any;
-    Student: {
+    Student?: {
         id: string;
         name: string;
         mobile: string;
@@ -143,7 +143,7 @@ export type FullTeamDetails = {
     team_name: string;
     sport_id: number;
     Sport: ApiSport;
-    members: StudentTeamMember[];
+    Members: StudentTeamMember[];
     Captain: {
         name: string;
         mobile: string;
@@ -650,6 +650,7 @@ export type ApiMatch = {
     TeamA: ApiTeam;
     TeamB: ApiTeam;
 };
+
 
 
 

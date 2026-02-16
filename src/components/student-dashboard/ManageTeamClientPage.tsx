@@ -119,7 +119,7 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
         );
     }
     
-    if (!team.Sport || !team.members) {
+    if (!team.Sport || !team.Members) {
         return (
              <div className="container py-8 text-center">
                 <p className="text-destructive">Incomplete team data received. Cannot display page.</p>
@@ -130,7 +130,7 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
         );
     }
 
-    const memberCount = team.members.length;
+    const memberCount = team.Members.length;
     const maxPlayers = team.Sport.max_players;
     const progressValue = (memberCount / maxPlayers) * 100;
     
@@ -181,9 +181,9 @@ export function ManageTeamClientPage({ teamId }: { teamId: string }) {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {team.members.length === 0 ? (
+                                {team.Members.length === 0 ? (
                                     <TableRow><TableCell colSpan={4} className="text-center h-24">No members added yet.</TableCell></TableRow>
-                                ) : team.members.map(member => (
+                                ) : team.Members.map(member => (
                                     <TableRow key={member.id}>
                                         <TableCell className="font-medium">{member.name}</TableCell>
                                         <TableCell className="hidden md:table-cell">{member.mobile}</TableCell>
