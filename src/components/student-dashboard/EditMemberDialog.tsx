@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -13,6 +14,7 @@ import { Loader2 } from 'lucide-react';
 import { updateTeamMember, type StudentTeamMember, type ApiSport } from '@/lib/api';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '../ui/textarea';
 
 const formSchema = z.object({
     role: z.enum(['Captain', 'Vice-Captain', 'Player']),
@@ -20,6 +22,7 @@ const formSchema = z.object({
     batting_style: z.string().optional(),
     bowling_style: z.string().optional(),
     is_wicket_keeper: z.boolean().optional(),
+    additional_details: z.string().optional(),
 });
 type FormValues = z.infer<typeof formSchema>;
 
@@ -49,6 +52,7 @@ export function EditMemberDialog({ isOpen, onClose, member, sport, onSuccess }: 
                 batting_style: member.batting_style || '',
                 bowling_style: member.bowling_style || '',
                 is_wicket_keeper: member.is_wicket_keeper || false,
+                additional_details: (member.additional_details as string) || '',
             });
         }
     }, [member, form]);
@@ -134,6 +138,9 @@ export function EditMemberDialog({ isOpen, onClose, member, sport, onSuccess }: 
                                 )}/>
                             </>
                         )}
+                        <FormField control={form.control} name={`additional_details`} render={({ field }) => (
+                            <FormItem><FormLabel>Additional Notes (Optional)</FormLabel><FormControl><Textarea placeholder="Any other info..." {...field} /></FormControl><FormMessage /></FormItem>
+                        )} />
                         <DialogFooter>
                             <DialogClose asChild><Button type="button" variant="ghost">Cancel</Button></DialogClose>
                             <Button type="submit" disabled={form.formState.isSubmitting}>
@@ -147,4 +154,5 @@ export function EditMemberDialog({ isOpen, onClose, member, sport, onSuccess }: 
         </Dialog>
     );
 }
+
 
