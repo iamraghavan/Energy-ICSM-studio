@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -21,13 +21,18 @@ import Link from 'next/link';
 
 const teamFormSchema = z.object({
   team_name: z.string().min(3, 'Team name must be at least 3 characters long.'),
-  captain_id: z.string().optional(),
+  registration_id: z.string().min(1, 'An initial player is required to create a team.'),
 });
 
 function CreateTeamDialog({ onTeamCreated }: { onTeamCreated: () => void }) {
     const { toast } = useToast();
     const [isOpen, setIsOpen] = useState(false);
     const [students, setStudents] = useState<SportStudent[]>([]);
+
+    const form = useForm<z.infer<typeof teamFormSchema>>({
+        resolver: zodResolver(teamFormSchema),
+        defaultValues: { team_name: '', registration_id: '' },
+    });
 
     useEffect(() => {
         if (isOpen) {
@@ -36,11 +41,6 @@ function CreateTeamDialog({ onTeamCreated }: { onTeamCreated: () => void }) {
                 .catch(() => toast({ variant: 'destructive', title: 'Error', description: 'Could not load unassigned students.' }));
         }
     }, [isOpen, toast]);
-    
-    const form = useForm<z.infer<typeof teamFormSchema>>({
-        resolver: zodResolver(teamFormSchema),
-        defaultValues: { team_name: '', captain_id: '' },
-    });
 
     const onSubmit = async (values: z.infer<typeof teamFormSchema>) => {
         try {
@@ -62,7 +62,7 @@ function CreateTeamDialog({ onTeamCreated }: { onTeamCreated: () => void }) {
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Create New Team</DialogTitle>
-                    <DialogDescription>Create a new team for your sport. You can add players later.</DialogDescription>
+                    <DialogDescription>Create a new team by selecting an initial player and providing a team name. The team's college will be set based on the selected player.</DialogDescription>
                 </DialogHeader>
                  <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
@@ -73,15 +73,16 @@ function CreateTeamDialog({ onTeamCreated }: { onTeamCreated: () => void }) {
                                 <FormMessage />
                             </FormItem>
                         )}/>
-                        <FormField control={form.control} name="captain_id" render={({ field }) => (
+                        <FormField control={form.control} name="registration_id" render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Assign Captain (Optional)</FormLabel>
+                                <FormLabel>Initial Player (Captain)</FormLabel>
                                 <Select onValueChange={field.onChange} value={field.value}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a player to be captain" /></SelectTrigger></FormControl>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a player to create the team" /></SelectTrigger></FormControl>
                                     <SelectContent>
                                         {students.map(s => <SelectItem key={s.registration_id} value={s.registration_id}>{s.name} ({s.college})</SelectItem>)}
                                     </SelectContent>
                                 </Select>
+                                <FormDescription>This player will be the team captain.</FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}/>
@@ -89,7 +90,7 @@ function CreateTeamDialog({ onTeamCreated }: { onTeamCreated: () => void }) {
                             <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
                             <Button type="submit" disabled={form.formState.isSubmitting}>
                                 {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Create
+                                Create Team
                             </Button>
                         </DialogFooter>
                     </form>
@@ -177,3 +178,4 @@ export default function SportsHeadTeamsPage() {
         </div>
     );
 }
+

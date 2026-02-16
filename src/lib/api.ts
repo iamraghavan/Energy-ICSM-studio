@@ -334,7 +334,7 @@ export const getRegistrations = async (): Promise<Registration[]> => {
 
 export const getRegistration = async (id: string): Promise<Registration> => {
     const response = await api.get(`/register/details`, { params: { id } });
-    return response.data;
+    return response.data.data || response.data;
 };
 
 export const verifyPayment = async (registrationId: string, status: 'approved' | 'rejected', remarks: string) => {
@@ -575,10 +575,10 @@ export const getSportsHeadTeams = async (): Promise<SportsHeadTeam[]> => {
 
 export const getSportsHeadTeamDetails = async (teamId: string): Promise<FullSportsHeadTeam> => {
     const response = await api.get(`/sports-head/teams/${teamId}`);
-    return response.data;
+    return response.data.data || response.data;
 }
 
-export const createSportsHeadTeam = async (data: { team_name: string; captain_id?: string }) => {
+export const createSportsHeadTeam = async (data: { team_name: string; registration_id: string }) => {
     const response = await api.post('/sports-head/teams', data);
     return response.data;
 };
@@ -593,8 +593,8 @@ export const deleteSportsHeadTeam = async (teamId: string) => {
     return response.data;
 }
 
-export const addPlayerToTeam = async (teamId: string, studentId: string) => {
-    const response = await api.post(`/sports-head/teams/${teamId}/players/${studentId}`);
+export const addPlayerToTeam = async (teamId: string, registrationId: string) => {
+    const response = await api.post(`/sports-head/teams/${teamId}/players/${registrationId}`);
     return response.data;
 };
 
@@ -631,3 +631,4 @@ export type ApiMatch = {
     TeamA: ApiTeam;
     TeamB: ApiTeam;
 };
+
