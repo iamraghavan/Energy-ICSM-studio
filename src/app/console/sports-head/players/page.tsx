@@ -217,16 +217,16 @@ export default function SportsHeadPlayersPage() {
                           {reg.email && <div className="flex items-center gap-2 text-sm"><Mail className="h-3 w-3" /> {reg.email}</div>}
                         </TableCell>
                         <TableCell>
-                           {reg.team_created ? (
+                           {reg.team_info ? (
                                <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-100/80">
-                                   Team: {reg.team_info?.name || 'Created'}
+                                   Team: {reg.team_info.name}
                                 </Badge>
                            ) : (
                                <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100/80">Pending Team</Badge>
                            )}
                         </TableCell>
                         <TableCell className="text-right">
-                           {reg.team_created && reg.team_info?.id ? (
+                           {reg.team_info ? (
                                 <Button variant="outline" size="sm" onClick={() => handleViewTeam(reg.team_info!.id)}>
                                     <Eye className="mr-2 h-4 w-4" /> View Team
                                 </Button>
@@ -291,5 +291,6 @@ export default function SportsHeadPlayersPage() {
     </>
   );
 }
+
 
 

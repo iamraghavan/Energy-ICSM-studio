@@ -37,7 +37,7 @@ function CreateTeamDialog({ onTeamCreated }: { onTeamCreated: () => void }) {
     useEffect(() => {
         if (isOpen) {
             getSportsHeadRegistrations()
-                .then(data => setStudents(data.filter(s => !s.team_created)))
+                .then(data => setStudents(data.filter(s => !s.team_info)))
                 .catch(() => toast({ variant: 'destructive', title: 'Error', description: 'Could not load unassigned students.' }));
         }
     }, [isOpen, toast]);
