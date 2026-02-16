@@ -237,6 +237,7 @@ export type SportsHeadTeam = {
     player_count: number;
     captain_id: string;
     Captain: { name: string } | null;
+    Sport?: ApiSport;
 };
 
 export type SportsHeadRegistration = {
@@ -527,7 +528,19 @@ export const verifyStudentOtp = async (identifier: string, otp: string): Promise
 // Student Dashboard
 export const getStudentDashboardOverview = async (): Promise<StudentDashboardOverview> => {
     const response = await api.get('/dashboard');
-    return response.data;
+    const data = response.data;
+
+    // Standardize the 'members' property
+    if (data && data.teams && Array.isArray(data.teams)) {
+        data.teams.forEach((team: any) => {
+            if (team.Members && !team.members) {
+                team.members = team.Members;
+                delete team.Members;
+            }
+        });
+    }
+    
+    return data;
 };
 
 export const createStudentTeam = async (sportId: number, teamName: string) => {
@@ -675,6 +688,7 @@ export type ApiMatch = {
     TeamA: ApiTeam;
     TeamB: ApiTeam;
 };
+
 
 
 
