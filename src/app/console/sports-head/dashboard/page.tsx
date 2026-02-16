@@ -93,7 +93,7 @@ export default function SportsHeadDashboardPage() {
                                         <TableRow key={activity.id}>
                                             <TableCell className="font-medium">{activity.name}</TableCell>
                                             <TableCell>{activity.registration_code}</TableCell>
-                                            <TableCell>{format(new Date(activity.updated_at), 'PPP')}</TableCell>
+                                            <TableCell>{format(new Date(activity.created_at), 'PPP')}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>

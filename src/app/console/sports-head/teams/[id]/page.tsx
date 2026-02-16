@@ -4,8 +4,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { 
     getSportsHeadTeamDetails, 
-    getSportsHeadStudents,
-    addPlayerToTeam,
     removePlayerFromTeam,
     updateSportsHeadTeam,
     deleteSportsHeadTeam,
@@ -18,93 +16,10 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, UserPlus, Trash2, Edit, Save, Loader2, UserX } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-function AddPlayerDialog({ teamId, existingMemberIds, onPlayerAdded }: { teamId: string, existingMemberIds: string[], onPlayerAdded: () => void }) {
-    const { toast } = useToast();
-    const [isOpen, setIsOpen] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const [students, setStudents] = useState<SportStudent[]>([]);
-    const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (isOpen) {
-            setIsLoading(true);
-            getSportsHeadStudents()
-                .then(data => {
-                    const availableStudents = data.filter(s => !s.team_id && !existingMemberIds.includes(s.registration_id));
-                    setStudents(availableStudents);
-                })
-                .catch(() => toast({ variant: 'destructive', title: 'Error', description: 'Could not load available students.' }))
-                .finally(() => setIsLoading(false));
-        }
-    }, [isOpen, toast, existingMemberIds]);
-
-    const handleAddPlayer = async () => {
-        if (!selectedStudentId) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Please select a student to add.' });
-            return;
-        }
-        setIsLoading(true);
-        try {
-            await addPlayerToTeam(teamId, selectedStudentId);
-            toast({ title: 'Success', description: 'Player added to the team.' });
-            onPlayerAdded();
-            setIsOpen(false);
-        } catch (error: any) {
-            // As per backend, this will fail with a 501
-            toast({ variant: 'destructive', title: 'Feature Not Available', description: error.response?.data?.message || 'The backend does not support adding players yet.' });
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-                <Button><UserPlus className="mr-2 h-4 w-4"/> Add Player</Button>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Add Player to Team</DialogTitle>
-                    <DialogDescription>Select an unassigned player from the list to add to this team.</DialogDescription>
-                </DialogHeader>
-                <div className="py-4">
-                    <ScrollArea className="h-72">
-                         {isLoading ? <p>Loading students...</p> : 
-                            students.length > 0 ? (
-                                <div className="space-y-2">
-                                    {students.map(student => (
-                                        <div 
-                                            key={student.registration_id}
-                                            onClick={() => setSelectedStudentId(student.registration_id)}
-                                            className={`p-2 border rounded-md cursor-pointer ${selectedStudentId === student.registration_id ? 'bg-accent' : 'hover:bg-muted'}`}
-                                        >
-                                            <p className="font-medium">{student.name}</p>
-                                            <p className="text-sm text-muted-foreground">{student.college}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="text-center text-muted-foreground py-8">No available players found.</p>
-                            )
-                        }
-                    </ScrollArea>
-                </div>
-                <DialogFooter>
-                    <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
-                    <Button onClick={handleAddPlayer} disabled={isLoading || !selectedStudentId}>
-                        {isLoading && <Loader2 className="animate-spin mr-2"/>} Add to Team
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    )
-}
 
 export default function SportsHeadManageTeamPage() {
     const router = useRouter();
@@ -217,7 +132,18 @@ export default function SportsHeadManageTeamPage() {
                 <CardContent>
                     <div className="flex items-center justify-between mb-4">
                          <h3 className="text-xl font-semibold">Player Roster ({team.members.length})</h3>
-                        <AddPlayerDialog teamId={team.id} existingMemberIds={team.members.map(m => m.student_id)} onPlayerAdded={fetchTeamDetails} />
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <span tabIndex={0}>
+                                        <Button disabled><UserPlus className="mr-2 h-4 w-4"/> Add Player</Button>
+                                    </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Adding players from console is under development.</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     </div>
                      <div className="border rounded-lg">
                         <Table>

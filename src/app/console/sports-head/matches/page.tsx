@@ -1,11 +1,11 @@
 
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PlusCircle, CalendarCog } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from '@/components/ui/dialog';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,7 +13,7 @@ import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
-import { getSportsHeadMatches, scheduleMatch, updateMatch, getSportsHeadTeams, type ApiMatch, type SportsHeadTeam } from '@/lib/api';
+import { getSportsHeadMatches, scheduleMatch, getSportsHeadTeams, type ApiMatch, type SportsHeadTeam } from '@/lib/api';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MatchCard } from '@/components/console/scorer/MatchCard';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -35,7 +35,7 @@ function ScheduleMatchDialog({ onMatchCreated, teams, sportId }: { onMatchCreate
     
     const form = useForm<z.infer<typeof matchFormSchema>>({
         resolver: zodResolver(matchFormSchema),
-        defaultValues: { venue: 'Main Ground' },
+        defaultValues: { venue: 'Main Ground', referee_name: '' },
     });
 
     const onSubmit = async (values: z.infer<typeof matchFormSchema>) => {
@@ -48,8 +48,8 @@ function ScheduleMatchDialog({ onMatchCreated, teams, sportId }: { onMatchCreate
             onMatchCreated();
             setIsModalOpen(false);
             form.reset();
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to schedule match.' });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error', description: error.response?.data?.error || 'Failed to schedule match.' });
         }
     };
 
@@ -88,38 +88,45 @@ function ScheduleMatchDialog({ onMatchCreated, teams, sportId }: { onMatchCreate
 }
 
 export default function SportsHeadMatchesPage() {
-    const [matches, setMatches] = useState<ApiMatch[]>([]);
+    const [scheduled, setScheduled] = useState<ApiMatch[]>([]);
+    const [live, setLive] = useState<ApiMatch[]>([]);
+    const [completed, setCompleted] = useState<ApiMatch[]>([]);
     const [teams, setTeams] = useState<SportsHeadTeam[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
-    // In a real app, this would come from user session
-    const assignedSportId = localStorage.getItem('assigned_sport_id');
+    const assignedSportId = typeof window !== 'undefined' ? localStorage.getItem('assigned_sport_id') : null;
 
-    const fetchMatchesAndTeams = async () => {
-        if (!assignedSportId) return;
+    const fetchMatchesAndTeams = useCallback(async () => {
+        if (!assignedSportId) {
+            setIsLoading(false);
+            setScheduled([]);
+            setLive([]);
+            setCompleted([]);
+            setTeams([]);
+            return;
+        }
         setIsLoading(true);
         try {
-            const [matchesData, teamsData] = await Promise.all([
-                getSportsHeadMatches(),
+            const [scheduledData, liveData, completedData, teamsData] = await Promise.all([
+                getSportsHeadMatches('scheduled'),
+                getSportsHeadMatches('live'),
+                getSportsHeadMatches('completed'),
                 getSportsHeadTeams()
             ]);
-            setMatches(matchesData);
+            setScheduled(scheduledData);
+            setLive(liveData);
+            setCompleted(completedData);
             setTeams(teamsData);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch data.' });
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [assignedSportId, toast]);
 
     useEffect(() => {
         fetchMatchesAndTeams();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    const scheduled = matches.filter(m => m.status === 'scheduled');
-    const live = matches.filter(m => m.status === 'live');
-    const completed = matches.filter(m => m.status === 'completed');
+    }, [fetchMatchesAndTeams]);
 
     return (
         <div className="container py-8 space-y-6">
