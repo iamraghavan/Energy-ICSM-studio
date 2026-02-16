@@ -2,7 +2,7 @@
 
 'use client';
 import { useEffect, useState, useMemo } from 'react';
-import { getSportsHeadRegistrations, createSportsHeadTeam, type SportsHeadRegistration } from '@/lib/api';
+import { getSportsHeadRegistrations, createSportsHeadTeam, type SportsHeadRegistration, type ApiSport } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -17,14 +17,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Loader2, Search, X, Users, Eye, Mail, Phone } from 'lucide-react';
-import Link from 'next/link';
 
-// Schema for the create team dialog form
 const createTeamSchema = z.object({
   team_name: z.string().min(3, 'Team name must be at least 3 characters.'),
 });
 
-// Dialog component for creating a team for a specific student
 function CreateTeamDialog({
   student,
   isOpen,
@@ -43,7 +40,11 @@ function CreateTeamDialog({
 
   useEffect(() => {
     if (student) {
-      form.setValue('team_name', `${student.college_name} Team`);
+        const sport = student.Sports[0];
+        const sportCategory = sport ? ` - ${sport.category.toUpperCase()}` : '';
+        const sportName = sport ? ` - ${sport.name.toUpperCase()}` : '';
+        const generatedName = `${student.college_name}${sportName}${sportCategory}`;
+        form.setValue('team_name', generatedName);
     }
   }, [student, form]);
 
@@ -77,7 +78,7 @@ function CreateTeamDialog({
         <DialogHeader>
           <DialogTitle>Create Team for {student.name}</DialogTitle>
           <DialogDescription>
-            You are creating a new team with {student.name} as the captain. The team will be associated with {student.college_name}.
+            You are creating a new team with {student.name} as the captain. An auto-generated name is provided.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -119,7 +120,6 @@ export default function SportsHeadPlayersPage() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
 
-  // State for the dialog
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<SportsHeadRegistration | null>(null);
 
@@ -217,7 +217,7 @@ export default function SportsHeadPlayersPage() {
                           {reg.email && <div className="flex items-center gap-2 text-sm"><Mail className="h-3 w-3" /> {reg.email}</div>}
                         </TableCell>
                         <TableCell>
-                           {reg.team_info ? (
+                           {reg.team_created && reg.team_info ? (
                                <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-100/80">
                                    Team: {reg.team_info.name}
                                 </Badge>
@@ -226,7 +226,7 @@ export default function SportsHeadPlayersPage() {
                            )}
                         </TableCell>
                         <TableCell className="text-right">
-                           {reg.team_info ? (
+                           {reg.team_created && reg.team_info ? (
                                 <Button variant="outline" size="sm" onClick={() => handleViewTeam(reg.team_info!.id)}>
                                     <Eye className="mr-2 h-4 w-4" /> View Team
                                 </Button>
@@ -291,6 +291,3 @@ export default function SportsHeadPlayersPage() {
     </>
   );
 }
-
-
-

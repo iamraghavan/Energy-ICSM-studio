@@ -215,6 +215,16 @@ export type StudentLoginResponse = {
     token: string;
 };
 
+export type SportStudent = {
+    registration_id: string;
+    name: string;
+    college: string;
+    team_id: string | null;
+    team_name: string | null;
+    mobile: string;
+    department: string | null;
+}
+
 export type SportsHeadAnalytics = {
     totalTeams: number;
     totalPlayers: number;
@@ -241,6 +251,11 @@ export type SportsHeadRegistration = {
         id: string;
         name: string;
     } | null;
+    Sports: {
+        id: number;
+        name: string;
+        category: 'Boys' | 'Girls';
+    }[];
 };
 
 const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
@@ -520,7 +535,12 @@ export const createStudentTeam = async (sportId: number, teamName: string) => {
 
 export const getStudentTeamDetails = async (teamId: string): Promise<FullTeamDetails> => {
     const response = await api.get(`/dashboard/teams/${teamId}`);
-    return response.data;
+    const data = response.data;
+     if (data.Members && !data.members) {
+        data.members = data.Members;
+        delete data.Members;
+    }
+    return data;
 };
 
 export const addTeamMember = async (teamId: string, memberData: Omit<StudentTeamMember, 'id' | 'Student' >) => {
@@ -574,6 +594,12 @@ export const getSportsHeadRegistrations = async (): Promise<SportsHeadRegistrati
     return Array.isArray(response.data) ? response.data : (response.data?.data || []);
 };
 
+export const getSportsHeadStudents = async (): Promise<SportStudent[]> => {
+    const response = await api.get('/sports-head/students');
+    return response.data;
+}
+
+
 export const getSportsHeadTeams = async (): Promise<SportsHeadTeam[]> => {
     const response = await api.get('/sports-head/teams');
     return response.data;
@@ -582,7 +608,6 @@ export const getSportsHeadTeams = async (): Promise<SportsHeadTeam[]> => {
 export const getSportsHeadTeamDetails = async (teamId: string): Promise<FullSportsHeadTeam> => {
     const response = await api.get(`/sports-head/teams/${teamId}`);
     const data = response.data.data || response.data;
-    // The backend sends "members" but the type was "Members", correcting it here
     if (data.Members && !data.members) {
         data.members = data.Members;
         delete data.Members;
@@ -648,6 +673,7 @@ export type ApiMatch = {
     TeamA: ApiTeam;
     TeamB: ApiTeam;
 };
+
 
 
 
