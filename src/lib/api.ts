@@ -190,6 +190,20 @@ export type StudentLoginResponse = {
     token: string;
 };
 
+export type SportsHeadAnalytics = {
+    totalTeams: number;
+    totalPlayers: number;
+    upcomingMatches: number;
+};
+
+export type SportsHeadTeam = {
+    id: string;
+    team_name: string;
+    captain_id: string;
+    Captain: { name: string } | null;
+    _count: { Members: number };
+};
+
 const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
 
 const api = axios.create({
@@ -293,11 +307,11 @@ export const getRegistration = async (id: string): Promise<Registration> => {
     return response.data;
 };
 
-export const verifyPayment = async (registration_code: string, status: 'approved' | 'rejected', remarks: string) => {
+export const verifyPayment = async (registrationId: string, status: 'approved' | 'rejected', remarks: string) => {
     const finalRemarks = remarks || `Payment ${status} via admin dashboard at ${new Date().toLocaleString()}.`;
     const response = await api.post('/admin/verify-payment', {
-        registrationId: registration_code,
-        status,
+        registrationId: registrationId,
+        status: status,
         remarks: finalRemarks,
     });
     return response.data;
@@ -504,6 +518,41 @@ export const bulkDeleteTeamMembers = async (memberIds: string[]) => {
     return response.data;
 };
 
+// Sports Head
+export const getSportsHeadAnalytics = async (): Promise<SportsHeadAnalytics> => {
+    const response = await api.get('/sports-head/analytics');
+    return response.data;
+}
+export const getSportsHeadRegistrations = async (): Promise<Registration[]> => {
+    const response = await api.get('/sports-head/registrations');
+    return response.data;
+}
+
+export const getSportsHeadTeams = async (): Promise<SportsHeadTeam[]> => {
+    const response = await api.get('/sports-head/teams');
+    return response.data;
+};
+
+export const createSportsHeadTeam = async (data: { team_name: string; captain_id?: string }) => {
+    const response = await api.post('/sports-head/teams', data);
+    return response.data;
+};
+
+export const getSportsHeadMatches = async (status?: 'scheduled' | 'live' | 'completed'): Promise<ApiMatch[]> => {
+    const response = await api.get('/sports-head/matches', { params: { status } });
+    return response.data;
+};
+
+export const scheduleMatch = async (data: any) => {
+    const response = await api.post('/sports-head/matches/schedule', data);
+    return response.data;
+};
+
+export const updateMatch = async (matchId: string, data: any) => {
+    const response = await api.patch(`/sports-head/matches/${matchId}`, data);
+    return response.data;
+}
+
 export type ApiMatch = {
     id: string;
     sport_id: number;
@@ -517,6 +566,3 @@ export type ApiMatch = {
     TeamA: ApiTeam;
     TeamB: ApiTeam;
 };
-
-
-
