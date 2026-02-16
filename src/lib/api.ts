@@ -108,7 +108,10 @@ export type User = {
 };
 
 export type TeamMemberRole = 'Captain' | 'Vice-Captain' | 'Player';
-export type CricketSportRole = 'Batsman' | 'Bowler' | 'All-rounder' | 'Wicket Keeper';
+export type CricketSportRole = 'Batsman' | 'Bowler' | 'All-rounder';
+export type FootballSportRole = 'Goalkeeper' | 'Defender' | 'Midfielder' | 'Forward';
+export type BasketballSportRole = 'Point Guard' | 'Shooting Guard' | 'Small Forward' | 'Power Forward' | 'Center';
+
 export type BattingStyle = 'Right Hand' | 'Left Hand';
 export type BowlingStyle = 
     | 'Right Arm Fast' 
@@ -126,7 +129,7 @@ export type StudentTeamMember = {
     email: string;
     mobile: string;
     role: TeamMemberRole;
-    sport_role?: CricketSportRole | string | null;
+    sport_role?: CricketSportRole | FootballSportRole | BasketballSportRole | string | null;
     batting_style?: BattingStyle | null;
     bowling_style?: BowlingStyle | null;
     is_wicket_keeper?: boolean | null;
@@ -607,11 +610,6 @@ export const deleteSportsHeadTeam = async (teamId: string) => {
     return response.data;
 }
 
-export const addPlayerToTeam = async (teamId: string, registrationId: string) => {
-    const response = await api.post(`/sports-head/teams/${teamId}/players/${registrationId}`);
-    return response.data;
-};
-
 export const bulkAddPlayersToTeam = async (teamId: string, registration_ids: string[]) => {
     const response = await api.post(`/sports-head/teams/${teamId}/players/bulk`, { registration_ids });
     return response.data;
@@ -650,6 +648,7 @@ export type ApiMatch = {
     TeamA: ApiTeam;
     TeamB: ApiTeam;
 };
+
 
 
 

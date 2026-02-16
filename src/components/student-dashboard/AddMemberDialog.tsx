@@ -41,6 +41,9 @@ type FormValues = z.infer<typeof formSchema>;
 const cricketSportRoles = ['Batsman', 'Bowler', 'All-rounder'];
 const battingStyles = ['Right Hand', 'Left Hand'];
 const bowlingStyles = ['Right Arm Fast', 'Right Arm Medium', 'Right Arm Spin', 'Left Arm Fast', 'Left Arm Medium', 'Left Arm Spin', 'N/A'];
+const footballPositions = ['Goalkeeper', 'Defender', 'Midfielder', 'Forward'];
+const basketballPositions = ['Point Guard', 'Shooting Guard', 'Small Forward', 'Power Forward', 'Center'];
+
 
 const defaultMemberValues = {
     name: '',
@@ -156,6 +159,27 @@ export function AddMemberDialog({ isOpen, onClose, teamId, sport, onSuccess }: A
                                                     )}/>
                                                 </>
                                             )}
+
+                                            {sport.name === 'Football' && (
+                                                <>
+                                                    <Separator/>
+                                                    <p className="text-sm font-medium text-muted-foreground">Football Specific Details</p>
+                                                    <FormField control={control} name={`members.${index}.sport_role`} render={({ field }) => (
+                                                        <FormItem><FormLabel>Playing Position</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select playing position" /></SelectTrigger></FormControl><SelectContent>{footballPositions.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                                                    )}/>
+                                                </>
+                                            )}
+
+                                            {sport.name === 'Basketball' && (
+                                                 <>
+                                                    <Separator/>
+                                                    <p className="text-sm font-medium text-muted-foreground">Basketball Specific Details</p>
+                                                    <FormField control={control} name={`members.${index}.sport_role`} render={({ field }) => (
+                                                        <FormItem><FormLabel>Position</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select position" /></SelectTrigger></FormControl><SelectContent>{basketballPositions.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                                                    )}/>
+                                                </>
+                                            )}
+
                                             <FormField control={control} name={`members.${index}.additional_details`} render={({ field }) => (
                                                 <FormItem><FormLabel>Additional Notes (Optional)</FormLabel><FormControl><Textarea placeholder="Any other info..." {...field} /></FormControl><FormMessage /></FormItem>
                                             )} />
