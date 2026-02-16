@@ -57,7 +57,7 @@ export function EditPlayerDialog({ isOpen, onClose, teamId, player, sport, onSuc
     const onSubmit = async (values: FormValues) => {
         try {
             await updateSportsHeadTeamMember(teamId, player.student_id, values);
-            toast({ title: 'Player Updated', description: `${player.Student.name}'s details have been updated.` });
+            toast({ title: 'Player Updated', description: `${player.Student?.name}'s details have been updated.` });
             onSuccess();
             onClose();
         } catch (error: any) {
@@ -73,7 +73,7 @@ export function EditPlayerDialog({ isOpen, onClose, teamId, player, sport, onSuc
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Edit Player: {player.Student.name}</DialogTitle>
+                    <DialogTitle>Edit Player: {player.Student?.name}</DialogTitle>
                     <DialogDescription>Update the player's role and sport-specific details.</DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
@@ -148,4 +148,3 @@ export function EditPlayerDialog({ isOpen, onClose, teamId, player, sport, onSuc
         </Dialog>
     );
 }
-

@@ -162,8 +162,8 @@ export default function SportsHeadManageTeamPage() {
                                  {team.members.length === 0 && <TableRow><TableCell colSpan={4} className="h-24 text-center">No players in this team yet.</TableCell></TableRow>}
                                 {team.members.map(member => (
                                     <TableRow key={member.student_id}>
-                                        <TableCell className="font-medium">{member.Student.name}</TableCell>
-                                        <TableCell>{member.Student.mobile}</TableCell>
+                                        <TableCell className="font-medium">{member.Student?.name}</TableCell>
+                                        <TableCell>{member.Student?.mobile}</TableCell>
                                         <TableCell>
                                             <div className="flex flex-col">
                                                 <Badge variant={member.role === 'Captain' ? 'default' : 'secondary'} className="w-fit">{member.role}</Badge>
@@ -180,7 +180,7 @@ export default function SportsHeadManageTeamPage() {
                                                 </AlertDialogTrigger>
                                                 <AlertDialogContent>
                                                     <AlertDialogHeader>
-                                                        <AlertDialogTitle>Remove {member.Student.name}?</AlertDialogTitle>
+                                                        <AlertDialogTitle>Remove {member.Student?.name}?</AlertDialogTitle>
                                                         <AlertDialogDescription>Are you sure you want to remove this player from the team?</AlertDialogDescription>
                                                     </AlertDialogHeader>
                                                     <AlertDialogFooter>
