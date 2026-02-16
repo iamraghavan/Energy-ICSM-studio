@@ -1,6 +1,7 @@
+
 'use client';
 import { useEffect, useState, useMemo } from 'react';
-import { getSportsHeadRegistrations, type Registration } from '@/lib/api';
+import { getSportsHeadStudents, type SportStudent } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 
 export default function SportsHeadPlayersPage() {
   const router = useRouter();
-  const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [players, setPlayers] = useState<SportStudent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -23,8 +24,8 @@ export default function SportsHeadPlayersPage() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const regData = await getSportsHeadRegistrations();
-      setRegistrations(regData || []);
+      const data = await getSportsHeadStudents();
+      setPlayers(data || []);
       setError(null);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch data.');
@@ -43,21 +44,21 @@ export default function SportsHeadPlayersPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const filteredRegistrations = useMemo(() => {
-    return (registrations || []).filter(reg => {
-      if (!reg || !reg.name) return false;
+  const filteredPlayers = useMemo(() => {
+    return (players || []).filter(player => {
+      if (!player || !player.name) return false;
 
       const lowerSearchTerm = searchTerm.toLowerCase();
       
       const searchMatch = lowerSearchTerm === '' ||
-        (reg.name || '').toLowerCase().includes(lowerSearchTerm) ||
-        (reg.college_name || '').toLowerCase().includes(lowerSearchTerm) ||
-        (reg.Team?.team_name || '').toLowerCase().includes(lowerSearchTerm) ||
-        reg.registration_code?.toLowerCase().includes(lowerSearchTerm);
+        (player.name || '').toLowerCase().includes(lowerSearchTerm) ||
+        (player.college || '').toLowerCase().includes(lowerSearchTerm) ||
+        (player.team_name || '').toLowerCase().includes(lowerSearchTerm) ||
+        player.registration_id?.toLowerCase().includes(lowerSearchTerm);
 
       return searchMatch;
     });
-  }, [registrations, searchTerm]);
+  }, [players, searchTerm]);
 
   const handleViewDetailsClick = (registrationId: string) => {
     router.push(`/console/admin/registrations/details?id=${registrationId}`);
@@ -74,7 +75,7 @@ export default function SportsHeadPlayersPage() {
       if (error) {
         return <p className="text-destructive text-center py-10">{error}</p>;
       }
-      if (filteredRegistrations.length === 0) {
+      if (filteredPlayers.length === 0) {
         return <p className="text-muted-foreground text-center py-16">No players match your filters.</p>;
       }
       
@@ -84,40 +85,25 @@ export default function SportsHeadPlayersPage() {
                 <TableHeader>
                 <TableRow>
                     <TableHead>Student</TableHead>
-                    <TableHead className="hidden lg:table-cell">College</TableHead>
-                    <TableHead className="hidden md:table-cell">Team</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>College</TableHead>
+                    <TableHead>Team</TableHead>
                     <TableHead className="text-right w-[100px]">Actions</TableHead>
                 </TableRow>
                 </TableHeader>
                 <TableBody>
-                {filteredRegistrations.map((reg) => (
-                    <TableRow key={reg.id}>
+                {filteredPlayers.map((player) => (
+                    <TableRow key={player.registration_id}>
                         <TableCell>
-                            <div className="font-medium">{reg.name || 'N/A'}</div>
-                            <div className="text-xs text-muted-foreground font-mono">{reg.registration_code}</div>
+                            <div className="font-medium">{player.name || 'N/A'}</div>
+                            <div className="text-xs text-muted-foreground font-mono">{player.registration_id}</div>
                         </TableCell>
-                        <TableCell className="hidden lg:table-cell">{reg.college_name || 'N/A'}</TableCell>
-                        <TableCell className="hidden md:table-cell">
-                           {reg.Team ? (
-                               <Badge variant="secondary">{reg.Team.team_name}</Badge>
+                        <TableCell>{player.college || 'N/A'}</TableCell>
+                        <TableCell>
+                           {player.team_name ? (
+                               <Badge variant="secondary">{player.team_name}</Badge>
                            ) : (
                                <span className="text-muted-foreground">Unassigned</span>
                            )}
-                        </TableCell>
-                        <TableCell>
-                             <Badge
-                                variant={
-                                    reg.status === 'approved'
-                                    ? 'default'
-                                    : reg.status === 'rejected'
-                                    ? 'destructive'
-                                    : 'secondary'
-                                }
-                                className="capitalize"
-                                >
-                                {reg.status}
-                            </Badge>
                         </TableCell>
                         <TableCell className="text-right">
                            <DropdownMenu>
@@ -129,7 +115,7 @@ export default function SportsHeadPlayersPage() {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                    <DropdownMenuItem onClick={() => handleViewDetailsClick(reg.id)}>
+                                    <DropdownMenuItem onClick={() => handleViewDetailsClick(player.registration_id)}>
                                         <Eye className="mr-2 h-4 w-4" />
                                         View Details
                                     </DropdownMenuItem>
@@ -171,7 +157,7 @@ export default function SportsHeadPlayersPage() {
       <Card>
         <CardHeader>
             <CardTitle>Player Management</CardTitle>
-            <CardDescription>View all players registered for your assigned sport.</CardDescription>
+            <CardDescription>View all approved players registered for your assigned sport.</CardDescription>
         </CardHeader>
         <CardContent>
             <div className="space-y-4">

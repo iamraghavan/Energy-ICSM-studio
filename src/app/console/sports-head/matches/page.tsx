@@ -23,24 +23,27 @@ const matchFormSchema = z.object({
     team_b_id: z.string().min(1, 'Please select Team B.'),
     start_time: z.string().min(1, 'Please select a date and time.'),
     venue: z.string().min(3, 'Venue must be at least 3 characters.'),
-    match_type: z.enum(['League', 'Knockout', 'Friendly']),
+    referee_name: z.string().optional(),
 }).refine(data => data.team_a_id !== data.team_b_id, {
     message: "Team A and Team B cannot be the same.",
     path: ["team_b_id"],
 });
 
-function ScheduleMatchDialog({ onMatchCreated, teams }: { onMatchCreated: () => void, teams: SportsHeadTeam[] }) {
+function ScheduleMatchDialog({ onMatchCreated, teams, sportId }: { onMatchCreated: () => void, teams: SportsHeadTeam[], sportId: string }) {
     const { toast } = useToast();
     const [isModalOpen, setIsModalOpen] = useState(false);
     
     const form = useForm<z.infer<typeof matchFormSchema>>({
         resolver: zodResolver(matchFormSchema),
-        defaultValues: { venue: 'Main Ground', match_type: 'League' },
+        defaultValues: { venue: 'Main Ground' },
     });
 
     const onSubmit = async (values: z.infer<typeof matchFormSchema>) => {
         try {
-            await scheduleMatch(values);
+            await scheduleMatch({
+                ...values,
+                sport_id: parseInt(sportId, 10),
+            });
             toast({ title: 'Match Scheduled', description: `A new match has been created.` });
             onMatchCreated();
             setIsModalOpen(false);
@@ -67,10 +70,9 @@ function ScheduleMatchDialog({ onMatchCreated, teams }: { onMatchCreated: () => 
                              <FormField control={form.control} name="team_b_id" render={({ field }) => (<FormItem><FormLabel>Team B</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select Team B" /></SelectTrigger></FormControl><SelectContent>{teams.map(t => <SelectItem key={t.id} value={t.id}>{t.team_name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                         </div>
                         <FormField control={form.control} name="venue" render={({ field }) => (<FormItem><FormLabel>Venue</FormLabel><FormControl><Input placeholder="e.g. Main Ground" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <div className="grid grid-cols-2 gap-4">
-                            <FormField control={form.control} name="start_time" render={({ field }) => (<FormItem><FormLabel>Date & Time</FormLabel><FormControl><Input type="datetime-local" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="match_type" render={({ field }) => (<FormItem><FormLabel>Match Type</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="League">League</SelectItem><SelectItem value="Knockout">Knockout</SelectItem><SelectItem value="Friendly">Friendly</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                        </div>
+                        <FormField control={form.control} name="referee_name" render={({ field }) => (<FormItem><FormLabel>Referee Name (Optional)</FormLabel><FormControl><Input placeholder="Enter referee name" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="start_time" render={({ field }) => (<FormItem><FormLabel>Date & Time</FormLabel><FormControl><Input type="datetime-local" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        
                         <DialogFooter>
                             <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
                             <Button type="submit" disabled={form.formState.isSubmitting}>
@@ -90,8 +92,11 @@ export default function SportsHeadMatchesPage() {
     const [teams, setTeams] = useState<SportsHeadTeam[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
+    // In a real app, this would come from user session
+    const assignedSportId = localStorage.getItem('assigned_sport_id');
 
     const fetchMatchesAndTeams = async () => {
+        if (!assignedSportId) return;
         setIsLoading(true);
         try {
             const [matchesData, teamsData] = await Promise.all([
@@ -109,6 +114,7 @@ export default function SportsHeadMatchesPage() {
 
     useEffect(() => {
         fetchMatchesAndTeams();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const scheduled = matches.filter(m => m.status === 'scheduled');
@@ -124,7 +130,7 @@ export default function SportsHeadMatchesPage() {
                             <CardTitle>Match Management</CardTitle>
                             <CardDescription>Schedule new matches and view existing ones for your sport.</CardDescription>
                         </div>
-                        <ScheduleMatchDialog onMatchCreated={fetchMatchesAndTeams} teams={teams} />
+                        {assignedSportId && <ScheduleMatchDialog onMatchCreated={fetchMatchesAndTeams} teams={teams} sportId={assignedSportId}/>}
                     </div>
                 </CardHeader>
                 <CardContent>
