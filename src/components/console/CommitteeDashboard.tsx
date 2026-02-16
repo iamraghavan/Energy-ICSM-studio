@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
@@ -101,7 +100,13 @@ export function CommitteeDashboard() {
 
             printWindow.document.write(passHtml);
             printWindow.document.close();
-            printWindow.focus(); 
+            
+            // Wait for the content to be fully loaded before printing
+            printWindow.onload = () => {
+                printWindow.focus();
+                printWindow.print();
+            };
+
         } catch (error) {
             console.error("Failed to generate or print pass:", error);
             toast({
