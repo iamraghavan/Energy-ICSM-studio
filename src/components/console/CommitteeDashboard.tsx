@@ -2,11 +2,11 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
-import { Search, SlidersHorizontal, CheckCircle, Package, UserCheck, X } from "lucide-react";
+import { Search, SlidersHorizontal, CheckCircle, Package, UserCheck, X, Printer } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { getCommitteeRegistrations, updateCheckIn, type Registration, getSports, getCollegesAdmin, type ApiSport, type College } from '@/lib/api';
+import { getCommitteeRegistrations, updateCheckIn, type Registration, getSports, getCollegesAdmin, type ApiSport, type College, getPassHTML } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { Skeleton } from '../ui/skeleton';
@@ -82,6 +82,33 @@ export function CommitteeDashboard() {
             toast({ title: 'Success', description: `${name} has been updated: ${actionText}.` });
         } catch (error) {
              toast({ variant: 'destructive', title: 'Update Failed', description: 'Could not update registration status.' });
+        }
+    };
+
+    const handlePrintPass = async (registrationId: string) => {
+        try {
+            const passHtml = await getPassHTML(registrationId);
+            const printWindow = window.open('', '_blank', 'width=1000,height=800');
+
+            if (!printWindow) {
+                toast({
+                    variant: 'destructive',
+                    title: "Popup Blocked",
+                    description: "Please allow popups for this site to print the pass.",
+                });
+                return;
+            }
+
+            printWindow.document.write(passHtml);
+            printWindow.document.close();
+            printWindow.focus(); 
+        } catch (error) {
+            console.error("Failed to generate or print pass:", error);
+            toast({
+                variant: "destructive",
+                title: "Error Generating Pass",
+                description: "Could not retrieve the pass. Please try again.",
+            });
         }
     };
     
@@ -174,8 +201,12 @@ export function CommitteeDashboard() {
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild><Button variant="outline" size="sm">Manage</Button></DropdownMenuTrigger>
                                                         <DropdownMenuContent align="end">
-                                                            <DropdownMenuLabel>Check-in Actions</DropdownMenuLabel>
+                                                            <DropdownMenuItem onClick={() => handlePrintPass(reg.id)}>
+                                                                <Printer className="mr-2 h-4 w-4" />
+                                                                <span>Print Pass</span>
+                                                            </DropdownMenuItem>
                                                             <DropdownMenuSeparator />
+                                                            <DropdownMenuLabel>Check-in Actions</DropdownMenuLabel>
                                                             <DropdownMenuItem onClick={() => handleUpdateCheckinStatus(reg.id, { checked_in: !reg.checked_in }, reg.name)} disabled={reg.checked_in}>
                                                                 <CheckCircle className="mr-2 h-4 w-4" /><span>{reg.checked_in ? 'Checked In' : 'Check In'}</span>
                                                             </DropdownMenuItem>

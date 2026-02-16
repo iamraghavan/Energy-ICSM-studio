@@ -525,6 +525,16 @@ export const updateCheckIn = async (registrationId: string, data: { checked_in?:
     return response.data;
 };
 
+export const getPassHTML = async (registrationId: string): Promise<string> => {
+    const response = await api.get(`/committee/registrations/${registrationId}/print-pass`, {
+        headers: {
+            'Accept': 'text/html'
+        },
+        responseType: 'text'
+    });
+    return response.data;
+};
+
 
 // Student Auth
 export const requestStudentOtp = async (identifier: string) => {
@@ -705,6 +715,7 @@ export type ApiMatch = {
     TeamA: ApiTeam;
     TeamB: ApiTeam;
 };
+
 
 
 
