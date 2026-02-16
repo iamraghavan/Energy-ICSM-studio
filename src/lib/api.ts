@@ -246,6 +246,8 @@ export type SportsHeadRegistration = {
     mobile: string;
     email: string;
     college_name: string;
+    college_city: string;
+    college_state: string;
     team_created: boolean;
     team_info: {
         id: string;
@@ -673,6 +675,7 @@ export type ApiMatch = {
     TeamA: ApiTeam;
     TeamB: ApiTeam;
 };
+
 
 
 
