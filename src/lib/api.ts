@@ -323,7 +323,7 @@ export const getSports = async (): Promise<ApiSport[]> => {
 
 export const registerStudent = async (formData: FormData) => {
   const response = await api.post('/register', formData);
-  return response.data;
+  return response.data.data || response.data;
 };
 
 export const getRegistrations = async (): Promise<Registration[]> => {

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
@@ -443,7 +444,7 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                 title: "Registration Submitted!",
                 description: `We're finalizing your registration. One moment...`,
             });
-            router.push(`/energy/2026/registration/success?id=${result.data.id}`);
+            router.push(`/energy/2026/registration/success?id=${result.id}`);
         } catch (error: any) {
             console.error("Form submission error:", error);
             const errorMessage = error.response?.data?.error || error.response?.data?.message || "An unknown error occurred. Please try again.";
