@@ -1,5 +1,4 @@
 
-
 'use client';
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -77,7 +76,7 @@ export function EditMemberDialog({ isOpen, onClose, member, sport, onSuccess }: 
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent>
+            <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle>Edit Player: {member.name}</DialogTitle>
                     <DialogDescription>Update the player's role and sport-specific details.</DialogDescription>
@@ -98,73 +97,49 @@ export function EditMemberDialog({ isOpen, onClose, member, sport, onSuccess }: 
                                 <FormMessage />
                             </FormItem>
                         )} />
-
-                        {sport.name === 'Cricket' && (
-                            <>
-                                <Separator />
-                                <p className="text-sm font-medium text-muted-foreground">Cricket Details</p>
-                                <FormField control={form.control} name="sport_role" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Playing Role</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Select playing role" /></SelectTrigger></FormControl>
-                                            <SelectContent>{cricketSportRoles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}/>
-                                <FormField control={form.control} name="batting_style" render={({ field }) => (
-                                     <FormItem>
-                                        <FormLabel>Batting Style</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Select batting style" /></SelectTrigger></FormControl>
-                                            <SelectContent>{battingStyles.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}/>
-                                <FormField control={form.control} name="bowling_style" render={({ field }) => (
-                                     <FormItem>
-                                        <FormLabel>Bowling Style</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Select bowling style" /></SelectTrigger></FormControl>
-                                            <SelectContent>{bowlingStyles.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}/>
-                                 <FormField control={form.control} name="is_wicket_keeper" render={({ field }) => (
-                                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
-                                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                                        <div className="space-y-1 leading-none"><FormLabel>Wicket Keeper</FormLabel></div>
-                                    </FormItem>
-                                )}/>
-                            </>
-                        )}
                         
-                        {sport.name === 'Football' && (
-                            <>
-                                <Separator/>
-                                <p className="text-sm font-medium text-muted-foreground">Football Specific Details</p>
+                        <div className="space-y-4 pt-2">
+                             {(sport.name === 'Cricket' || sport.name === 'Football' || sport.name === 'Basketball') && (
+                                <p className="text-sm font-medium text-muted-foreground pt-2 border-t">Sport-Specific Details</p>
+                             )}
+
+                            {sport.name === 'Cricket' && (
+                                <div className="space-y-4">
+                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <FormField control={form.control} name="sport_role" render={({ field }) => (
+                                            <FormItem><FormLabel>Playing Role</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger></FormControl><SelectContent>{cricketSportRoles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                                        )}/>
+                                        <FormField control={form.control} name="batting_style" render={({ field }) => (
+                                            <FormItem><FormLabel>Batting Style</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select style" /></SelectTrigger></FormControl><SelectContent>{battingStyles.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                                        )}/>
+                                    </div>
+                                    <FormField control={form.control} name="bowling_style" render={({ field }) => (
+                                        <FormItem><FormLabel>Bowling Style</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select style" /></SelectTrigger></FormControl><SelectContent>{bowlingStyles.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                                    )}/>
+                                    <FormField control={form.control} name="is_wicket_keeper" render={({ field }) => (
+                                        <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><div className="space-y-1 leading-none"><FormLabel>Wicket Keeper</FormLabel></div></FormItem>
+                                    )}/>
+                                </div>
+                            )}
+
+                            {sport.name === 'Football' && (
                                 <FormField control={form.control} name="sport_role" render={({ field }) => (
                                     <FormItem><FormLabel>Playing Position</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select playing position" /></SelectTrigger></FormControl><SelectContent>{footballPositions.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
                                 )}/>
-                            </>
-                        )}
+                            )}
 
-                        {sport.name === 'Basketball' && (
-                                <><Separator/>
-                                <p className="text-sm font-medium text-muted-foreground">Basketball Specific Details</p>
+                            {sport.name === 'Basketball' && (
                                 <FormField control={form.control} name="sport_role" render={({ field }) => (
                                     <FormItem><FormLabel>Position</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select position" /></SelectTrigger></FormControl><SelectContent>{basketballPositions.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
                                 )}/>
-                            </>
-                        )}
+                            )}
+                        </div>
 
                         <FormField control={form.control} name={`additional_details`} render={({ field }) => (
-                            <FormItem><FormLabel>Additional Notes (Optional)</FormLabel><FormControl><Textarea placeholder="Any other info..." {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem className="pt-2"><FormLabel>Additional Notes (Optional)</FormLabel><FormControl><Textarea placeholder="Any other info..." {...field} /></FormControl><FormMessage /></FormItem>
                         )} />
-                        <DialogFooter>
+                        
+                        <DialogFooter className="pt-4">
                             <DialogClose asChild><Button type="button" variant="ghost">Cancel</Button></DialogClose>
                             <Button type="submit" disabled={form.formState.isSubmitting}>
                                 {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -177,6 +152,3 @@ export function EditMemberDialog({ isOpen, onClose, member, sport, onSuccess }: 
         </Dialog>
     );
 }
-
-
-
