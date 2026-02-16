@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -82,7 +83,7 @@ export function AddPlayerDialog({ isOpen, onClose, teamId, onSuccess }: AddPlaye
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-2xl">
+            <DialogContent className="sm:max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>Add Players to Team</DialogTitle>
                     <DialogDescription>Select students from the list of unassigned players for this sport.</DialogDescription>
@@ -105,21 +106,23 @@ export function AddPlayerDialog({ isOpen, onClose, teamId, onSuccess }: AddPlaye
                                         <TableHead className="w-[50px]"></TableHead>
                                         <TableHead>Name</TableHead>
                                         <TableHead>College</TableHead>
+                                        <TableHead>Mobile</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {isLoading ? (
-                                        <TableRow><TableCell colSpan={3} className="text-center"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
+                                        <TableRow><TableCell colSpan={4} className="text-center"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
                                     ) : filteredStudents.length > 0 ? (
                                         filteredStudents.map(student => (
                                             <TableRow key={student.registration_id} onClick={() => handleSelectStudent(student.registration_id)} className="cursor-pointer">
                                                 <TableCell className="p-2"><Checkbox checked={selectedStudentIds.includes(student.registration_id)} /></TableCell>
                                                 <TableCell>{student.name}</TableCell>
                                                 <TableCell>{student.college}</TableCell>
+                                                <TableCell>{student.mobile}</TableCell>
                                             </TableRow>
                                         ))
                                     ) : (
-                                        <TableRow><TableCell colSpan={3} className="h-24 text-center">No unassigned players found.</TableCell></TableRow>
+                                        <TableRow><TableCell colSpan={4} className="h-24 text-center">No unassigned players found.</TableCell></TableRow>
                                     )}
                                 </TableBody>
                             </Table>

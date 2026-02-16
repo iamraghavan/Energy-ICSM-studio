@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
@@ -18,6 +19,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { AddPlayerDialog } from '@/components/console/sports-head/AddPlayerDialog';
+import { EditPlayerDialog } from '@/components/console/sports-head/EditPlayerDialog';
+import type { StudentTeamMember } from '@/lib/api';
+import { Badge } from '@/components/ui/badge';
 
 
 export default function SportsHeadManageTeamPage() {
@@ -31,6 +35,8 @@ export default function SportsHeadManageTeamPage() {
     const [isEditingName, setIsEditingName] = useState(false);
     const [newTeamName, setNewTeamName] = useState('');
     const [isAddPlayerOpen, setIsAddPlayerOpen] = useState(false);
+    const [isEditPlayerOpen, setIsEditPlayerOpen] = useState(false);
+    const [selectedPlayer, setSelectedPlayer] = useState<StudentTeamMember | null>(null);
     const { toast } = useToast();
 
     const fetchTeamDetails = useCallback(async () => {
@@ -86,6 +92,12 @@ export default function SportsHeadManageTeamPage() {
         }
     }
 
+    const handleEditPlayer = (player: StudentTeamMember) => {
+        setSelectedPlayer(player);
+        setIsEditPlayerOpen(true);
+    };
+
+
     if (isLoading) {
         return (
              <div className="container py-8 space-y-6">
@@ -131,7 +143,7 @@ export default function SportsHeadManageTeamPage() {
                 </CardHeader>
                 <CardContent>
                     <div className="flex items-center justify-between mb-4">
-                         <h3 className="text-xl font-semibold">Player Roster ({team.members.length})</h3>
+                         <h3 className="text-xl font-semibold">Player Roster ({team.members.length} / {team.Sport.max_players})</h3>
                         <Button onClick={() => setIsAddPlayerOpen(true)} disabled={team.members.length >= team.Sport.max_players}>
                             <UserPlus className="mr-2 h-4 w-4"/> Add Player
                         </Button>
@@ -142,16 +154,26 @@ export default function SportsHeadManageTeamPage() {
                                 <TableRow>
                                     <TableHead>Name</TableHead>
                                     <TableHead>Mobile</TableHead>
+                                    <TableHead>Role</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                 {team.members.length === 0 && <TableRow><TableCell colSpan={3} className="h-24 text-center">No players in this team yet.</TableCell></TableRow>}
+                                 {team.members.length === 0 && <TableRow><TableCell colSpan={4} className="h-24 text-center">No players in this team yet.</TableCell></TableRow>}
                                 {team.members.map(member => (
                                     <TableRow key={member.student_id}>
                                         <TableCell className="font-medium">{member.Student.name}</TableCell>
                                         <TableCell>{member.Student.mobile}</TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col">
+                                                <Badge variant={member.role === 'Captain' ? 'default' : 'secondary'} className="w-fit">{member.role}</Badge>
+                                                {member.sport_role && <span className="text-xs text-muted-foreground">{member.sport_role}</span>}
+                                            </div>
+                                        </TableCell>
                                         <TableCell className="text-right">
+                                             <Button variant="ghost" size="icon" onClick={() => handleEditPlayer(member)}>
+                                                <Edit className="h-4 w-4"/>
+                                            </Button>
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
                                                     <Button variant="ghost" size="icon"><UserX className="h-4 w-4 text-destructive" /></Button>
@@ -198,6 +220,16 @@ export default function SportsHeadManageTeamPage() {
                 teamId={teamId}
                 onSuccess={fetchTeamDetails}
             />
+            {selectedPlayer && team.Sport && (
+                 <EditPlayerDialog
+                    isOpen={isEditPlayerOpen}
+                    onClose={() => setIsEditPlayerOpen(false)}
+                    teamId={teamId}
+                    player={selectedPlayer}
+                    sport={team.Sport}
+                    onSuccess={fetchTeamDetails}
+                />
+            )}
         </div>
     )
 }

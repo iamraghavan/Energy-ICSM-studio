@@ -49,7 +49,7 @@ export type TeamMember = {
 
 export type ApiTeamDetails = ApiTeam & {
     Captain: TeamMember;
-    Members: TeamMember[];
+    members: TeamMember[];
 };
 
 export type Registration = {
@@ -126,10 +126,10 @@ export type StudentTeamMember = {
     email: string;
     mobile: string;
     role: TeamMemberRole;
-    sport_role?: CricketSportRole | string;
-    batting_style?: BattingStyle;
-    bowling_style?: BowlingStyle;
-    is_wicket_keeper?: boolean;
+    sport_role?: CricketSportRole | string | null;
+    batting_style?: BattingStyle | null;
+    bowling_style?: BowlingStyle | null;
+    is_wicket_keeper?: boolean | null;
     additional_details?: any;
     Student: {
         id: string;
@@ -232,6 +232,7 @@ export type SportStudent = {
     college: string;
     team_id: string | null;
     team_name: string | null;
+    mobile: string;
 };
 
 const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
@@ -323,7 +324,7 @@ export const getSports = async (): Promise<ApiSport[]> => {
 
 export const registerStudent = async (formData: FormData) => {
   const response = await api.post('/register', formData);
-  return response.data.data || response.data;
+  return response.data.data || response.data.registration || response.data;
 };
 
 export const getRegistrations = async (): Promise<Registration[]> => {
@@ -588,6 +589,11 @@ export const updateSportsHeadTeam = async (teamId: string, data: { team_name: st
     return response.data;
 };
 
+export const updateSportsHeadTeamMember = async (teamId: string, studentId: string, data: any) => {
+    const response = await api.put(`/sports-head/teams/${teamId}/players/${studentId}`, data);
+    return response.data;
+};
+
 export const deleteSportsHeadTeam = async (teamId: string) => {
     const response = await api.delete(`/sports-head/teams/${teamId}`);
     return response.data;
@@ -636,4 +642,5 @@ export type ApiMatch = {
     TeamA: ApiTeam;
     TeamB: ApiTeam;
 };
+
 
