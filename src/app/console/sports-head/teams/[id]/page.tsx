@@ -216,8 +216,8 @@ export default function SportsHeadManageTeamPage() {
                 </CardHeader>
                 <CardContent>
                     <div className="flex items-center justify-between mb-4">
-                         <h3 className="text-xl font-semibold">Player Roster ({team.Members.length})</h3>
-                        <AddPlayerDialog teamId={team.id} existingMemberIds={team.Members.map(m => m.student_id)} onPlayerAdded={fetchTeamDetails} />
+                         <h3 className="text-xl font-semibold">Player Roster ({team.members.length})</h3>
+                        <AddPlayerDialog teamId={team.id} existingMemberIds={team.members.map(m => m.student_id)} onPlayerAdded={fetchTeamDetails} />
                     </div>
                      <div className="border rounded-lg">
                         <Table>
@@ -229,8 +229,8 @@ export default function SportsHeadManageTeamPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                 {team.Members.length === 0 && <TableRow><TableCell colSpan={3} className="h-24 text-center">No players in this team yet.</TableCell></TableRow>}
-                                {team.Members.map(member => (
+                                 {team.members.length === 0 && <TableRow><TableCell colSpan={3} className="h-24 text-center">No players in this team yet.</TableCell></TableRow>}
+                                {team.members.map(member => (
                                     <TableRow key={member.student_id}>
                                         <TableCell className="font-medium">{member.Student.name}</TableCell>
                                         <TableCell>{member.Student.mobile}</TableCell>

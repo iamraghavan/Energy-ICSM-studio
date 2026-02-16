@@ -143,12 +143,14 @@ export type FullTeamDetails = {
     team_name: string;
     sport_id: number;
     Sport: ApiSport;
-    Members: StudentTeamMember[];
+    members: StudentTeamMember[];
     Captain: {
         name: string;
         mobile: string;
     } | null;
 };
+
+export type FullSportsHeadTeam = FullTeamDetails;
 
 export type StudentDashboardOverview = {
     registration: {
@@ -325,12 +327,11 @@ export const getRegistration = async (id: string): Promise<Registration> => {
     return response.data;
 };
 
-export const verifyPayment = async (registrationCode: string, status: 'approved' | 'rejected', remarks: string) => {
-    const finalRemarks = remarks || `Payment ${status} via admin dashboard at ${new Date().toLocaleString()}.`;
+export const verifyPayment = async (registrationId: string, status: 'approved' | 'rejected', remarks: string) => {
     const response = await api.post('/admin/verify-payment', {
-        registrationId: registrationCode,
-        status: status,
-        remarks: finalRemarks,
+        registrationId,
+        status,
+        remarks,
     });
     return response.data;
 };
