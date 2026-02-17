@@ -125,8 +125,8 @@ function ScoringInterface({ match, onBack }: { match: ApiMatch, onBack: () => vo
         }
     };
     
-    const scoreA = (score[match.team_a_id] as any)?.goals ?? score.team_a ?? 0;
-    const scoreB = (score[match.team_b_id] as any)?.goals ?? score.team_b ?? 0;
+    const scoreA = score?.[match.team_a_id]?.goals ?? 0;
+    const scoreB = score?.[match.team_b_id]?.goals ?? 0;
 
     return (
         <>

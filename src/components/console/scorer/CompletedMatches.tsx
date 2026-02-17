@@ -44,14 +44,18 @@ export function CompletedMatches({ sportId }: { sportId?: string }) {
         }
 
         if (completedMatches.length > 0) {
-            return completedMatches.map(match => (
-               <MatchCard key={match.id} match={match}>
-                   <div className="text-right">
-                        <p className="text-xl font-bold">{match.score_details?.team_a || 0} - {match.score_details?.team_b || 0}</p>
-                        <Badge variant="secondary">Completed</Badge>
-                   </div>
-               </MatchCard>
-            ))
+            return completedMatches.map(match => {
+                const scoreA = match.score_details?.[match.team_a_id]?.goals ?? 0;
+                const scoreB = match.score_details?.[match.team_b_id]?.goals ?? 0;
+                return (
+                   <MatchCard key={match.id} match={match}>
+                       <div className="text-right">
+                            <p className="text-xl font-bold">{scoreA} - {scoreB}</p>
+                            <Badge variant="secondary">Completed</Badge>
+                       </div>
+                   </MatchCard>
+                )
+            })
         }
 
         return <p className="text-muted-foreground text-center py-8">No completed matches yet for this sport.</p>

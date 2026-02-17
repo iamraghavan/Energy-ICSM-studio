@@ -34,7 +34,7 @@ export function ScorerDashboard() {
     }, [toast]);
 
     return (
-        <div>
+        <div className="container py-8 space-y-6">
             <div className="mb-6">
                 <h1 className="text-3xl font-bold">Scorer Dashboard</h1>
                 <p className="text-muted-foreground">Live Score Entry and Match Management</p>
