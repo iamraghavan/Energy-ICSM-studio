@@ -1,11 +1,12 @@
 
+
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getLiveMatches, endMatch, postMatchEvent, type ApiMatch } from "@/lib/api";
 import { io, type Socket } from 'socket.io-client';
-import { ArrowLeft, Send, Timer as TimerIcon, Play, Pause, Futbol, Replace, Square, Info, Shield } from 'lucide-react';
+import { ArrowLeft, Send, Timer as TimerIcon, Play, Pause, Goal, Replace, Square, Info, Shield } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -265,7 +266,7 @@ const TimelineEvent = ({ event, match }: { event: any, match: ApiMatch }) => {
     const getEventDetails = (e: any) => {
         switch(e.event_type) {
             case 'goal':
-                return { icon: Futbol, color: 'text-green-500 bg-green-500/10', title: 'Goal' };
+                return { icon: Goal, color: 'text-green-500 bg-green-500/10', title: 'Goal' };
             case 'yellow_card':
                 return { icon: Square, color: 'text-yellow-400 bg-yellow-400/10', title: 'Yellow Card' };
             case 'red_card':
