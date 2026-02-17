@@ -22,6 +22,26 @@ const scheduleData = [
   { event: "Basketball (M)", winnerPrize: "₹5000", runnerUpPrize: "₹3000", coordinator: "Mr. S. Senthilkumar", phone: "9965185721", date: "2026-03-14" },
 ];
 
+const studentCoordinators = [
+    { sno: 1, name: "ASWINDOSS J", phone: "7010484757", email: "aswindossaswin123@gmail.com", sport: "Kabaddi" },
+    { sno: 2, name: "Saransankar", phone: "7708501438", email: "Mail2saran0713@gmail.com", sport: "Overall" },
+    { sno: 3, name: "Girimurugan", phone: "7845578447", email: "girimurugan2005@gmail.com", sport: "Overall" },
+    { sno: 4, name: "Gunalan", phone: "9344653022", email: "gunalanmuthu.ms@gmail.com", sport: "Kabaddi" },
+    { sno: 5, name: "Abishek", phone: "7010171988", email: "labishek1145@gmail.com", sport: "Volleyball" },
+    { sno: 6, name: "Aravindhan", phone: "9025814188", email: "aravindramesh845@gmail.com", sport: "Volleyball" },
+    { sno: 7, name: "Balaprasanna", phone: "9786664642", email: "balaprasanna245@gmail.com", sport: "Cricket" },
+    { sno: 8, name: "Shiyam Ganesh", phone: "9025092446", email: "Shiyam99krishna@gmail.com", sport: "Cricket" },
+    { sno: 9, name: "Abinesh", phone: "8428691926", email: "abineshabijothibasu@gmail.com", sport: "Kabaddi" },
+    { sno: 10, name: "PARTHASARATHY P", phone: "9698137260", email: "parthypalani2005@gmail.com", sport: "Cricket" },
+    { sno: 11, name: "Ansen Vilbert", phone: "7358959448", email: "stespenansen@gmail.com", sport: "Football" },
+    { sno: 12, name: "Sriram", phone: "8015516223", email: "srirambrabou2006@gmail.com", sport: "Table Tennis" },
+    { sno: 13, name: "Yadheswar", phone: "9962056366", email: "yadhescenzo@gmail.com", sport: "Chess" },
+    { sno: 14, name: "Shiyam Sundar", phone: "9443951403", email: "shiyam.sundar.3004@gmail.com", sport: "Badminton" },
+    { sno: 15, name: "Faris Shaukath", phone: "9894966207", email: "Hurryup00456@gmail.com", sport: "Chess" },
+    { sno: 16, name: "Kaveyan S", phone: "9944218605", email: "kaveyankaveyan7@gmail.com", sport: "Football" },
+    { sno: 17, name: "Ajim Farvase", phone: "8838800226", email: "afarvase@gmail.com", sport: "Cricket" },
+];
+
 const generateGoogleCalendarLink = (item: typeof scheduleData[0]) => {
   const eventDate = new Date(item.date);
   const startDate = eventDate.toISOString().replace(/-|:|\.\d+/g, '');
@@ -45,11 +65,11 @@ const formatDate = (dateString: string) => {
 
 export default function SchedulePage() {
     return (
-        <div className="container py-8 md:py-12">
+        <div className="container py-8 md:py-12 space-y-8">
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline text-3xl">Event Schedule</CardTitle>
-                    <CardDescription>Details of Events, Prizes & Coordinators for ENERGY 2026.</CardDescription>
+                    <CardDescription>Details of Events, Prizes & Staff Coordinators for ENERGY 2026.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="overflow-x-auto">
@@ -83,6 +103,39 @@ export default function SchedulePage() {
                                                 </Link>
                                             </Button>
                                         </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline text-3xl">Student Coordinators</CardTitle>
+                    <CardDescription>Contact our student coordinators for any event-related queries.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>S.No</TableHead>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Phone Number</TableHead>
+                                    <TableHead>Email ID</TableHead>
+                                    <TableHead>Sport</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {studentCoordinators.map((coordinator) => (
+                                    <TableRow key={coordinator.sno}>
+                                        <TableCell>{coordinator.sno}</TableCell>
+                                        <TableCell className="font-medium">{coordinator.name}</TableCell>
+                                        <TableCell><a href={`tel:${coordinator.phone}`} className="text-primary hover:underline">{coordinator.phone}</a></TableCell>
+                                        <TableCell><a href={`mailto:${coordinator.email}`} className="text-primary hover:underline">{coordinator.email}</a></TableCell>
+                                        <TableCell>{coordinator.sport}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
