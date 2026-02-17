@@ -692,8 +692,8 @@ export const deleteSportsHeadTeam = async (teamId: string) => {
     return response.data;
 }
 
-export const sportsHeadBulkAddMembers = async (teamId: string, members: Omit<StudentTeamMember, 'id' | 'student_id' | 'Student'>[]) => {
-    const response = await api.post(`/sports-head/teams/${teamId}/members/bulk`, { members });
+export const sportsHeadBulkAddMembers = async (teamId: string, registration_ids: string[]) => {
+    const response = await api.post(`/sports-head/teams/${teamId}/players/bulk`, { registration_ids });
     return response.data;
 };
 
