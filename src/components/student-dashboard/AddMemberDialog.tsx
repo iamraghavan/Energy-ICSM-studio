@@ -162,34 +162,38 @@ export function AddMemberDialog({ isOpen, onClose, teamId, sport, onSuccess }: A
                                                 </CollapsibleTrigger>
                                                 <CollapsibleContent className="pt-4 px-1 space-y-4">
                                                     {sport.name === 'Cricket' && (
-                                                        <>
-                                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                                        <div className="space-y-4 p-4 border rounded-lg bg-background">
+                                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                                 <FormField control={control} name={`members.${index}.sport_role`} render={({ field }) => (
                                                                     <FormItem><FormLabel>Playing Role</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger></FormControl><SelectContent>{cricketSportRoles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
                                                                 )}/>
                                                                 <FormField control={control} name={`members.${index}.batting_style`} render={({ field }) => (
                                                                     <FormItem><FormLabel>Batting Style</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select style" /></SelectTrigger></FormControl><SelectContent>{battingStyles.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
                                                                 )}/>
-                                                                <FormField control={control} name={`members.${index}.bowling_style`} render={({ field }) => (
-                                                                    <FormItem><FormLabel>Bowling Style</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select style" /></SelectTrigger></FormControl><SelectContent>{bowlingStyles.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
-                                                                )}/>
                                                             </div>
-                                                            <FormField control={control} name={`members.${index}.is_wicket_keeper`} render={({ field }) => (
-                                                                <FormItem className="flex flex-row items-center space-x-3 space-y-0 pt-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><div className="space-y-1 leading-none"><FormLabel>Is Wicket Keeper?</FormLabel></div></FormItem>
+                                                            <FormField control={control} name={`members.${index}.bowling_style`} render={({ field }) => (
+                                                                <FormItem><FormLabel>Bowling Style</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select style" /></SelectTrigger></FormControl><SelectContent>{bowlingStyles.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
                                                             )}/>
-                                                        </>
+                                                            <FormField control={control} name={`members.${index}.is_wicket_keeper`} render={({ field }) => (
+                                                                <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border bg-background p-4"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><div className="space-y-1 leading-none"><FormLabel>Wicket Keeper</FormLabel></div></FormItem>
+                                                            )}/>
+                                                        </div>
                                                     )}
 
                                                     {sport.name === 'Football' && (
-                                                        <FormField control={control} name={`members.${index}.sport_role`} render={({ field }) => (
-                                                            <FormItem><FormLabel>Playing Position</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select playing position" /></SelectTrigger></FormControl><SelectContent>{footballPositions.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
-                                                        )}/>
+                                                        <div className="p-4 border rounded-lg bg-background">
+                                                            <FormField control={control} name={`members.${index}.sport_role`} render={({ field }) => (
+                                                                <FormItem><FormLabel>Playing Position</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select playing position" /></SelectTrigger></FormControl><SelectContent>{footballPositions.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                                                            )}/>
+                                                        </div>
                                                     )}
 
                                                     {sport.name === 'Basketball' && (
-                                                        <FormField control={control} name={`members.${index}.sport_role`} render={({ field }) => (
-                                                            <FormItem><FormLabel>Position</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select position" /></SelectTrigger></FormControl><SelectContent>{basketballPositions.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
-                                                        )}/>
+                                                         <div className="p-4 border rounded-lg bg-background">
+                                                            <FormField control={control} name={`members.${index}.sport_role`} render={({ field }) => (
+                                                                <FormItem><FormLabel>Position</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select position" /></SelectTrigger></FormControl><SelectContent>{basketballPositions.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                                                            )}/>
+                                                        </div>
                                                     )}
                                                 </CollapsibleContent>
                                             </Collapsible>
