@@ -36,7 +36,6 @@ export default function SportsHeadManageTeamPage() {
     const [error, setError] = useState<string | null>(null);
     const [isEditingName, setIsEditingName] = useState(false);
     const [newTeamName, setNewTeamName] = useState('');
-    const [isEditPlayerOpen, setIsEditPlayerOpen] = useState(false);
     const [isAddPlayerOpen, setIsAddPlayerOpen] = useState(false);
     const [selectedPlayer, setSelectedPlayer] = useState<StudentTeamMember | null>(null);
     const { toast } = useToast();
@@ -160,10 +159,10 @@ export default function SportsHeadManageTeamPage() {
                          <h3 className="text-xl font-semibold">Player Roster</h3>
                         <div className="flex gap-2">
                             <Button onClick={() => setIsAddPlayerOpen(true)} disabled={memberCount >= maxPlayers}>
-                                <UserPlus className="mr-2 h-4 w-4"/> Add Players
+                                <UserPlus className="mr-2 h-4 w-4"/> Add Bulk Players
                             </Button>
                              <Button variant="outline" disabled>
-                                <Upload className="mr-2 h-4 w-4"/> Upload Excel
+                                <Upload className="mr-2 h-4 w-4"/> Upload via Excel
                             </Button>
                         </div>
                     </div>
