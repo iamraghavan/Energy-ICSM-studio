@@ -6,7 +6,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
-import { sportsHeadImportPlayers, getSportsHeadStudents, type FullSportsHeadTeam, type SportStudent } from '@/lib/api';
+import { sportsHeadImportPlayers, type FullSportsHeadTeam } from '@/lib/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Loader2, PlusCircle, Trash2, ChevronDown } from 'lucide-react';
@@ -17,9 +17,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Input } from '@/components/ui/input';
 
 const memberSchema = z.object({
-  student_id: z.string().min(1, "A player selection is required."), // This will now be the registration ID
+  name: z.string().min(3, "Name is required."),
+  mobile: z.string().length(10, "Mobile must be 10 digits."),
+  email: z.string().email("Invalid email.").optional().or(z.literal('')),
   role: z.enum(['Captain', 'Vice-Captain', 'Player']).default('Player'),
   sport_role: z.string().optional(),
   batting_style: z.string().optional(),
@@ -41,7 +44,9 @@ const footballPositions = ['Goalkeeper', 'Defender', 'Midfielder', 'Forward'];
 const basketballPositions = ['Point Guard', 'Shooting Guard', 'Small Forward', 'Power Forward', 'Center'];
 
 const defaultPlayerValues = {
-    student_id: '',
+    name: '',
+    mobile: '',
+    email: '',
     role: 'Player' as const,
     sport_role: '',
     batting_style: '',
@@ -59,8 +64,6 @@ interface BulkAddPlayersDialogProps {
 
 export function BulkAddPlayersDialog({ team, isOpen, onClose, onSuccess }: BulkAddPlayersDialogProps) {
     const { toast } = useToast();
-    const [availableStudents, setAvailableStudents] = useState<SportStudent[]>([]);
-    const [isLoadingStudents, setIsLoadingStudents] = useState(false);
     
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
@@ -69,41 +72,17 @@ export function BulkAddPlayersDialog({ team, isOpen, onClose, onSuccess }: BulkA
         },
     });
 
-    useEffect(() => {
-        if (isOpen) {
-            setIsLoadingStudents(true);
-            getSportsHeadStudents()
-                .then(students => {
-                    const existingMemberStudentIds = new Set(team.members.map(m => m.student_id));
-                    const unassigned = students.filter(s => !existingMemberStudentIds.has(s.student_id));
-                    setAvailableStudents(unassigned);
-                })
-                .catch(() => {
-                    toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch list of available students.' });
-                })
-                .finally(() => setIsLoadingStudents(false));
-        }
-    }, [isOpen, team.members, toast]);
-
-    const { control, handleSubmit, formState: { isSubmitting }, watch } = form;
+    const { control, handleSubmit, formState: { isSubmitting } } = form;
 
     const { fields, append, remove } = useFieldArray({
         control,
         name: "players"
     });
-    
-    const selectedPlayerRegIds = watch('players').map(p => p.student_id);
-
-    const getAvailableStudentsForIndex = (currentIndex: number) => {
-        const currentlySelectedIdsInOtherFields = selectedPlayerRegIds.filter((_, i) => i !== currentIndex);
-        return availableStudents.filter(s => !currentlySelectedIdsInOtherFields.includes(s.registration_id));
-    };
-
 
     const onSubmit = async (data: FormValues) => {
         try {
             const result = await sportsHeadImportPlayers(team.id, data.players);
-            const { added, updated, errors } = result.stats;
+            const { added, updated, errors } = result.stats || { added: 0, updated: 0, errors: [] };
             toast({ 
                 title: 'Import Complete', 
                 description: `${added} players added, ${updated} updated. ${errors.length} errors.` 
@@ -129,7 +108,7 @@ export function BulkAddPlayersDialog({ team, isOpen, onClose, onSuccess }: BulkA
             <DialogContent className="sm:max-w-4xl">
                 <DialogHeader>
                     <DialogTitle>Bulk Add Players to {team.team_name}</DialogTitle>
-                    <DialogDescription>Select players from the list of registered students and assign their roles.</DialogDescription>
+                    <DialogDescription>Manually enter player details below. Name and mobile are required for each player.</DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
                     <form onSubmit={handleSubmit(onSubmit)}>
@@ -150,21 +129,16 @@ export function BulkAddPlayersDialog({ team, isOpen, onClose, onSuccess }: BulkA
                                         </CardHeader>
                                         <CardContent className="space-y-4">
                                              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                                 <FormField control={control} name={`players.${index}.student_id`} render={({ field }) => (
-                                                     <FormItem>
-                                                        <FormLabel>Select Player</FormLabel>
-                                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                            <FormControl><SelectTrigger><SelectValue placeholder={isLoadingStudents ? "Loading..." : "Select registered player"} /></SelectTrigger></FormControl>
-                                                            <SelectContent>
-                                                                {getAvailableStudentsForIndex(index).map(s => (
-                                                                    <SelectItem key={s.registration_id} value={s.registration_id}>
-                                                                        {s.name} ({s.college})
-                                                                    </SelectItem>
-                                                                ))}
-                                                            </SelectContent>
-                                                        </Select>
-                                                        <FormMessage />
-                                                     </FormItem>
+                                                <FormField control={control} name={`players.${index}.name`} render={({ field }) => (
+                                                    <FormItem><FormLabel>Player Name</FormLabel><FormControl><Input placeholder="Full Name" {...field} /></FormControl><FormMessage /></FormItem>
+                                                )} />
+                                                <FormField control={control} name={`players.${index}.mobile`} render={({ field }) => (
+                                                    <FormItem><FormLabel>Mobile Number</FormLabel><FormControl><Input type="tel" maxLength={10} placeholder="10-digit number" {...field} /></FormControl><FormMessage /></FormItem>
+                                                )} />
+                                            </div>
+                                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                                 <FormField control={control} name={`players.${index}.email`} render={({ field }) => (
+                                                    <FormItem><FormLabel>Email (Optional)</FormLabel><FormControl><Input type="email" placeholder="player@example.com" {...field} /></FormControl><FormMessage /></FormItem>
                                                 )} />
                                                 <FormField control={control} name={`players.${index}.role`} render={({ field }) => (
                                                     <FormItem>

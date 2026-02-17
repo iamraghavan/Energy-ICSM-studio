@@ -693,8 +693,7 @@ export const deleteSportsHeadTeam = async (teamId: string) => {
 }
 
 export const sportsHeadImportPlayers = async (teamId: string, players: any[]) => {
-    const payload = players.map(p => ({ ...p, team_id: teamId }));
-    const response = await api.post(`/sports-head/import-players`, { players: payload });
+    const response = await api.post(`/sports-head/teams/${teamId}/players/bulk`, { players });
     return response.data;
 };
 
