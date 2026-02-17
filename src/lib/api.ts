@@ -692,10 +692,12 @@ export const deleteSportsHeadTeam = async (teamId: string) => {
     return response.data;
 }
 
-export const sportsHeadBulkAddMembers = async (teamId: string, registration_ids: string[]) => {
-    const response = await api.post(`/sports-head/teams/${teamId}/players/bulk`, { registration_ids });
+export const sportsHeadImportPlayers = async (teamId: string, players: any[]) => {
+    const payload = players.map(p => ({ ...p, team_id: teamId }));
+    const response = await api.post(`/sports-head/import-players`, { players: payload });
     return response.data;
 };
+
 
 export const removePlayerFromTeam = async (teamId: string, studentId: string) => {
     const response = await api.delete(`/sports-head/teams/${teamId}/players/${studentId}`);
