@@ -654,6 +654,16 @@ export const getSportsHeadTeamDetails = async (teamId: string): Promise<FullSpor
         data.members = data.Members;
         delete data.Members;
     }
+    
+    // If sport details are partial, fetch full details
+    if (data.Sport && (data.Sport.max_players === undefined || data.Sport.max_players === null)) {
+        const allSports = await getSports();
+        const fullSportDetails = allSports.find(s => s.id === data.sport_id);
+        if (fullSportDetails) {
+            data.Sport = fullSportDetails;
+        }
+    }
+    
     return data;
 }
 
