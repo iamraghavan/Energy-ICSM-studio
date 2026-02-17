@@ -15,7 +15,7 @@ import {
 import { Menu, User } from 'lucide-react';
 import { Logo } from '@/components/shared/logo';
 import { cn } from '@/lib/utils';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { getStudentSession, type StudentSession } from '@/lib/auth';
 import {
   DropdownMenu,
@@ -46,7 +46,6 @@ export function Header() {
   const [isClient, setIsClient] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
-  const pathname = usePathname();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -58,7 +57,7 @@ export function Header() {
     
     window.addEventListener('storage', checkSession);
     return () => window.removeEventListener('storage', checkSession);
-  }, [pathname]);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('student_token');
