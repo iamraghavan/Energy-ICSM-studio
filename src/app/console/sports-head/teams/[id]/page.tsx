@@ -9,19 +9,22 @@ import {
     updateSportsHeadTeam,
     deleteSportsHeadTeam,
     type FullSportsHeadTeam, 
+    type StudentTeamMember, 
 } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, UserPlus, Trash2, Edit, Save, UserX } from 'lucide-react';
+import { ArrowLeft, UserPlus, Trash2, Edit, Save, UserX, Upload } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { AddPlayerDialog } from '@/components/console/sports-head/AddPlayerDialog';
 import { EditPlayerDialog } from '@/components/console/sports-head/EditPlayerDialog';
-import type { StudentTeamMember } from '@/lib/api';
+import type { ApiSport } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 
 export default function SportsHeadManageTeamPage() {
@@ -117,6 +120,10 @@ export default function SportsHeadManageTeamPage() {
             </div>
         )
     }
+
+    const memberCount = team.members.length;
+    const maxPlayers = team.Sport.max_players;
+    const progressValue = maxPlayers > 0 ? (memberCount / maxPlayers) * 100 : 0;
     
     return (
         <div className="container py-8 space-y-6">
@@ -142,19 +149,32 @@ export default function SportsHeadManageTeamPage() {
                     <CardDescription>{team.Sport.name}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex items-center justify-between mb-4">
-                         <h3 className="text-xl font-semibold">Player Roster ({team.members.length} / {team.Sport.max_players})</h3>
-                        <Button onClick={() => setIsAddPlayerOpen(true)} disabled={team.members.length >= team.Sport.max_players}>
-                            <UserPlus className="mr-2 h-4 w-4"/> Add Player
-                        </Button>
+                    <div className="mb-4">
+                         <div className="flex justify-between text-sm text-muted-foreground mb-1">
+                            <span>Team Progress</span>
+                            <span>{memberCount} / {maxPlayers} Players</span>
+                        </div>
+                        <Progress value={progressValue} />
+                    </div>
+
+                    <div className="flex items-center justify-between my-6">
+                         <h3 className="text-xl font-semibold">Player Roster</h3>
+                        <div className="flex gap-2">
+                            <Button onClick={() => setIsAddPlayerOpen(true)} disabled={memberCount >= maxPlayers}>
+                                <UserPlus className="mr-2 h-4 w-4"/> Add Players
+                            </Button>
+                             <Button variant="outline" disabled>
+                                <Upload className="mr-2 h-4 w-4"/> Upload Excel
+                            </Button>
+                        </div>
                     </div>
                      <div className="border rounded-lg">
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Mobile</TableHead>
+                                    <TableHead>Player</TableHead>
                                     <TableHead>Role</TableHead>
+                                    <TableHead className="hidden sm:table-cell">Sport Role</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -162,21 +182,27 @@ export default function SportsHeadManageTeamPage() {
                                  {team.members.length === 0 && <TableRow><TableCell colSpan={4} className="h-24 text-center">No players in this team yet.</TableCell></TableRow>}
                                 {team.members.map(member => (
                                     <TableRow key={member.student_id}>
-                                        <TableCell className="font-medium">{member.Student?.name}</TableCell>
-                                        <TableCell>{member.Student?.mobile}</TableCell>
                                         <TableCell>
-                                            <div className="flex flex-col">
-                                                <Badge variant={member.role === 'Captain' ? 'default' : 'secondary'} className="w-fit">{member.role}</Badge>
-                                                {member.sport_role && <span className="text-xs text-muted-foreground">{member.sport_role}</span>}
+                                            <div className="flex items-center gap-3">
+                                                <Avatar>
+                                                    <AvatarFallback>{member.Student?.name.charAt(0)}</AvatarFallback>
+                                                </Avatar>
+                                                <span className="font-medium">{member.Student?.name}</span>
                                             </div>
                                         </TableCell>
+                                        <TableCell>
+                                            <Badge variant={member.role === 'Captain' ? 'default' : 'secondary'} className="w-fit">{member.role}</Badge>
+                                        </TableCell>
+                                        <TableCell className="hidden sm:table-cell">{member.sport_role || 'N/A'}</TableCell>
                                         <TableCell className="text-right">
                                              <Button variant="ghost" size="icon" onClick={() => handleEditPlayer(member)}>
                                                 <Edit className="h-4 w-4"/>
                                             </Button>
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
-                                                    <Button variant="ghost" size="icon"><UserX className="h-4 w-4 text-destructive" /></Button>
+                                                     <Button variant="ghost" size="icon" disabled={member.role === 'Captain'}>
+                                                        <UserX className="h-4 w-4 text-destructive" />
+                                                    </Button>
                                                 </AlertDialogTrigger>
                                                 <AlertDialogContent>
                                                     <AlertDialogHeader>
@@ -219,6 +245,8 @@ export default function SportsHeadManageTeamPage() {
                 onClose={() => setIsAddPlayerOpen(false)}
                 teamId={teamId}
                 onSuccess={fetchTeamDetails}
+                maxPlayers={maxPlayers}
+                currentCount={memberCount}
             />
             {selectedPlayer && team.Sport && (
                  <EditPlayerDialog
