@@ -89,7 +89,7 @@ export default function SportsHeadManageTeamPage() {
             await deleteSportsHeadTeam(teamId);
             toast({ title: 'Team Deleted', description: 'The team has been permanently deleted.' });
             router.push('/console/sports-head/teams');
-        } catch (error: any) => {
+        } catch (error: any) {
             toast({ variant: 'destructive', title: 'Error', description: error.response?.data?.message || 'Failed to delete team.' });
         }
     }
@@ -252,7 +252,7 @@ export default function SportsHeadManageTeamPage() {
             {selectedPlayer && team.Sport && (
                  <EditPlayerDialog
                     isOpen={isEditPlayerOpen}
-                    onClose={() => setEditingMember(null)}
+                    onClose={() => setSelectedPlayer(null)}
                     teamId={teamId}
                     player={selectedPlayer}
                     sport={team.Sport}
