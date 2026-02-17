@@ -2,11 +2,12 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { getSportsHeadStudents, bulkAddPlayersToTeam, type SportStudent } from '@/lib/api';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { getSportsHeadStudents, bulkAddPlayersToTeam, getSportsHeadTeamDetails, type SportStudent, type FullSportsHeadTeam } from '@/lib/api';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Search, Info } from 'lucide-react';
+import { Loader2, Search, ArrowLeft, Info } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -16,46 +17,38 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
+export default function BulkAddPlayersPage() {
+    const router = useRouter();
+    const params = useParams();
+    const teamId = params.id as string;
 
-interface AddPlayerDialogProps {
-    isOpen: boolean;
-    onClose: () => void;
-    teamId: string;
-    onSuccess: () => void;
-    maxPlayers: number;
-    currentCount: number;
-    existingMemberIds: string[];
-}
-
-export function AddPlayerDialog({ isOpen, onClose, teamId, onSuccess, maxPlayers, currentCount, existingMemberIds }: AddPlayerDialogProps) {
     const { toast } = useToast();
+    const [team, setTeam] = useState<FullSportsHeadTeam | null>(null);
     const [allStudents, setAllStudents] = useState<SportStudent[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
 
-    const remainingSlots = maxPlayers - currentCount;
-    const canAddMore = selectedStudentIds.length < remainingSlots;
-
     useEffect(() => {
-        if (isOpen) {
+        if (teamId) {
             setIsLoading(true);
-            getSportsHeadStudents()
-                .then(data => {
-                    const unassigned = data.filter(s => !existingMemberIds.includes(s.student_id));
-                    setAllStudents(unassigned);
-                })
-                .catch(() => {
-                    toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch list of available students.' });
-                })
-                .finally(() => setIsLoading(false));
-        } else {
-            // Reset state on close
-            setSelectedStudentIds([]);
-            setSearchTerm('');
+            Promise.all([
+                getSportsHeadTeamDetails(teamId),
+                getSportsHeadStudents()
+            ]).then(([teamData, studentsData]) => {
+                const teamMemberStudentIds = new Set(teamData.members.map(m => m.student_id));
+                const unassigned = studentsData.filter(s => !teamMemberStudentIds.has(s.student_id));
+                setTeam(teamData);
+                setAllStudents(unassigned);
+            }).catch(() => {
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch required data.' });
+            }).finally(() => setIsLoading(false));
         }
-    }, [isOpen, toast, existingMemberIds]);
+    }, [teamId, toast]);
+
+    const remainingSlots = team ? team.Sport.max_players - team.members.length : 0;
+    const canAddMore = selectedStudentIds.length < remainingSlots;
 
     const filteredStudents = useMemo(() => {
         if (!searchTerm) return allStudents;
@@ -65,13 +58,13 @@ export function AddPlayerDialog({ isOpen, onClose, teamId, onSuccess, maxPlayers
         );
     }, [searchTerm, allStudents]);
 
-    const handleSelectStudent = (studentId: string) => {
-        const isSelected = selectedStudentIds.includes(studentId);
+    const handleSelectStudent = (regId: string) => {
+        const isSelected = selectedStudentIds.includes(regId);
         if (isSelected) {
-            setSelectedStudentIds(prev => prev.filter(id => id !== studentId));
+            setSelectedStudentIds(prev => prev.filter(id => id !== regId));
         } else {
             if (canAddMore) {
-                setSelectedStudentIds(prev => [...prev, studentId]);
+                setSelectedStudentIds(prev => [...prev, regId]);
             } else {
                 toast({
                     variant: 'destructive',
@@ -89,21 +82,9 @@ export function AddPlayerDialog({ isOpen, onClose, teamId, onSuccess, maxPlayers
         }
         setIsSubmitting(true);
         try {
-            // The API expects registration_ids, but our student type has student_id.
-            // We need to find the corresponding registration_id for the selected student_ids.
-            const registrationIdsToAdd = selectedStudentIds.map(studentId => {
-                const student = allStudents.find(s => s.student_id === studentId);
-                return student?.registration_id;
-            }).filter((id): id is string => !!id);
-
-            if(registrationIdsToAdd.length !== selectedStudentIds.length) {
-                 throw new Error("Could not find registration information for all selected players.");
-            }
-
-            await bulkAddPlayersToTeam(teamId, registrationIdsToAdd);
+            await bulkAddPlayersToTeam(teamId, selectedStudentIds);
             toast({ title: 'Success', description: `${selectedStudentIds.length} player(s) added to the team.` });
-            onSuccess();
-            onClose();
+            router.push(`/console/sports-head/teams/${teamId}`);
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Failed to add players', description: error.response?.data?.message || 'An error occurred.' });
         } finally {
@@ -111,21 +92,51 @@ export function AddPlayerDialog({ isOpen, onClose, teamId, onSuccess, maxPlayers
         }
     };
 
+    if (isLoading) {
+        return (
+            <div className="container py-8 space-y-4">
+                <Skeleton className="h-10 w-48" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-64 w-full" />
+            </div>
+        )
+    }
+
+    if (!team) {
+         return (
+            <div className="container py-8 text-center">
+                <p className="text-destructive">Team not found or could not be loaded.</p>
+                <Button variant="outline" onClick={() => router.back()} className="mt-4">
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Go Back
+                </Button>
+            </div>
+        );
+    }
+
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-3xl">
-                <DialogHeader>
-                    <DialogTitle>Add Players to Team</DialogTitle>
-                    <DialogDescription>Select students from the list of unassigned players for this sport.</DialogDescription>
-                </DialogHeader>
-                <div className="py-4 space-y-4">
-                    <Alert>
+        <div className="container py-8">
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center gap-4">
+                        <Button variant="outline" size="icon" onClick={() => router.push(`/console/sports-head/teams/${teamId}`)}>
+                            <ArrowLeft className="h-4 w-4" />
+                        </Button>
+                        <div>
+                            <CardTitle>Bulk Add Players to {team.team_name}</CardTitle>
+                            <CardDescription>Select students from the list of unassigned players for {team.Sport.name}.</CardDescription>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                     <Alert>
                         <Info className="h-4 w-4" />
                         <AlertTitle>Team Capacity</AlertTitle>
-                        <AlertDescription>
-                            You can add up to <strong>{remainingSlots}</strong> more players to this team. Selected: <strong>{selectedStudentIds.length}</strong>
+                        <AlertDescription className="flex justify-between items-center">
+                           <span>You can add up to <strong>{remainingSlots}</strong> more players.</span>
+                           <Badge>Selected: {selectedStudentIds.length}</Badge>
                         </AlertDescription>
                     </Alert>
+
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
@@ -135,26 +146,24 @@ export function AddPlayerDialog({ isOpen, onClose, teamId, onSuccess, maxPlayers
                             onChange={e => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <ScrollArea className="h-72">
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pr-4">
-                            {isLoading ? (
-                                [...Array(4)].map((_, i) => <Skeleton key={i} className="h-24" />)
-                            ) : filteredStudents.length > 0 ? (
+                    <ScrollArea className="h-96">
+                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pr-4">
+                            {filteredStudents.length > 0 ? (
                                 filteredStudents.map(student => (
                                     <div
-                                        key={student.student_id}
-                                        onClick={() => handleSelectStudent(student.student_id)}
+                                        key={student.registration_id}
+                                        onClick={() => handleSelectStudent(student.registration_id)}
                                         className={cn(
                                             "cursor-pointer transition-all border rounded-lg p-4 flex flex-col items-start gap-4 hover:bg-muted/50 relative",
-                                            selectedStudentIds.includes(student.student_id) && "border-primary ring-2 ring-primary bg-primary/5",
-                                            !canAddMore && !selectedStudentIds.includes(student.student_id) && "opacity-50 cursor-not-allowed"
+                                            selectedStudentIds.includes(student.registration_id) && "border-primary ring-2 ring-primary bg-primary/5",
+                                            !canAddMore && !selectedStudentIds.includes(student.registration_id) && "opacity-50 cursor-not-allowed"
                                         )}
                                     >
                                         <div className="absolute top-2 right-2">
                                             <Checkbox
-                                                checked={selectedStudentIds.includes(student.student_id)}
-                                                onCheckedChange={() => handleSelectStudent(student.student_id)}
-                                                disabled={!canAddMore && !selectedStudentIds.includes(student.student_id)}
+                                                checked={selectedStudentIds.includes(student.registration_id)}
+                                                onCheckedChange={() => handleSelectStudent(student.registration_id)}
+                                                disabled={!canAddMore && !selectedStudentIds.includes(student.registration_id)}
                                             />
                                         </div>
                                          <div className="flex items-center gap-3">
@@ -170,21 +179,22 @@ export function AddPlayerDialog({ isOpen, onClose, teamId, onSuccess, maxPlayers
                                     </div>
                                 ))
                             ) : (
-                                <div className="md:col-span-2 text-center py-16 text-muted-foreground border rounded-lg">
+                                <div className="md:col-span-3 text-center py-16 text-muted-foreground border rounded-lg">
                                     <p>No unassigned players found.</p>
                                 </div>
                             )}
                         </div>
                     </ScrollArea>
-                </div>
-                <DialogFooter>
-                    <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
+                </CardContent>
+                <CardFooter className="justify-end gap-2">
+                     <Button variant="ghost" onClick={() => router.push(`/console/sports-head/teams/${teamId}`)}>Cancel</Button>
                     <Button onClick={handleAddPlayers} disabled={isSubmitting || selectedStudentIds.length === 0}>
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Add {selectedStudentIds.length > 0 ? `${selectedStudentIds.length} Player(s)` : 'Player(s)'}
                     </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                </CardFooter>
+            </Card>
+        </div>
     );
 }
+

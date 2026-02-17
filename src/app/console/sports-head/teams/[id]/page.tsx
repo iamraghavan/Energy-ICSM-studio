@@ -3,6 +3,7 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import Link from 'next/link';
 import { 
     getSportsHeadTeamDetails, 
     removePlayerFromTeam,
@@ -19,7 +20,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
-import { AddPlayerDialog } from '@/components/console/sports-head/AddPlayerDialog';
 import { EditPlayerDialog } from '@/components/console/sports-head/EditPlayerDialog';
 import type { ApiSport } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
@@ -37,7 +37,6 @@ export default function SportsHeadManageTeamPage() {
     const [error, setError] = useState<string | null>(null);
     const [isEditingName, setIsEditingName] = useState(false);
     const [newTeamName, setNewTeamName] = useState('');
-    const [isAddPlayerOpen, setIsAddPlayerOpen] = useState(false);
     const [isEditPlayerOpen, setIsEditPlayerOpen] = useState(false);
     const [selectedPlayer, setSelectedPlayer] = useState<StudentTeamMember | null>(null);
     const { toast } = useToast();
@@ -160,8 +159,10 @@ export default function SportsHeadManageTeamPage() {
                     <div className="flex items-center justify-between my-6">
                          <h3 className="text-xl font-semibold">Player Roster</h3>
                         <div className="flex gap-2">
-                            <Button onClick={() => setIsAddPlayerOpen(true)} disabled={memberCount >= maxPlayers}>
-                                <UserPlus className="mr-2 h-4 w-4"/> Add Players
+                            <Button asChild disabled={memberCount >= maxPlayers}>
+                                <Link href={`/console/sports-head/teams/${teamId}/add-players`}>
+                                    <UserPlus className="mr-2 h-4 w-4"/> Add Players
+                                </Link>
                             </Button>
                              <Button variant="outline" disabled>
                                 <Upload className="mr-2 h-4 w-4"/> Upload Excel
@@ -240,14 +241,7 @@ export default function SportsHeadManageTeamPage() {
                     </AlertDialog>
                 </CardFooter>
             </Card>
-             <AddPlayerDialog
-                isOpen={isAddPlayerOpen}
-                onClose={() => setIsAddPlayerOpen(false)}
-                teamId={teamId}
-                onSuccess={fetchTeamDetails}
-                maxPlayers={maxPlayers}
-                currentCount={memberCount}
-            />
+
             {selectedPlayer && team.Sport && (
                  <EditPlayerDialog
                     isOpen={isEditPlayerOpen}
