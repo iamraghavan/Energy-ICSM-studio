@@ -711,22 +711,8 @@ export type ApiMatch = {
     venue: string;
     status: 'scheduled' | 'live' | 'completed';
     score_details: any;
+    referee_name?: string;
     Sport: ApiSport;
     TeamA: ApiTeam;
     TeamB: ApiTeam;
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
