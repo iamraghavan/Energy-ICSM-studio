@@ -3,7 +3,6 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import Link from 'next/link';
 import { 
     getSportsHeadTeamDetails, 
     removePlayerFromTeam,
@@ -15,16 +14,16 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, UserPlus, Trash2, Edit, Save, UserX, Upload } from 'lucide-react';
+import { ArrowLeft, UserPlus, Trash2, Edit, Save, Upload } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { EditPlayerDialog } from '@/components/console/sports-head/EditPlayerDialog';
-import type { ApiSport } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { BulkAddPlayersDialog } from '@/components/console/sports-head/BulkAddPlayersDialog';
 
 
 export default function SportsHeadManageTeamPage() {
@@ -38,6 +37,7 @@ export default function SportsHeadManageTeamPage() {
     const [isEditingName, setIsEditingName] = useState(false);
     const [newTeamName, setNewTeamName] = useState('');
     const [isEditPlayerOpen, setIsEditPlayerOpen] = useState(false);
+    const [isAddPlayerOpen, setIsAddPlayerOpen] = useState(false);
     const [selectedPlayer, setSelectedPlayer] = useState<StudentTeamMember | null>(null);
     const { toast } = useToast();
 
@@ -89,7 +89,7 @@ export default function SportsHeadManageTeamPage() {
             await deleteSportsHeadTeam(teamId);
             toast({ title: 'Team Deleted', description: 'The team has been permanently deleted.' });
             router.push('/console/sports-head/teams');
-        } catch (error: any) {
+        } catch (error: any) => {
             toast({ variant: 'destructive', title: 'Error', description: error.response?.data?.message || 'Failed to delete team.' });
         }
     }
@@ -159,10 +159,8 @@ export default function SportsHeadManageTeamPage() {
                     <div className="flex items-center justify-between my-6">
                          <h3 className="text-xl font-semibold">Player Roster</h3>
                         <div className="flex gap-2">
-                            <Button asChild disabled={memberCount >= maxPlayers}>
-                                <Link href={`/console/sports-head/teams/${teamId}/add-players`}>
-                                    <UserPlus className="mr-2 h-4 w-4"/> Add Players
-                                </Link>
+                            <Button onClick={() => setIsAddPlayerOpen(true)} disabled={memberCount >= maxPlayers}>
+                                <UserPlus className="mr-2 h-4 w-4"/> Add Players
                             </Button>
                              <Button variant="outline" disabled>
                                 <Upload className="mr-2 h-4 w-4"/> Upload Excel
@@ -202,7 +200,7 @@ export default function SportsHeadManageTeamPage() {
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
                                                      <Button variant="ghost" size="icon" disabled={member.role === 'Captain'}>
-                                                        <UserX className="h-4 w-4 text-destructive" />
+                                                        <Trash2 className="h-4 w-4 text-destructive" />
                                                     </Button>
                                                 </AlertDialogTrigger>
                                                 <AlertDialogContent>
@@ -242,10 +240,19 @@ export default function SportsHeadManageTeamPage() {
                 </CardFooter>
             </Card>
 
+            {team && (
+                 <BulkAddPlayersDialog
+                    team={team}
+                    isOpen={isAddPlayerOpen}
+                    onClose={() => setIsAddPlayerOpen(false)}
+                    onSuccess={fetchTeamDetails}
+                />
+            )}
+
             {selectedPlayer && team.Sport && (
                  <EditPlayerDialog
                     isOpen={isEditPlayerOpen}
-                    onClose={() => setIsEditPlayerOpen(false)}
+                    onClose={() => setEditingMember(null)}
                     teamId={teamId}
                     player={selectedPlayer}
                     sport={team.Sport}
