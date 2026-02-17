@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { CalendarPlus } from "lucide-react";
+import { CalendarPlus, Phone, Mail } from "lucide-react";
 import Link from 'next/link';
 import type { Metadata } from 'next';
 
@@ -63,6 +63,18 @@ const formatDate = (dateString: string) => {
     return `${day}${suffix} March ${date.getFullYear()}`;
 };
 
+const formatPhone = (phone: string) => {
+    if (phone.length === 10) {
+        return `${phone.slice(0, 5)} ${phone.slice(5)}`;
+    }
+    return phone;
+};
+
+const obfuscateEmail = (email: string) => {
+    return email.replace('@', ' [at] ').replace(/\./g, ' [dot] ');
+}
+
+
 export default function SchedulePage() {
     return (
         <div className="container py-8 md:py-12 space-y-8">
@@ -93,7 +105,10 @@ export default function SchedulePage() {
                                         <TableCell>
                                             {item.coordinator}
                                             <br />
-                                            <a href={`tel:${item.phone}`} className="text-sm text-primary hover:underline">{item.phone}</a>
+                                            <a href={`tel:${item.phone}`} className="text-sm text-primary hover:underline flex items-center gap-2">
+                                                <Phone className="h-4 w-4 shrink-0"/>
+                                                <span>{formatPhone(item.phone)}</span>
+                                            </a>
                                         </TableCell>
                                         <TableCell>{formatDate(item.date)}</TableCell>
                                         <TableCell className="text-right">
@@ -133,8 +148,18 @@ export default function SchedulePage() {
                                     <TableRow key={coordinator.sno}>
                                         <TableCell>{coordinator.sno}</TableCell>
                                         <TableCell className="font-medium">{coordinator.name}</TableCell>
-                                        <TableCell><a href={`tel:${coordinator.phone}`} className="text-primary hover:underline">{coordinator.phone}</a></TableCell>
-                                        <TableCell><a href={`mailto:${coordinator.email}`} className="text-primary hover:underline">{coordinator.email}</a></TableCell>
+                                        <TableCell>
+                                            <a href={`tel:${coordinator.phone}`} className="flex items-center gap-2 text-primary hover:underline">
+                                                 <Phone className="h-4 w-4 shrink-0" />
+                                                 <span>{formatPhone(coordinator.phone)}</span>
+                                            </a>
+                                        </TableCell>
+                                        <TableCell>
+                                            <a href={`mailto:${coordinator.email}`} className="flex items-center gap-2 text-primary hover:underline">
+                                                <Mail className="h-4 w-4 shrink-0" />
+                                                <span className="truncate">{obfuscateEmail(coordinator.email)}</span>
+                                            </a>
+                                        </TableCell>
                                         <TableCell>{coordinator.sport}</TableCell>
                                     </TableRow>
                                 ))}
