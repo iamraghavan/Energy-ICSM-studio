@@ -1,5 +1,4 @@
 
-
 import axios from 'axios';
 import type { College } from './types';
 
@@ -692,11 +691,10 @@ export const deleteSportsHeadTeam = async (teamId: string) => {
     return response.data;
 }
 
-export const sportsHeadImportPlayers = async (teamId: string, players: any[]) => {
+export const sportsHeadBulkAddPlayers = async (teamId: string, players: any[]) => {
     const response = await api.post(`/sports-head/teams/${teamId}/players/bulk`, { players });
     return response.data;
 };
-
 
 export const removePlayerFromTeam = async (teamId: string, studentId: string) => {
     const response = await api.delete(`/sports-head/teams/${teamId}/players/${studentId}`);
