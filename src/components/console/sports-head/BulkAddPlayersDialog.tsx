@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -21,7 +22,7 @@ import { Input } from '@/components/ui/input';
 
 const memberSchema = z.object({
   name: z.string().min(3, "Name is required."),
-  mobile: z.string().length(10, "Mobile must be 10 digits."),
+  mobile: z.string().length(10, "Mobile must be 10 digits.").optional().or(z.literal('')),
   email: z.string().email("Invalid email.").optional().or(z.literal('')),
   role: z.enum(['Captain', 'Vice-Captain', 'Player']).default('Player'),
   sport_role: z.string().optional(),
@@ -108,7 +109,7 @@ export function BulkAddPlayersDialog({ team, isOpen, onClose, onSuccess }: BulkA
             <DialogContent className="sm:max-w-4xl">
                 <DialogHeader>
                     <DialogTitle>Bulk Add Players to {team.team_name}</DialogTitle>
-                    <DialogDescription>Manually enter player details below. Name and mobile number are required for each player.</DialogDescription>
+                    <DialogDescription>Manually enter player details below. Name is required for each player.</DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
                     <form onSubmit={handleSubmit(onSubmit)}>
@@ -133,7 +134,7 @@ export function BulkAddPlayersDialog({ team, isOpen, onClose, onSuccess }: BulkA
                                                     <FormItem><FormLabel>Player Name</FormLabel><FormControl><Input placeholder="Full Name" {...field} /></FormControl><FormMessage /></FormItem>
                                                 )} />
                                                 <FormField control={control} name={`players.${index}.mobile`} render={({ field }) => (
-                                                    <FormItem><FormLabel>Mobile Number</FormLabel><FormControl><Input type="tel" maxLength={10} placeholder="10-digit number" {...field} /></FormControl><FormMessage /></FormItem>
+                                                    <FormItem><FormLabel>Mobile Number (Optional)</FormLabel><FormControl><Input type="tel" maxLength={10} placeholder="10-digit number" {...field} /></FormControl><FormMessage /></FormItem>
                                                 )} />
                                             </div>
                                              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
