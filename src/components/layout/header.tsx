@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -27,6 +26,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const navLinks = [
   { href: '/energy/2026', label: 'Home' },
@@ -91,7 +91,12 @@ export function Header() {
         
 
         <div className="flex items-center gap-3">
-             {isClient && studentSession ? (
+             {!isClient ? (
+                <div className="hidden md:flex items-center gap-3">
+                  <Skeleton className="h-9 w-24" />
+                  <Skeleton className="h-9 w-20" />
+                </div>
+              ) : studentSession ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="flex items-center gap-2 rounded-full h-10 px-2 pr-4">
@@ -161,7 +166,12 @@ export function Header() {
                     </Button>
                 ))}
                 <div className='pt-4 space-y-2'>
-                    {isClient && studentSession ? (
+                    {!isClient ? (
+                        <div className="space-y-2">
+                            <Skeleton className="h-10 w-full" />
+                            <Skeleton className="h-10 w-full" />
+                        </div>
+                    ) : studentSession ? (
                       <Button asChild className="w-full" onClick={() => setIsMobileMenuOpen(false)}>
                         <Link href="/energy/2026/student/dashboard">Go to Dashboard</Link>
                       </Button>
