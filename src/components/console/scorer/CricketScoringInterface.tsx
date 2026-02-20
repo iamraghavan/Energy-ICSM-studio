@@ -1,5 +1,4 @@
 
-
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -216,29 +215,45 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                     <Badge className="ml-auto animate-pulse">LIVE</Badge>
                 </div>
             </CardHeader>
-             <CardContent className="grid lg:grid-cols-3 gap-6">
+             <CardContent className="grid lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-6">
-                    {/* Scoreboard */}
-                    <Card>
-                        <CardContent className="p-4 sm:p-6 grid grid-cols-[1fr,auto,1fr] items-center gap-2 sm:gap-4 text-center">
-                            <div className="space-y-2">
-                                <h3 className="font-bold text-lg sm:text-xl truncate">{match.TeamA.team_name}</h3>
-                                <p className="text-3xl sm:text-4xl font-bold">{teamAScore.runs}/{teamAScore.wickets}</p>
-                                <p className="text-xs sm:text-sm text-muted-foreground">({teamAScore.overs.toFixed(1)} Overs)</p>
+                    
+                    {/* Unified Scoreboard */}
+                    <div className="p-4 sm:p-6 grid grid-cols-[1fr,auto,1fr] items-center gap-2 sm:gap-4 text-center border rounded-lg bg-muted/50">
+                        <div className="space-y-2">
+                            <h3 className="font-bold text-lg sm:text-xl truncate">{match.TeamA.team_name}</h3>
+                            <p className="text-3xl sm:text-4xl font-bold font-mono">{teamAScore.runs}/{teamAScore.wickets}</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground">({teamAScore.overs.toFixed(1)} Overs)</p>
+                        </div>
+                        <div className="text-2xl sm:text-4xl font-bold text-muted-foreground">VS</div>
+                        <div className="space-y-2">
+                            <h3 className="font-bold text-lg sm:text-xl truncate">{match.TeamB.team_name}</h3>
+                            <p className="text-3xl sm:text-4xl font-bold font-mono">{teamBScore.runs}/{teamBScore.wickets}</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground">({teamBScore.overs.toFixed(1)} Overs)</p>
+                        </div>
+                    </div>
+
+                    {/* Scoring Controls */}
+                    <div className="space-y-4">
+                        <h4 className="font-semibold text-lg">Log Ball Event</h4>
+                        <div className="space-y-3">
+                            <Label>Runs Scored</Label>
+                            <div className="flex flex-wrap gap-2">
+                                {[0, 1, 2, 3, 4, 6].map(runs => <Button key={runs} size="lg" variant="outline" onClick={() => handleBallPlayed({ runs })}>{runs}</Button>)}
                             </div>
-                            <div className="text-2xl sm:text-4xl font-bold text-muted-foreground">VS</div>
-                            <div className="space-y-2">
-                                <h3 className="font-bold text-lg sm:text-xl truncate">{match.TeamB.team_name}</h3>
-                                <p className="text-3xl sm:text-4xl font-bold">{teamBScore.runs}/{teamBScore.wickets}</p>
-                                <p className="text-xs sm:text-sm text-muted-foreground">({teamBScore.overs.toFixed(1)} Overs)</p>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Other Events</Label>
+                            <div className="flex flex-wrap gap-2">
+                                <Button variant="secondary" onClick={() => setIsExtraModalOpen(true)}>Extra</Button>
+                                <Button variant="destructive" onClick={() => setIsWicketModalOpen(true)}>Wicket</Button>
                             </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
 
                     {/* Player Selection */}
-                     <Card>
-                        <CardHeader><CardTitle>Current Players</CardTitle></CardHeader>
-                        <CardContent>
+                    <div className="space-y-4">
+                        <h4 className="font-semibold text-lg">Current Players</h4>
                         {rostersLoading ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
@@ -290,36 +305,18 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                                 </div>
                             </div>
                         )}
-                        </CardContent>
-                    </Card>
-                    
-                    {/* Scoring Controls */}
-                     <Card>
-                        <CardHeader><CardTitle>Log Ball Event</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="space-y-2">
-                                <Label>Runs Scored</Label>
-                                <div className="flex flex-wrap gap-2">
-                                    {[0, 1, 2, 3, 4, 6].map(runs => <Button key={runs} size="lg" variant="outline" onClick={() => handleBallPlayed({ runs })}>{runs}</Button>)}
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Events</Label>
-                                <div className="flex flex-wrap gap-2">
-                                    <Button variant="secondary" onClick={() => setIsExtraModalOpen(true)}>Extra</Button>
-                                    <Button variant="destructive" onClick={() => setIsWicketModalOpen(true)}>Wicket</Button>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    </div>
                 </div>
+
                  <div className="lg:col-span-1">
-                     <Card>
-                        <CardHeader><CardTitle>Match Timeline</CardTitle></CardHeader>
+                    <div className="border rounded-lg sticky top-24">
+                        <CardHeader>
+                            <CardTitle>Match Timeline</CardTitle>
+                        </CardHeader>
                         <CardContent>
-                             <ScrollArea className="h-[400px]">
+                            <ScrollArea className="h-[400px]">
                                 <div className="space-y-4 pr-3">
-                                {events.length > 0 ? (
+                                {Array.isArray(events) && events.length > 0 ? (
                                     events.map((event, i) => <CricketTimelineEvent key={i} event={event} match={match} />)
                                 ) : (
                                     <p className="text-muted-foreground text-center py-8 text-sm">Waiting for first ball...</p>
@@ -327,7 +324,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                                 </div>
                             </ScrollArea>
                         </CardContent>
-                    </Card>
+                    </div>
                 </div>
             </CardContent>
              <CardFooter className="justify-end">
