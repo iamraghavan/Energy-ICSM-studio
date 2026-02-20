@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -142,7 +143,9 @@ const nextConfig: NextConfig = {
     ]
   },
   /* config options here */
-  allowedDevOrigins: ['https://*.cloudworkstations.dev'],
+  experimental: {
+    allowedOrigins: ['https://*.cloudworkstations.dev'],
+  },
   typescript: {
     ignoreBuildErrors: true,
   },
