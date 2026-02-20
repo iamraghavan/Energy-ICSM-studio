@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { endMatch, postMatchEvent, postStandardScore, type ApiMatch } from "@/lib/api";
+import { postMatchEvent, type ApiMatch } from "@/lib/api";
 import { ArrowLeft, Send, Timer as TimerIcon, Play, Pause, Goal, Replace, Square, Info, Shield } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
@@ -120,45 +120,58 @@ export function StandardScoringInterface({ match, onBack }: { match: ApiMatch, o
         };
     }, [match.id, match.match_events]);
     
-    const handleScoreEvent = async (teamId: string) => {
-        try {
-            await postStandardScore(match.id, {
-                points: 1,
-                team_id: teamId,
-                event_type: 'goal'
-            });
-            toast({ title: "Point Added!", description: `+1 point for ${teamId === match.team_a_id ? match.TeamA.team_name : match.TeamB.team_name}` });
-        } catch (error) {
-             toast({ variant: 'destructive', title: 'Error', description: 'Failed to add point.' });
-        }
+    const handleScoreEvent = (teamId: string) => {
+        const payload = {
+            matchId: match.id,
+            points: 1,
+            team_id: teamId,
+            event_type: 'goal',
+        };
+        socket.emit("submit_standard_score", payload, (response: { status: string, message?: string }) => {
+            if (response.status === "ok") {
+                toast({ title: "Point Synced!", description: `+1 point for ${teamId === match.team_a_id ? match.TeamA.team_name : match.TeamB.team_name}` });
+            } else {
+                toast({ variant: 'destructive', title: 'Sync Error', description: response.message || 'Failed to sync point.' });
+            }
+        });
     };
     
-    const handleLogEvent = async (eventType: string) => {
-        try {
-            await postMatchEvent(match.id, {
-                event_type: eventType,
-                team_id: selectedTeamForEvent
-            });
-             toast({ title: "Event Logged!", description: `${eventType} logged for ${selectedTeamForEvent === match.team_a_id ? match.TeamA.team_name : match.TeamB.team_name}` });
-        } catch(error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to log event.' });
-        }
+    const handleLogEvent = (eventType: string) => {
+        const payload = {
+            matchId: match.id,
+            points: 0, // Events don't carry points
+            team_id: selectedTeamForEvent,
+            event_type: eventType,
+        };
+        socket.emit("submit_standard_score", payload, (response: { status: string, message?: string }) => {
+            if (response.status === "ok") {
+                toast({ title: "Event Synced!", description: `${eventType} logged for ${selectedTeamForEvent === match.team_a_id ? match.TeamA.team_name : match.TeamB.team_name}` });
+            } else {
+                toast({ variant: 'destructive', title: 'Sync Error', description: response.message || 'Failed to sync event.' });
+            }
+        });
     };
 
 
-    const handleEndMatch = async () => {
+    const handleEndMatch = () => {
         if (!winnerId) {
             toast({ variant: 'destructive', title: 'Error', description: 'Please select a winner or draw.' });
             return;
         }
-        try {
-            await endMatch(match.id, winnerId === 'draw' ? null : winnerId, score);
-            toast({ title: 'Match Ended', description: 'The match has been moved to completed status.' });
-            setIsEndMatchDialogOpen(false);
-            onBack();
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to end the match.' });
-        }
+        const payload = {
+            matchId: match.id,
+            status: "completed",
+            winner_id: winnerId === 'draw' ? null : winnerId
+        };
+        socket.emit("update_match_status", payload, (res: { status: string }) => {
+            if (res.status === "ok") {
+                toast({ title: 'Match Ended!', description: 'The match has been moved to completed status.' });
+                setIsEndMatchDialogOpen(false);
+                onBack();
+            } else {
+                toast({ variant: 'destructive', title: 'Error', description: 'Failed to end the match.' });
+            }
+        });
     };
     
     const teamAScore = score?.[match.team_a_id]?.score ?? 0;

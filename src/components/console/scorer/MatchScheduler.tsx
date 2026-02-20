@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -6,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getMatchesBySport, createMatch, getTeamsBySport, type ApiMatch, type ApiTeam, startMatch, deleteMatch } from "@/lib/api";
+import { getMatchesBySport, createMatch, getTeamsBySport, type ApiMatch, type ApiTeam, deleteMatch } from "@/lib/api";
 import { MatchCard } from "./MatchCard";
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,7 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Loader2, PlusCircle, CalendarCog, Trash2 } from 'lucide-react';
-import { io } from 'socket.io-client';
+import { socket } from '@/lib/socket';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -27,8 +28,6 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-
-const SOCKET_URL = 'https://energy-sports-meet-backend.onrender.com';
 
 const matchFormSchema = z.object({
     sport_id: z.string().min(1, 'Please select a sport.'),
@@ -73,34 +72,41 @@ export function MatchScheduler({ sportId }: { sportId?: string }) {
             fetchUpcoming();
         }
 
-        const socket = io(SOCKET_URL);
-        socket.on('connect', () => socket.emit('join_room', 'live_overview'));
-        socket.on('overview_update', (data: any) => {
-            toast({ title: 'Schedule Updated!', description: 'The match list has been updated in real-time.' });
+        const handleUpdate = (data: any) => {
+             toast({ title: 'Schedule Updated!', description: 'The match list has been updated in real-time.' });
             if (sportId) {
                 fetchUpcoming();
             }
-        });
+        }
+        
+        socket.on('overview_update', handleUpdate);
+        socket.on('match_status_change', handleUpdate);
 
         return () => {
-            socket.disconnect();
+            socket.off('overview_update', handleUpdate);
+            socket.off('match_status_change', handleUpdate);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [sportId, toast]);
+    }, [sportId]);
 
     const onMatchCreated = () => {
         setIsModalOpen(false);
         fetchUpcoming();
     }
     
-    const handleStartMatch = async (matchId: string) => {
-        try {
-            await startMatch(matchId);
-            toast({ title: 'Match Started!', description: 'The match is now live.' });
-            fetchUpcoming();
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to start the match.' });
-        }
+    const handleStartMatch = (matchId: string) => {
+        const payload = {
+            matchId: matchId,
+            status: "live"
+        };
+        socket.emit("update_match_status", payload, (res: { status: string }) => {
+            if (res.status === "ok") {
+                toast({ title: 'Match is now LIVE!' });
+                fetchUpcoming();
+            } else {
+                toast({ variant: 'destructive', title: 'Error', description: 'Failed to start the match.' });
+            }
+        });
     };
 
     const handleDeleteMatch = async (matchId: string) => {

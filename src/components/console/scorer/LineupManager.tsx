@@ -3,7 +3,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getMatchesBySport, getLiveMatches, getLineup, manageLineup, getScorerTeamDetails, type ApiMatch, type FullSportsHeadTeam } from '@/lib/api';
+import { getMatchesBySport, getLiveMatches, getLineup, getScorerTeamDetails, type ApiMatch, type FullSportsHeadTeam } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from '@/components/ui/skeleton';
@@ -11,6 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Loader2, Users } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { socket } from '@/lib/socket';
 
 
 interface Player {
@@ -31,56 +32,77 @@ function LineupEditor({ match }: { match: ApiMatch }) {
     const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
 
-    useEffect(() => {
-        const fetchLineupData = async () => {
-            setIsLoading(true);
-            try {
-                // 1. Get players already in the match lineup
-                const matchLineupPlayers: any[] = await getLineup(match.id);
-
-                // 2. Get full team details for squad lists
-                const [teamADetails, teamBDetails] = await Promise.all([
-                    getScorerTeamDetails(match.team_a_id),
-                    getScorerTeamDetails(match.team_b_id)
-                ]);
-
-                const processTeamData = (teamDetails: FullSportsHeadTeam, currentMatchLineup: any[]): TeamLineup => {
-                    const squadMembers: Player[] = teamDetails.members.map(member => ({
-                        id: member.student_id,
-                        name: member.Student?.name || member.name
-                    }));
-
-                    return {
-                        team: { id: teamDetails.id, team_name: teamDetails.team_name },
-                        squad: squadMembers,
-                        lineup: currentMatchLineup.filter(p => p.Student && !p.is_substitute).map(p => p.Student.id),
-                        substitutes: currentMatchLineup.filter(p => p.Student && p.is_substitute).map(p => p.Student.id),
-                    };
-                };
-
-                const teamAMatchPlayers = matchLineupPlayers.filter(p => p.team_id === match.team_a_id);
-                const teamBMatchPlayers = matchLineupPlayers.filter(p => p.team_id === match.team_b_id);
-                
-                setTeamA(processTeamData(teamADetails, teamAMatchPlayers));
-                setTeamB(processTeamData(teamBDetails, teamBMatchPlayers));
-
-            } catch (error) {
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch lineup and team data. Please ensure teams have members.' });
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchLineupData();
-    }, [match.id, match.team_a_id, match.team_b_id, toast]);
-
-    const handlePlayerChange = async (student_id: string, team_id: string, is_substitute: boolean, is_checked: boolean) => {
-        const action = is_checked ? 'add' : 'remove';
+    const fetchLineupData = async () => {
+        setIsLoading(true);
         try {
-            await manageLineup(match.id, { action, student_id, team_id, is_substitute });
-             toast({ title: 'Lineup Updated', description: `Player ${action}ed successfully.` });
+            const matchLineupPlayers: any[] = await getLineup(match.id);
+            const [teamADetails, teamBDetails] = await Promise.all([
+                getScorerTeamDetails(match.team_a_id),
+                getScorerTeamDetails(match.team_b_id)
+            ]);
+
+            const processTeamData = (teamDetails: FullSportsHeadTeam, currentMatchLineup: any[]): TeamLineup => {
+                const squadMembers: Player[] = teamDetails.members.map(member => ({
+                    id: member.student_id,
+                    name: member.Student?.name || member.name
+                }));
+
+                return {
+                    team: { id: teamDetails.id, team_name: teamDetails.team_name },
+                    squad: squadMembers,
+                    lineup: currentMatchLineup.filter(p => p.Student && !p.is_substitute).map(p => p.Student.id),
+                    substitutes: currentMatchLineup.filter(p => p.Student && p.is_substitute).map(p => p.Student.id),
+                };
+            };
+
+            const teamAMatchPlayers = matchLineupPlayers.filter(p => p.team_id === match.team_a_id);
+            const teamBMatchPlayers = matchLineupPlayers.filter(p => p.team_id === match.team_b_id);
+            
+            setTeamA(processTeamData(teamADetails, teamAMatchPlayers));
+            setTeamB(processTeamData(teamBDetails, teamBMatchPlayers));
+
         } catch (error) {
-             toast({ variant: 'destructive', title: 'Update Failed', description: 'Could not update lineup.' });
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch lineup and team data. Please ensure teams have members.' });
+        } finally {
+            setIsLoading(false);
         }
+    };
+
+    useEffect(() => {
+        fetchLineupData();
+    }, [match.id]);
+
+    const handlePlayerChange = (student_id: string, team_id: string, is_substitute: boolean, is_checked: boolean) => {
+        const action = is_checked ? 'add' : 'remove';
+        const payload = {
+            matchId: match.id,
+            action,
+            student_id,
+            team_id,
+            is_substitute
+        };
+        socket.emit("update_lineup", payload, (res: { status: string }) => {
+            if (res.status === "ok") {
+                toast({ title: 'Lineup Updated', description: `Player ${action}ed successfully.` });
+                // Optimistic update
+                const setTeamFn = team_id === teamA?.team.id ? setTeamA : setTeamB;
+                setTeamFn(prev => {
+                    if (!prev) return null;
+                    const listKey = is_substitute ? 'substitutes' : 'lineup';
+                    let newList;
+                    if (action === 'add') {
+                        newList = [...prev[listKey], student_id];
+                    } else {
+                        newList = prev[listKey].filter(id => id !== student_id);
+                    }
+                    return { ...prev, [listKey]: newList };
+                });
+            } else {
+                toast({ variant: 'destructive', title: 'Update Failed', description: 'Could not update lineup.' });
+                // Revert optimistic update on failure by refetching
+                fetchLineupData();
+            }
+        });
     };
     
     if (isLoading) {

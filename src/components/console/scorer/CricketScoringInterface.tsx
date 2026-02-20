@@ -1,9 +1,10 @@
 
+
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { endMatch, postCricketScore, getScorerTeamDetails, type ApiMatch, type FullSportsHeadTeam, type StudentTeamMember } from "@/lib/api";
+import { getScorerTeamDetails, type ApiMatch, type FullSportsHeadTeam, type StudentTeamMember } from "@/lib/api";
 import { ArrowLeft, PlusCircle, Shield, Disc, Trophy, Replace } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
@@ -158,7 +159,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
     }, [wicketType, strikerId]);
 
 
-    const handleBallPlayed = async (ballData: any) => {
+    const handleBallPlayed = (ballData: any) => {
         const requiredFields = { batting_team_id: battingTeamId, striker_id: strikerId, non_striker_id: nonStrikerId, bowler_id: bowlerId };
         for (const [key, value] of Object.entries(requiredFields)) {
             if (!value) {
@@ -167,15 +168,19 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
             }
         }
         
-        try {
-            await postCricketScore(match.id, { ...requiredFields, ...ballData });
-            setIsExtraModalOpen(false);
-            setIsWicketModalOpen(false);
-            setExtraRuns(1);
-            setRunsOnWicket(0);
-        } catch (err: any) {
-            toast({ variant: 'destructive', title: 'Error', description: err.response?.data?.error || 'Failed to post ball event.' });
-        }
+        const payload = { matchId: match.id, ...requiredFields, ...ballData };
+
+        socket.emit("submit_cricket_ball", payload, (response: { status: string, message?: string }) => {
+            if (response.status === "ok") {
+                toast({ title: "Ball Synced!" });
+                setIsExtraModalOpen(false);
+                setIsWicketModalOpen(false);
+                setExtraRuns(1);
+                setRunsOnWicket(0);
+            } else {
+                toast({ variant: 'destructive', title: 'Sync Error', description: response.message || 'Failed to sync ball event.' });
+            }
+        });
     }
     
     const handleWicketSubmit = () => {
@@ -197,19 +202,25 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
         });
     }
 
-    const handleEndMatch = async () => {
+    const handleEndMatch = () => {
         if (!winnerId) {
             toast({ variant: 'destructive', title: 'Error', description: 'Please select a winner.' });
             return;
         }
-        try {
-            await endMatch(match.id, winnerId === 'draw' ? null : winnerId, score);
-            toast({ title: 'Match Ended', description: 'The match has been moved to completed status.' });
-            setIsEndMatchDialogOpen(false);
-            onBack();
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to end the match.' });
-        }
+        const payload = {
+            matchId: match.id,
+            status: "completed",
+            winner_id: winnerId === 'draw' ? null : winnerId
+        };
+        socket.emit("update_match_status", payload, (res: { status: string }) => {
+            if (res.status === "ok") {
+                toast({ title: 'Match Ended!', description: 'The match has been moved to completed status.' });
+                setIsEndMatchDialogOpen(false);
+                onBack();
+            } else {
+                toast({ variant: 'destructive', title: 'Error', description: 'Failed to end the match.' });
+            }
+        });
     };
 
     const battingTeamPlayers = useMemo(() => {

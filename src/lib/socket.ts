@@ -1,22 +1,20 @@
 import io from "socket.io-client";
 
+// Initialize Socket (Singleton)
 const SOCKET_URL = "https://energy-sports-meet-backend.onrender.com";
-
 export const socket = io(SOCKET_URL, {
-  transports: ["websocket"], // Force websocket first
-  secure: true,
+  transports: ["websocket"], // 🚀 Force websocket to bypass 502 polling errors on Render
   withCredentials: true,
-  reconnection: true,
-  reconnectionAttempts: Infinity,
-  reconnectionDelay: 1000,
-  reconnectionDelayMax: 5000,
-  timeout: 20000,
   autoConnect: true,
+  reconnection: true,
+  reconnectionAttempts: 10,
+  reconnectionDelay: 1000,
+  timeout: 10000,
 });
 
-// Debug Lifecycle Events
+// Debug Lifecycle Events (Scorer Console)
 socket.on("connect", () => {
-  console.log("🟢 Live Status: Connected:", socket.id);
+  console.log("🟢 Live Status: Connected", socket.id);
 });
 
 socket.on("connect_error", (err) => {
