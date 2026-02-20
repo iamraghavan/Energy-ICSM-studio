@@ -163,11 +163,15 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
     }
     
     const handleWicketSubmit = () => {
+        if (!wicketType || !playerOutId) {
+            toast({ variant: 'destructive', title: 'Missing Wicket Details', description: 'Please select the wicket type and the player who is out.' });
+            return;
+        }
         handleBallPlayed({
             is_wicket: true,
             wicket_type: wicketType,
             player_out_id: playerOutId,
-            fielder_id: fielderId,
+            fielder_id: fielderId || null,
             runs: runsOnWicket,
         });
     }

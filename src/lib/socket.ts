@@ -5,22 +5,25 @@ import io from "socket.io-client";
 const SOCKET_URL = "https://energy-sports-meet-backend.onrender.com";
 
 export const socket = io(SOCKET_URL, {
-  transports: ["websocket"],
+  transports: ["websocket", "polling"],
   secure: true,
   reconnection: true,
-  reconnectionAttempts: Infinity,
+  reconnectionAttempts: 10,
   reconnectionDelay: 1000,
-  reconnectionDelayMax: 30000,
-  timeout: 20000,
-  autoConnect: true
+  reconnectionDelayMax: 5000,
+  timeout: 10000,
+  autoConnect: true,
 });
 
 socket.on("connect", () => {
-  console.log("✅ Socket Connected:", socket.id);
+  console.log("🟢 Live Status: Connected:", socket.id);
 });
 
 socket.on("connect_error", (err) => {
-  console.error("❌ Socket Connection Error:", err.message);
+  console.error("🔴 Connection Error:", err.message);
+  if (err.message === "xhr poll error") {
+    socket.io.opts.transports = ["polling", "websocket"];
+  }
 });
 
 socket.on("disconnect", (reason) => {
@@ -29,5 +32,3 @@ socket.on("disconnect", (reason) => {
     socket.connect();
   }
 });
-
-
