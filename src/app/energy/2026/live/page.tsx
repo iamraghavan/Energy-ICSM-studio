@@ -5,7 +5,7 @@ import { getLiveMatches, type ApiMatch } from "@/lib/api";
 import { socket } from "@/lib/socket";
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Clapperboard, MapPin, Trophy, Goal, Square, Replace, Info, Radio, Shield } from 'lucide-react';
+import { Clapperboard, MapPin, Trophy, Goal, Square, Replace, Info, Radio, Shield, Play, BarChart2 as BarChart } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -193,77 +193,72 @@ function MatchDetailsDialog({ match: initialMatch, isOpen, onClose }: { match: A
     );
 }
 
-// --- New Live Match Card Component ---
+// New LiveMatchCard component
 function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => void }) {
-    const isCricket = match.Sport.name === 'Cricket';
-    const teamAScoreDetails = match.score_details?.[match.team_a_id];
-    const teamBScoreDetails = match.score_details?.[match.team_b_id];
+    const { TeamA, TeamB, Sport, status, venue, start_time, score_details } = match;
 
-    const teamAScore = teamAScoreDetails?.runs ?? teamAScoreDetails?.score ?? 0;
-    const teamBScore = teamBScoreDetails?.runs ?? teamBScoreDetails?.score ?? 0;
-    
-    const teamAScoreDisplay = `${teamAScore}${isCricket && teamAScoreDetails?.wickets !== undefined ? `/${teamAScoreDetails.wickets}` : ''}`;
-    const teamBScoreDisplay = `${teamBScore}${isCricket && teamBScoreDetails?.wickets !== undefined ? `/${teamBScoreDetails.wickets}` : ''}`;
+    const teamAScore = score_details?.[match.team_a_id]?.score ?? score_details?.[match.team_a_id]?.runs ?? 0;
+    const teamBScore = score_details?.[match.team_b_id]?.score ?? score_details?.[match.team_b_id]?.runs ?? 0;
 
-    const getAcronym = (name: string) => {
+    const getTeamAcronym = (name: string) => {
         if (!name) return '';
-        const words = name.split(' ');
-        if (words.length > 1) {
-            return words.map(n => n[0]).join('').substring(0, 3).toUpperCase();
-        }
-        return name.substring(0, 3).toUpperCase();
-    }
+        const words = name.split(' ').filter(w => w.length > 0 && w.toUpperCase() === w);
+        if (words.length > 0) return words.join('');
+        return name.split(' ').map(n => n[0]).join('').substring(0, 3).toUpperCase();
+    };
 
-    const teamAAcronym = getAcronym(match.TeamA.team_name);
-    const teamBAcronym = getAcronym(match.TeamB.team_name);
-    
-    const TeamALogo = () => (
-        <div className="h-10 w-10 bg-yellow-400 flex items-center justify-center rounded-lg shadow-md">
-            <Shield className="h-6 w-6 text-black" />
-        </div>
-    );
-     const TeamBLogo = () => (
-        <div className="h-10 w-10 bg-teal-400 flex items-center justify-center rounded-lg shadow-md">
-             <Shield className="h-6 w-6 text-black" />
-        </div>
-    );
-    
     return (
-        <div onClick={onSelect} className="cursor-pointer group">
-            <Card className="rounded-2xl shadow-md p-3 transition-all duration-300 group-hover:shadow-xl group-hover:border-primary/30">
-                <div className="text-center text-xs font-semibold text-muted-foreground mb-2">
-                    {format(new Date(match.start_time), 'EEEE, MMMM d, yyyy')}
+        <Card 
+            onClick={onSelect} 
+            className="cursor-pointer group overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-primary/30 bg-card"
+        >
+            <div className="px-4 py-2 text-xs text-muted-foreground flex justify-between items-center border-b">
+                <h4 className="font-bold uppercase tracking-wider">{venue}</h4>
+                <span>{format(new Date(start_time), 'h:mm a')}</span>
+            </div>
+            
+            <div className="p-4 space-y-2">
+                {/* Team A */}
+                <div className="grid grid-cols-[auto,1fr,auto] items-center gap-4">
+                    <Avatar className="h-8 w-8">
+                        <AvatarFallback>{getTeamAcronym(TeamA.team_name)}</AvatarFallback>
+                    </Avatar>
+                    <p className="font-semibold text-sm truncate">{TeamA.team_name}</p>
+                    <p className="font-bold text-lg justify-self-end">{teamAScore}</p>
                 </div>
                 
-                <div className="bg-muted/30 rounded-lg p-4 flex items-center justify-between">
-                     <div className="flex items-center gap-3 w-1/4 justify-start">
-                        <TeamALogo />
-                        <span className="font-bold text-lg hidden sm:inline">{teamAAcronym}</span>
-                    </div>
-                    
-                    <div className="flex items-center justify-center gap-2 sm:gap-4 flex-1 text-center">
-                        <span className="font-bold text-4xl font-mono">{teamAScoreDisplay}</span>
-                        <span className="text-2xl font-mono text-muted-foreground">-</span>
-                        <span className="font-bold text-4xl font-mono">{teamBScoreDisplay}</span>
-                    </div>
+                <div className="pl-12 text-xs font-bold text-muted-foreground">VS</div>
 
-                    <div className="flex items-center gap-3 justify-end w-1/4">
-                        <span className="font-bold text-lg hidden sm:inline">{teamBAcronym}</span>
-                        <TeamBLogo />
-                    </div>
+                {/* Team B */}
+                 <div className="grid grid-cols-[auto,1fr,auto] items-center gap-4">
+                    <Avatar className="h-8 w-8">
+                        <AvatarFallback>{getTeamAcronym(TeamB.team_name)}</AvatarFallback>
+                    </Avatar>
+                    <p className="font-semibold text-sm truncate">{TeamB.team_name}</p>
+                    <p className="font-bold text-lg justify-self-end">{teamBScore}</p>
                 </div>
+            </div>
 
-                <div className="flex justify-between items-center text-xs font-semibold mt-2 px-2 text-muted-foreground">
-                    <span>{match.Sport.name}</span>
-                    <div className="flex items-center gap-1.5 text-destructive animate-pulse">
-                         <Radio className="h-3 w-3" />
-                         <span>LIVE</span>
+            <div className="px-4 py-2 text-xs font-semibold flex justify-between items-center bg-muted/50 border-t">
+                 {status === 'live' ? (
+                    <div className="flex items-center gap-2 text-destructive animate-pulse">
+                        <div className="h-2 w-2 rounded-full bg-destructive" />
+                        <span>LIVE</span>
                     </div>
+                ) : (
+                    <div className="text-muted-foreground">
+                        <span>FINAL RESULT</span>
+                    </div>
+                )}
+                <div className="flex items-center gap-4 text-muted-foreground opacity-50">
+                   <span className="flex items-center gap-1"><BarChart className="h-3 w-3" /> STATS</span>
+                   <span className="flex items-center gap-1"><Play className="h-3 w-3" /> RECAP</span>
                 </div>
-            </Card>
-        </div>
+            </div>
+        </Card>
     );
 }
+
 
 
 // --- Main Page Component ---
@@ -320,7 +315,7 @@ export default function LivePage() {
                      <CardContent>
                         {isLoading ? (
                             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-36 w-full rounded-2xl" />)}
+                                {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-44 w-full" />)}
                             </div>
                         ) : liveMatches.length > 0 ? (
                             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
