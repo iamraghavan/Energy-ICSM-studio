@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { BulkAddPlayersDialog } from '@/components/console/sports-head/BulkAddPlayersDialog';
+import { UploadPlayersDialog } from '@/components/console/sports-head/UploadPlayersDialog';
 
 
 export default function SportsHeadManageTeamPage() {
@@ -37,6 +38,7 @@ export default function SportsHeadManageTeamPage() {
     const [isEditingName, setIsEditingName] = useState(false);
     const [newTeamName, setNewTeamName] = useState('');
     const [isAddPlayerOpen, setIsAddPlayerOpen] = useState(false);
+    const [isUploadOpen, setIsUploadOpen] = useState(false);
     const [selectedPlayer, setSelectedPlayer] = useState<StudentTeamMember | null>(null);
     const { toast } = useToast();
 
@@ -95,7 +97,6 @@ export default function SportsHeadManageTeamPage() {
 
     const handleEditPlayer = (player: StudentTeamMember) => {
         setSelectedPlayer(player);
-        setIsEditPlayerOpen(true);
     };
 
 
@@ -161,7 +162,7 @@ export default function SportsHeadManageTeamPage() {
                             <Button onClick={() => setIsAddPlayerOpen(true)} disabled={memberCount >= maxPlayers}>
                                 <UserPlus className="mr-2 h-4 w-4"/> Add Bulk Players
                             </Button>
-                             <Button variant="outline" disabled>
+                             <Button variant="outline" onClick={() => setIsUploadOpen(true)}>
                                 <Upload className="mr-2 h-4 w-4"/> Upload via Excel
                             </Button>
                         </div>
@@ -248,9 +249,18 @@ export default function SportsHeadManageTeamPage() {
                 />
             )}
 
+            {team && (
+                <UploadPlayersDialog
+                    teamId={team.id}
+                    isOpen={isUploadOpen}
+                    onClose={() => setIsUploadOpen(false)}
+                    onSuccess={fetchTeamDetails}
+                />
+            )}
+
             {selectedPlayer && team.Sport && (
                  <EditPlayerDialog
-                    isOpen={isEditPlayerOpen}
+                    isOpen={!!selectedPlayer}
                     onClose={() => setSelectedPlayer(null)}
                     teamId={teamId}
                     player={selectedPlayer}
