@@ -70,8 +70,8 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                 }
 
                 setLineup({
-                    teamA: lineupData.filter(p => p.team_id === match.team_a_id).map(p => p.Student),
-                    teamB: lineupData.filter(p => p.team_id === match.team_b_id).map(p => p.Student)
+                    teamA: lineupData.filter(p => p.team_id === match.team_a_id && p.Student).map(p => p.Student),
+                    teamB: lineupData.filter(p => p.team_id === match.team_b_id && p.Student).map(p => p.Student)
                 });
             } catch (error) {
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch lineup. Please ensure players are added to the lineup for this match.' });
@@ -117,13 +117,16 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to end the match.' });
         }
     };
-    
-    const bowlingTeamId = battingTeamId === match.team_a_id ? match.team_b_id : match.team_a_id;
 
     const battingTeamPlayers = useMemo(() => {
         if (!lineup || !battingTeamId) return [];
         return battingTeamId === match.team_a_id ? lineup.teamA : lineup.teamB;
     }, [lineup, battingTeamId, match.team_a_id]);
+
+    const bowlingTeamId = useMemo(() => {
+        if (!battingTeamId) return null;
+        return battingTeamId === match.team_a_id ? match.team_b_id : match.team_a_id;
+    }, [battingTeamId, match.team_a_id, match.team_b_id]);
 
     const bowlingTeamPlayers = useMemo(() => {
         if (!lineup || !bowlingTeamId) return [];
