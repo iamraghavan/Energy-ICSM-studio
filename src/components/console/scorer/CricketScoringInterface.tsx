@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -20,7 +21,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 
 const extraTypes = ['wide', 'noball', 'bye', 'legbye'];
-const wicketTypes = ['bowled', 'caught', 'lbw', 'run_out', 'stumped', 'hit_wicket'];
+const wicketTypes = ['bowled', 'caught', 'lbw', 'runout', 'stumped', 'hit_wicket'];
 
 function CricketTimelineEvent({ event, match }: { event: any, match: ApiMatch | null }) {
     if (!event) return null;
@@ -410,7 +411,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                         <Label>Player Out</Label>
                         <Select value={playerOutId ?? undefined} onValueChange={setPlayerOutId}><SelectTrigger><SelectValue placeholder="Select player who got out" /></SelectTrigger><SelectContent>{battingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)}</SelectContent></Select>
                     </div>
-                    {(wicketType === 'caught' || wicketType === 'run_out' || wicketType === 'stumped') && (
+                    {(wicketType === 'caught' || wicketType === 'runout' || wicketType === 'stumped') && (
                         <div className="space-y-2">
                             <Label>Fielder</Label>
                             <Select value={fielderId ?? undefined} onValueChange={setFielderId}><SelectTrigger><SelectValue placeholder="Select fielder" /></SelectTrigger><SelectContent>{bowlingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)}</SelectContent></Select>
