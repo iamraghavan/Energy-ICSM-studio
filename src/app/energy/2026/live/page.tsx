@@ -5,13 +5,14 @@ import { getLiveMatches, type ApiMatch } from "@/lib/api";
 import { socket } from "@/lib/socket";
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Clapperboard, MapPin, Trophy, Goal, Square, Replace, Info, Radio } from 'lucide-react';
+import { Clapperboard, MapPin, Trophy, Goal, Square, Replace, Info, Radio, Shield } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { format } from 'date-fns';
 
 // --- Timeline Event Component (from existing code, seems fine) ---
 function TimelineEvent({ event, match }: { event: any, match: ApiMatch }) {
@@ -204,30 +205,63 @@ function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => v
     const teamAScoreDisplay = `${teamAScore}${isCricket && teamAScoreDetails?.wickets !== undefined ? `/${teamAScoreDetails.wickets}` : ''}`;
     const teamBScoreDisplay = `${teamBScore}${isCricket && teamBScoreDetails?.wickets !== undefined ? `/${teamBScoreDetails.wickets}` : ''}`;
 
+    const getAcronym = (name: string) => {
+        if (!name) return '';
+        const words = name.split(' ');
+        if (words.length > 1) {
+            return words.map(n => n[0]).join('').substring(0, 3).toUpperCase();
+        }
+        return name.substring(0, 3).toUpperCase();
+    }
+
+    const teamAAcronym = getAcronym(match.TeamA.team_name);
+    const teamBAcronym = getAcronym(match.TeamB.team_name);
+    
+    const TeamALogo = () => (
+        <div className="h-10 w-10 bg-yellow-400 flex items-center justify-center rounded-lg shadow-md">
+            <Shield className="h-6 w-6 text-black" />
+        </div>
+    );
+     const TeamBLogo = () => (
+        <div className="h-10 w-10 bg-teal-400 flex items-center justify-center rounded-lg shadow-md">
+             <Shield className="h-6 w-6 text-black" />
+        </div>
+    );
+    
     return (
-        <Card onClick={onSelect} className="cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-transform">
-            <CardHeader className="pb-2">
-                <div className="flex justify-between items-center">
-                    <CardTitle className="text-sm font-normal text-muted-foreground">{match.Sport.name}</CardTitle>
-                    <Badge variant="destructive" className="flex items-center gap-1">
-                        <Radio className="h-3 w-3 animate-pulse" />
-                        LIVE
-                    </Badge>
+        <div onClick={onSelect} className="cursor-pointer group">
+            <Card className="rounded-2xl shadow-md p-3 transition-all duration-300 group-hover:shadow-xl group-hover:border-primary/30">
+                <div className="text-center text-xs font-semibold text-muted-foreground mb-2">
+                    {format(new Date(match.start_time), 'EEEE, MMMM d, yyyy')}
                 </div>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                        <span className="font-semibold">{match.TeamA.team_name}</span>
-                        <span className="font-bold font-mono">{teamAScoreDisplay}</span>
+                
+                <div className="bg-muted/30 rounded-lg p-4 flex items-center justify-between">
+                     <div className="flex items-center gap-3 w-1/4 justify-start">
+                        <TeamALogo />
+                        <span className="font-bold text-lg hidden sm:inline">{teamAAcronym}</span>
                     </div>
-                     <div className="flex justify-between items-center">
-                        <span className="font-semibold">{match.TeamB.team_name}</span>
-                        <span className="font-bold font-mono">{teamBScoreDisplay}</span>
+                    
+                    <div className="flex items-center justify-center gap-2 sm:gap-4 flex-1 text-center">
+                        <span className="font-bold text-4xl font-mono">{teamAScoreDisplay}</span>
+                        <span className="text-2xl font-mono text-muted-foreground">-</span>
+                        <span className="font-bold text-4xl font-mono">{teamBScoreDisplay}</span>
+                    </div>
+
+                    <div className="flex items-center gap-3 justify-end w-1/4">
+                        <span className="font-bold text-lg hidden sm:inline">{teamBAcronym}</span>
+                        <TeamBLogo />
                     </div>
                 </div>
-            </CardContent>
-        </Card>
+
+                <div className="flex justify-between items-center text-xs font-semibold mt-2 px-2 text-muted-foreground">
+                    <span>{match.Sport.name}</span>
+                    <div className="flex items-center gap-1.5 text-destructive animate-pulse">
+                         <Radio className="h-3 w-3" />
+                         <span>LIVE</span>
+                    </div>
+                </div>
+            </Card>
+        </div>
     );
 }
 
@@ -286,7 +320,7 @@ export default function LivePage() {
                      <CardContent>
                         {isLoading ? (
                             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}
+                                {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-36 w-full rounded-2xl" />)}
                             </div>
                         ) : liveMatches.length > 0 ? (
                             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
