@@ -1,11 +1,10 @@
 
-
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { endMatch, postCricketScore, getScorerTeamDetails, type ApiMatch, type FullSportsHeadTeam, type StudentTeamMember } from "@/lib/api";
-import { ArrowLeft, PlusCircle, Shield, Disc, Trophy } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Shield, Disc, Trophy, Replace } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -85,6 +84,22 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
     const [winnerId, setWinnerId] = useState<string | null>(null);
 
     const { toast } = useToast();
+
+    const handleRotateStrike = () => {
+        if (!strikerId || !nonStrikerId) {
+            toast({
+                variant: "destructive",
+                title: "Cannot Rotate Strike",
+                description: "Please select both a striker and a non-striker.",
+            });
+            return;
+        }
+        const currentStriker = strikerId;
+        const currentNonStriker = nonStrikerId;
+        setStrikerId(currentNonStriker);
+        setNonStrikerId(currentStriker);
+        toast({ title: "Strike Rotated", description: "Striker and non-striker have been swapped." });
+    };
 
      useEffect(() => {
         setEvents(Array.isArray(match.match_events) ? [...match.match_events].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) : []);
@@ -240,7 +255,13 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                     {/* Player Selection */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Current Players</CardTitle>
+                            <div className="flex items-center justify-between">
+                                <CardTitle>Current Players</CardTitle>
+                                <Button type="button" variant="outline" size="sm" onClick={handleRotateStrike} disabled={!strikerId || !nonStrikerId}>
+                                    <Replace className="mr-2 h-4 w-4" />
+                                    Rotate Strike
+                                </Button>
+                            </div>
                         </CardHeader>
                          <CardContent>
                             {rostersLoading ? (
@@ -252,7 +273,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                                     <div className="space-y-1.5">
                                         <Label>Batting Team</Label>
                                         <Select onValueChange={setBattingTeamId} value={battingTeamId ?? undefined}>
-                                            <SelectTrigger><SelectValue placeholder="Select Team..." /></SelectTrigger>
+                                            <SelectTrigger className="text-foreground"><SelectValue placeholder="Select Team..." /></SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value={match.team_a_id}>{match.TeamA.team_name}</SelectItem>
                                                 <SelectItem value={match.team_b_id}>{match.TeamB.team_name}</SelectItem>
@@ -262,7 +283,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                                     <div className="space-y-1.5">
                                         <Label>Bowler</Label>
                                         <Select onValueChange={setBowlerId} value={bowlerId ?? undefined} disabled={!bowlingTeamId}>
-                                            <SelectTrigger><SelectValue placeholder="Select Player..." /></SelectTrigger>
+                                            <SelectTrigger className="text-foreground"><SelectValue placeholder="Select Player..." /></SelectTrigger>
                                             <SelectContent>
                                                 {bowlingTeamPlayers.length > 0 ? (
                                                     bowlingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)
@@ -273,7 +294,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                                     <div className="space-y-1.5">
                                         <Label>Striker</Label>
                                         <Select onValueChange={setStrikerId} value={strikerId ?? undefined} disabled={!battingTeamId}>
-                                            <SelectTrigger><SelectValue placeholder="Select Player..." /></SelectTrigger>
+                                            <SelectTrigger className="text-foreground"><SelectValue placeholder="Select Player..." /></SelectTrigger>
                                             <SelectContent>
                                                 {battingTeamPlayers.length > 0 ? (
                                                     battingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)
@@ -284,7 +305,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                                     <div className="space-y-1.5">
                                         <Label>Non-Striker</Label>
                                         <Select onValueChange={setNonStrikerId} value={nonStrikerId ?? undefined} disabled={!battingTeamId}>
-                                            <SelectTrigger><SelectValue placeholder="Select Player..." /></SelectTrigger>
+                                            <SelectTrigger className="text-foreground"><SelectValue placeholder="Select Player..." /></SelectTrigger>
                                             <SelectContent>
                                                 {battingTeamPlayers.length > 0 ? (
                                                     battingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)
