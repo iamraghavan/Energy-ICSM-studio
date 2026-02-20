@@ -1,7 +1,8 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getMatchesBySport, getLiveMatches, getLineup, manageLineup, type ApiMatch } from '@/lib/api';
+import { getMatchesBySport, getLiveMatches, getLineup, manageLineup, getSportsHeadTeamDetails, type ApiMatch, type FullSportsHeadTeam } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from '@/components/ui/skeleton';
@@ -33,17 +34,43 @@ function LineupEditor({ match }: { match: ApiMatch }) {
         const fetchLineupData = async () => {
             setIsLoading(true);
             try {
-                const lineupData = await getLineup(match.id);
-                setTeamA(lineupData.teamA);
-                setTeamB(lineupData.teamB);
+                // 1. Get players already in the match lineup
+                const matchLineupPlayers: any[] = await getLineup(match.id);
+
+                // 2. Get full team details for squad lists
+                const [teamADetails, teamBDetails] = await Promise.all([
+                    getSportsHeadTeamDetails(match.team_a_id),
+                    getSportsHeadTeamDetails(match.team_b_id)
+                ]);
+
+                const processTeamData = (teamDetails: FullSportsHeadTeam, currentMatchLineup: any[]): TeamLineup => {
+                    const squadMembers: Player[] = teamDetails.members.map(member => ({
+                        id: member.student_id,
+                        name: member.Student?.name || member.name
+                    }));
+
+                    return {
+                        team: { id: teamDetails.id, team_name: teamDetails.team_name },
+                        squad: squadMembers,
+                        lineup: currentMatchLineup.filter(p => !p.is_substitute).map(p => p.Student.id),
+                        substitutes: currentMatchLineup.filter(p => p.is_substitute).map(p => p.Student.id),
+                    };
+                };
+
+                const teamAMatchPlayers = matchLineupPlayers.filter(p => p.team_id === match.team_a_id);
+                const teamBMatchPlayers = matchLineupPlayers.filter(p => p.team_id === match.team_b_id);
+                
+                setTeamA(processTeamData(teamADetails, teamAMatchPlayers));
+                setTeamB(processTeamData(teamBDetails, teamBMatchPlayers));
+
             } catch (error) {
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch lineup data.' });
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch lineup and team data. Please ensure teams have members.' });
             } finally {
                 setIsLoading(false);
             }
         };
         fetchLineupData();
-    }, [match.id, toast]);
+    }, [match.id, match.team_a_id, match.team_b_id, toast]);
 
     const handlePlayerChange = async (student_id: string, team_id: string, is_substitute: boolean, is_checked: boolean) => {
         const action = is_checked ? 'add' : 'remove';

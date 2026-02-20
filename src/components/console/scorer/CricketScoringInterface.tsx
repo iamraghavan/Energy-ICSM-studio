@@ -57,13 +57,25 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
 
         const fetchLineupData = async () => {
             try {
-                const lineupData = await getLineup(match.id);
+                const lineupData: any[] = await getLineup(match.id);
+
+                if (!Array.isArray(lineupData)) {
+                    toast({ variant: 'destructive', title: 'Error', description: 'Received invalid lineup data format.' });
+                    setLineup({ teamA: [], teamB: [] });
+                    return;
+                }
+
+                if (lineupData.length === 0) {
+                     toast({ variant: 'default', title: 'Lineup is Empty', description: 'Please add players to the lineup using the "Lineups" tab.' });
+                }
+
                 setLineup({
-                    teamA: lineupData.teamA.squad,
-                    teamB: lineupData.teamB.squad
+                    teamA: lineupData.filter(p => p.team_id === match.team_a_id).map(p => p.Student),
+                    teamB: lineupData.filter(p => p.team_id === match.team_b_id).map(p => p.Student)
                 });
             } catch (error) {
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch lineup.' });
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch lineup. Please ensure players are added to the lineup for this match.' });
+                setLineup({ teamA: [], teamB: [] });
             }
         };
 
@@ -73,7 +85,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
             socket.emit("leave_match", match.id);
             socket.off('cricket_score_update', handleScoreUpdate);
         };
-    }, [match.id, toast]);
+    }, [match.id, match.team_a_id, match.team_b_id, toast]);
 
     const handleBallPlayed = async (ballData: any) => {
         const requiredFields = { batting_team_id: battingTeamId, striker_id: strikerId, non_striker_id: nonStrikerId, bowler_id: bowlerId };
@@ -111,12 +123,12 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
     const battingTeamPlayers = useMemo(() => {
         if (!lineup || !battingTeamId) return [];
         return battingTeamId === match.team_a_id ? lineup.teamA : lineup.teamB;
-    }, [lineup, battingTeamId, match]);
+    }, [lineup, battingTeamId, match.team_a_id]);
 
     const bowlingTeamPlayers = useMemo(() => {
         if (!lineup || !bowlingTeamId) return [];
         return bowlingTeamId === match.team_a_id ? lineup.teamA : lineup.teamB;
-    }, [lineup, bowlingTeamId, match]);
+    }, [lineup, bowlingTeamId, match.team_a_id]);
     
     const teamAScore = score[match.team_a_id] || { runs: 0, wickets: 0, overs: 0.0 };
     const teamBScore = score[match.team_b_id] || { runs: 0, wickets: 0, overs: 0.0 };
