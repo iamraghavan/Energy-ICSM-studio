@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -6,15 +5,15 @@ import { getLiveMatches, type ApiMatch } from "@/lib/api";
 import { socket } from "@/lib/socket";
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Clapperboard, MapPin, Trophy, Goal, Square, Replace, Info } from 'lucide-react';
+import { Clapperboard, MapPin, Trophy, Goal, Square, Replace, Info, Radio } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { cn } from '@/lib/utils';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
-
+// --- Timeline Event Component (from existing code, seems fine) ---
 function TimelineEvent({ event, match }: { event: any, match: ApiMatch }) {
     const getEventDetails = (e: any) => {
         switch(e.event_type) {
@@ -62,30 +61,26 @@ function TimelineEvent({ event, match }: { event: any, match: ApiMatch }) {
     );
 };
 
-function DetailedLiveView({ matchId, initialMatches }: { matchId: string | null, initialMatches: ApiMatch[] }) {
-    const [match, setMatch] = useState<ApiMatch | null>(null);
+// --- Detailed View inside a Dialog ---
+function MatchDetailsDialog({ match: initialMatch, isOpen, onClose }: { match: ApiMatch | null, isOpen: boolean, onClose: () => void }) {
+    const [match, setMatch] = useState<ApiMatch | null>(initialMatch);
     const [events, setEvents] = useState<any[]>([]);
 
     useEffect(() => {
-        const selectedMatch = initialMatches.find(m => m.id === matchId) || null;
-        setMatch(selectedMatch);
-
-        if (!selectedMatch) {
-            setEvents([]);
-            return;
-        }
-
-        const initialEvents = selectedMatch.match_events || [];
+        if (!initialMatch) return;
+        
+        setMatch(initialMatch);
+        const initialEvents = initialMatch.match_events || [];
         setEvents(Array.isArray(initialEvents) ? [...initialEvents].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) : []);
 
         if (socket.connected) {
-            socket.emit("join_match", selectedMatch.id);
+            socket.emit("join_match", initialMatch.id);
         } else {
-            socket.on("connect", () => socket.emit("join_match", selectedMatch.id));
+            socket.on("connect", () => socket.emit("join_match", initialMatch.id));
         }
 
         const handleScoreUpdate = (data: any) => {
-            if (data.matchId === selectedMatch.id) {
+            if (data.matchId === initialMatch.id) {
                 setMatch(prev => prev ? { ...prev, score_details: data.score } : null);
                 if (data.event) {
                     setEvents(prev => [data.event, ...prev].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
@@ -94,7 +89,7 @@ function DetailedLiveView({ matchId, initialMatches }: { matchId: string | null,
         };
 
         const handleCricketUpdate = (data: any) => {
-            if (data.matchId === selectedMatch.id) {
+            if (data.matchId === initialMatch.id) {
                 setMatch(prev => prev ? { ...prev, score_details: data.score } : null);
                 if (data.last_ball) {
                     setEvents(prev => [data.last_ball, ...prev].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
@@ -106,22 +101,16 @@ function DetailedLiveView({ matchId, initialMatches }: { matchId: string | null,
         socket.on('cricket_score_update', handleCricketUpdate);
 
         return () => {
-            if(selectedMatch.id) {
-                socket.emit("leave_match", selectedMatch.id);
+            if(initialMatch.id) {
+                socket.emit("leave_match", initialMatch.id);
             }
             socket.off('score_updated', handleScoreUpdate);
             socket.off('cricket_score_update', handleCricketUpdate);
         };
-    }, [matchId, initialMatches]);
+    }, [initialMatch]);
 
-    if (!match) {
-        return (
-            <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-8 border rounded-lg bg-muted/50 min-h-[60vh]">
-                <Clapperboard className="h-12 w-12 mb-4" />
-                <p className="font-medium">Select a match to view details</p>
-                <p className="text-sm">Live scores and events will appear here.</p>
-            </div>
-        );
+    if (!isOpen || !match) {
+        return null;
     }
 
     const { TeamA, TeamB, Sport, status } = match;
@@ -147,43 +136,47 @@ function DetailedLiveView({ matchId, initialMatches }: { matchId: string | null,
 
 
     return (
-        <Card className="h-full flex flex-col">
-            <CardContent className="pt-6 flex-1 flex flex-col min-h-0">
-                <p className="text-sm text-muted-foreground uppercase font-bold tracking-wider">{status}</p>
-                <p className="text-sm text-muted-foreground">{Sport.name} - {match.venue}</p>
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent className="sm:max-w-2xl">
+                 <DialogHeader>
+                    <DialogTitle className="font-headline text-2xl">{TeamA.team_name} vs {TeamB.team_name}</DialogTitle>
+                    <DialogDescription>{Sport.name} - {match.venue}</DialogDescription>
+                 </DialogHeader>
 
-                <div className="my-6 space-y-4">
-                    <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-4">
-                            <Avatar className="h-10 w-10 border"><AvatarFallback>{TeamA.team_name.slice(0,2)}</AvatarFallback></Avatar>
-                            <span className="text-2xl font-bold">{TeamA.team_name}</span>
-                        </div>
-                        <div className="text-4xl font-bold font-mono">{teamAScoreDisplay}</div>
+                <div className="grid grid-cols-2 gap-4 items-center text-center my-4">
+                     <div>
+                        <Avatar className="h-16 w-16 mx-auto border-2 border-primary"><AvatarFallback>{TeamA.team_name.slice(0,2)}</AvatarFallback></Avatar>
+                        <p className="font-semibold mt-2">{TeamA.team_name}</p>
                     </div>
-                     <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-4">
-                            <Avatar className="h-10 w-10 border"><AvatarFallback>{TeamB.team_name.slice(0,2)}</AvatarFallback></Avatar>
-                            <span className="text-2xl font-bold">{TeamB.team_name}</span>
-                        </div>
-                        <div className="text-4xl font-bold font-mono">{teamBScoreDisplay}</div>
+                     <div>
+                        <Avatar className="h-16 w-16 mx-auto border-2 border-primary"><AvatarFallback>{TeamB.team_name.slice(0,2)}</AvatarFallback></Avatar>
+                        <p className="font-semibold mt-2">{TeamB.team_name}</p>
                     </div>
-                    {isCricket && (
-                        <div className="flex justify-between items-center text-sm text-muted-foreground">
-                            <span>({teamAScoreDetails?.overs?.toFixed(1) || '0.0'} ov)</span>
-                             <span>({teamBScoreDetails?.overs?.toFixed(1) || '0.0'} ov)</span>
-                        </div>
-                    )}
                 </div>
 
-                 <p className="text-center font-semibold text-primary mb-6">{getResultText()}</p>
+                <div className="flex items-center justify-around bg-muted p-4 rounded-lg">
+                    <div className="text-4xl font-bold font-mono">{teamAScoreDisplay}</div>
+                    <div className="text-center">
+                        <Badge variant="destructive" className="animate-pulse">LIVE</Badge>
+                         <p className="text-xs text-muted-foreground mt-1">{getResultText()}</p>
+                    </div>
+                    <div className="text-4xl font-bold font-mono">{teamBScoreDisplay}</div>
+                </div>
+
+                {isCricket && (
+                    <div className="flex justify-between items-center text-sm text-muted-foreground px-4">
+                        <span>({teamAScoreDetails?.overs?.toFixed(1) || '0.0'} ov)</span>
+                        <span>({teamBScoreDetails?.overs?.toFixed(1) || '0.0'} ov)</span>
+                    </div>
+                )}
 
                 <Tabs defaultValue="timeline" className="flex-1 flex flex-col min-h-0">
                     <TabsList className="w-full">
                         <TabsTrigger value="timeline" className="flex-1">Live Timeline</TabsTrigger>
                         <TabsTrigger value="scorecard" className="flex-1" disabled>Scorecard</TabsTrigger>
                     </TabsList>
-                    <TabsContent value="timeline" className="flex-1 mt-4 -mx-6 overflow-hidden">
-                        <ScrollArea className="h-full px-6">
+                    <TabsContent value="timeline" className="mt-4">
+                        <ScrollArea className="h-64 pr-4">
                             <div className="space-y-4">
                                 {events.length > 0 ? (
                                     events.map((event, i) => <TimelineEvent key={i} event={event} match={match} />)
@@ -194,12 +187,13 @@ function DetailedLiveView({ matchId, initialMatches }: { matchId: string | null,
                         </ScrollArea>
                     </TabsContent>
                 </Tabs>
-            </CardContent>
-        </Card>
+            </DialogContent>
+        </Dialog>
     );
 }
 
-function SmallMatchCard({ match, onSelect, isSelected }: { match: ApiMatch, isSelected: boolean, onSelect: () => void }) {
+// --- New Live Match Card Component ---
+function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => void }) {
     const isCricket = match.Sport.name === 'Cricket';
     const teamAScoreDetails = match.score_details?.[match.team_a_id];
     const teamBScoreDetails = match.score_details?.[match.team_b_id];
@@ -211,31 +205,37 @@ function SmallMatchCard({ match, onSelect, isSelected }: { match: ApiMatch, isSe
     const teamBScoreDisplay = `${teamBScore}${isCricket && teamBScoreDetails?.wickets !== undefined ? `/${teamBScoreDetails.wickets}` : ''}`;
 
     return (
-        <button
-            onClick={onSelect}
-            className={cn(
-                "w-full h-full text-left p-3 rounded-lg transition-colors border",
-                isSelected ? "ring-2 ring-primary bg-primary/5" : "bg-card hover:bg-muted/50"
-            )}
-        >
-            <p className="text-xs text-muted-foreground">{match.Sport.name}</p>
-            <div className="flex justify-between items-center mt-2 gap-2">
-                <div className="space-y-1 flex-1">
-                    <p className="font-semibold truncate flex items-center gap-2"><Avatar className="h-5 w-5 text-xs"><AvatarFallback>{match.TeamA.team_name.slice(0,2)}</AvatarFallback></Avatar>{match.TeamA.team_name}</p>
-                    <p className="font-semibold truncate flex items-center gap-2"><Avatar className="h-5 w-5 text-xs"><AvatarFallback>{match.TeamB.team_name.slice(0,2)}</AvatarFallback></Avatar>{match.TeamB.team_name}</p>
+        <Card onClick={onSelect} className="cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-transform">
+            <CardHeader className="pb-2">
+                <div className="flex justify-between items-center">
+                    <CardTitle className="text-sm font-normal text-muted-foreground">{match.Sport.name}</CardTitle>
+                    <Badge variant="destructive" className="flex items-center gap-1">
+                        <Radio className="h-3 w-3 animate-pulse" />
+                        LIVE
+                    </Badge>
                 </div>
-                 <div className="space-y-1 text-right font-mono font-semibold">
-                    <p>{teamAScoreDisplay}</p>
-                    <p>{teamBScoreDisplay}</p>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                        <span className="font-semibold">{match.TeamA.team_name}</span>
+                        <span className="font-bold font-mono">{teamAScoreDisplay}</span>
+                    </div>
+                     <div className="flex justify-between items-center">
+                        <span className="font-semibold">{match.TeamB.team_name}</span>
+                        <span className="font-bold font-mono">{teamBScoreDisplay}</span>
+                    </div>
                 </div>
-            </div>
-        </button>
+            </CardContent>
+        </Card>
     );
 }
 
+
+// --- Main Page Component ---
 export default function LivePage() {
     const [liveMatches, setLiveMatches] = useState<ApiMatch[]>([]);
-    const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
+    const [selectedMatch, setSelectedMatch] = useState<ApiMatch | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
 
@@ -244,9 +244,6 @@ export default function LivePage() {
         try {
             const matches = await getLiveMatches();
             setLiveMatches(matches);
-            if (!selectedMatchId || !matches.some(m => m.id === selectedMatchId)) {
-                setSelectedMatchId(matches[0]?.id || null);
-            }
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch live matches.' });
         } finally {
@@ -279,53 +276,44 @@ export default function LivePage() {
     }, []);
 
     return (
-        <div className="container py-8 md:py-12 space-y-8">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline text-3xl">Live Matches</CardTitle>
-                    <CardDescription>Live scores and updates from ongoing matches.</CardDescription>
-                </CardHeader>
-                 <CardContent>
-                    {isLoading ? (
-                        <Skeleton className="h-32 w-full" />
-                    ) : liveMatches.length > 0 ? (
-                         <Carousel
-                            opts={{ align: "start" }}
-                            className="w-full"
-                        >
-                            <CarouselContent className="-ml-2">
+        <>
+            <div className="container py-8 md:py-12 space-y-8">
+                <Card className="bg-primary/5">
+                    <CardHeader>
+                        <CardTitle className="font-headline text-3xl">Live Matches</CardTitle>
+                        <CardDescription>Live scores and updates from ongoing matches. Click on a card to see details.</CardDescription>
+                    </CardHeader>
+                     <CardContent>
+                        {isLoading ? (
+                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}
+                            </div>
+                        ) : liveMatches.length > 0 ? (
+                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {liveMatches.map((match) => (
-                                    <CarouselItem key={match.id} className="md:basis-1/2 lg:basis-1/3 pl-2">
-                                        <div className="p-1">
-                                            <SmallMatchCard 
-                                                match={match} 
-                                                onSelect={() => setSelectedMatchId(match.id)} 
-                                                isSelected={selectedMatchId === match.id} 
-                                            />
-                                        </div>
-                                    </CarouselItem>
+                                    <LiveMatchCard 
+                                        key={match.id} 
+                                        match={match} 
+                                        onSelect={() => setSelectedMatch(match)} 
+                                    />
                                 ))}
-                            </CarouselContent>
-                            <CarouselPrevious className="ml-12" />
-                            <CarouselNext className="mr-12" />
-                        </Carousel>
-                    ) : (
-                         <div className="text-center py-16 text-muted-foreground border rounded-lg bg-muted/50">
-                            <Clapperboard className="h-12 w-12 mx-auto mb-4" />
-                            <p className="font-medium">No matches are currently live.</p>
-                            <p className="text-sm">Check back soon for real-time updates!</p>
-                        </div>
-                    )}
-                 </CardContent>
-            </Card>
-            
-            <div className="min-h-[70vh]">
-                 {isLoading ? (
-                    <Skeleton className="h-[70vh] w-full" />
-                 ) : liveMatches.length > 0 ? (
-                    <DetailedLiveView matchId={selectedMatchId} initialMatches={liveMatches} />
-                 ) : null}
+                            </div>
+                        ) : (
+                             <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg">
+                                <Clapperboard className="h-12 w-12 mx-auto mb-4" />
+                                <p className="font-medium">No matches are currently live.</p>
+                                <p className="text-sm">Check back soon for real-time updates!</p>
+                            </div>
+                        )}
+                     </CardContent>
+                </Card>
             </div>
-        </div>
+            
+             <MatchDetailsDialog 
+                isOpen={!!selectedMatch}
+                match={selectedMatch}
+                onClose={() => setSelectedMatch(null)}
+             />
+        </>
     );
 }
