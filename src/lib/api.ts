@@ -408,16 +408,21 @@ export const getMatchesBySport = async (sportId: string, status?: 'scheduled' | 
 
 export const getLiveMatches = async (): Promise<ApiMatch[]> => {
     const response = await api.get('/matches/live');
-    return response.data.data || response.data;
+    return response.data.data || response.data || [];
 }
 
+export const getMatchById = async (matchId: string): Promise<ApiMatch> => {
+    const response = await api.get(`/scorer/matches/${matchId}`);
+    return response.data;
+};
+
 export const createMatch = async (matchData: any) => {
-    const response = await api.post('/sports-head/matches/schedule', matchData);
+    const response = await api.post('/scorer/matches', matchData);
     return response.data;
 }
 
 export const startMatch = async (matchId: string) => {
-    const response = await api.post(`/scorer/matches/${matchId}/start`, { status: 'live' });
+    const response = await api.post(`/scorer/matches/${matchId}/start`);
     return response.data;
 };
 
@@ -445,12 +450,12 @@ export const endMatch = async (matchId: string, winnerId: string | null) => {
 };
 
 export const getLineup = async (matchId: string) => {
-    const response = await api.get(`/matches/${matchId}/lineup`);
+    const response = await api.get(`/scorer/matches/${matchId}/lineup`);
     return response.data;
 }
 
 export const manageLineup = async (matchId: string, lineupData: any) => {
-    const response = await api.post(`/matches/${matchId}/lineup`, lineupData);
+    const response = await api.post(`/scorer/matches/${matchId}/lineup`, lineupData);
     return response.data;
 }
 

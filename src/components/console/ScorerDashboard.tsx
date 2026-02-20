@@ -1,6 +1,5 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LiveScoring } from "./scorer/LiveScoring";
 import { MatchScheduler } from "./scorer/MatchScheduler";
@@ -34,56 +33,44 @@ export function ScorerDashboard() {
     }, [toast]);
 
     return (
-        <div className="container py-8 space-y-6">
-            <div className="mb-6">
-                <h1 className="text-3xl font-bold">Scorer Dashboard</h1>
-                <p className="text-muted-foreground">Live Score Entry and Match Management</p>
+        <div className="container py-8 space-y-8">
+            <div className="space-y-2">
+                <h1 className="text-3xl font-bold font-headline">Scorer Dashboard</h1>
+                <p className="text-muted-foreground">Manage live scoring, schedules, and team lineups.</p>
             </div>
-            <div className="mb-6 max-w-sm">
-                <Card>
-                    <CardContent className="pt-6">
-                        <p className="text-sm font-medium mb-2">Select a Sport</p>
+            
+             <Tabs defaultValue="live" className="w-full">
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                    <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full sm:w-auto">
+                        <TabsTrigger value="live"><Clapperboard className="mr-2" />Live</TabsTrigger>
+                        <TabsTrigger value="schedule"><Calendar className="mr-2" />Schedule</TabsTrigger>
+                        <TabsTrigger value="lineup"><Users className="mr-2" />Lineups</TabsTrigger>
+                        <TabsTrigger value="history"><History className="mr-2" />History</TabsTrigger>
+                    </TabsList>
+                     <div className="w-full sm:w-64">
                          {isLoadingSports ? (
                             <Skeleton className="h-10 w-full" />
                          ) : (
                             <Select onValueChange={setSelectedSportId} value={selectedSportId}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Choose a sport to manage..." />
+                                    <Trophy className="mr-2 h-4 w-4 text-muted-foreground" />
+                                    <SelectValue placeholder="Select a Sport to Manage..." />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {sports.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                          )}
-                    </CardContent>
-                </Card>
-            </div>
-             <Tabs defaultValue="live" className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="live">
-                        <Clapperboard className="mr-2 h-4 w-4" />
-                        Live Scoring
-                    </TabsTrigger>
-                    <TabsTrigger value="scheduler" disabled={!selectedSportId}>
-                        <Calendar className="mr-2 h-4 w-4" />
-                        Scheduler
-                    </TabsTrigger>
-                    <TabsTrigger value="lineups" disabled={!selectedSportId}>
-                        <Users className="mr-2 h-4 w-4" />
-                        Lineups
-                    </TabsTrigger>
-                    <TabsTrigger value="history" disabled={!selectedSportId}>
-                        <History className="mr-2 h-4 w-4" />
-                        History
-                    </TabsTrigger>
-                </TabsList>
+                    </div>
+                </div>
+                
                 <TabsContent value="live">
                     <LiveScoring />
                 </TabsContent>
-                <TabsContent value="scheduler">
+                <TabsContent value="schedule">
                     <MatchScheduler sportId={selectedSportId} />
                 </TabsContent>
-                <TabsContent value="lineups">
+                <TabsContent value="lineup">
                     <LineupManager sportId={selectedSportId} />
                 </TabsContent>
                 <TabsContent value="history">
