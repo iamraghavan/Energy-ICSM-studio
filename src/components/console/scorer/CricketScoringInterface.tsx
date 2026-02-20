@@ -179,10 +179,15 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
     }
     
     const handleWicketSubmit = () => {
-        if (!wicketType || !playerOutId) {
-            toast({ variant: 'destructive', title: 'Missing Wicket Details', description: 'Please select the wicket type and the player who is out.' });
+        if (!wicketType) {
+            toast({ variant: 'destructive', title: 'Missing Dismissal Type', description: 'Please select how the player got out.' });
             return;
         }
+        if (!playerOutId) {
+            toast({ variant: 'destructive', title: 'Missing Player', description: 'Please select the player who is out.' });
+            return;
+        }
+
         handleBallPlayed({
             is_wicket: true,
             wicket_type: wicketType,
@@ -286,7 +291,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                                             <SelectTrigger className="text-foreground"><SelectValue placeholder="Select Player..." /></SelectTrigger>
                                             <SelectContent>
                                                 {bowlingTeamPlayers.length > 0 ? (
-                                                    bowlingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)
+                                                    bowlingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.Student?.name || p.name}</SelectItem>)
                                                 ) : <div className="p-2 text-center text-sm text-muted-foreground">No players in roster.</div>}
                                             </SelectContent>
                                         </Select>
@@ -297,7 +302,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                                             <SelectTrigger className="text-foreground"><SelectValue placeholder="Select Player..." /></SelectTrigger>
                                             <SelectContent>
                                                 {battingTeamPlayers.length > 0 ? (
-                                                    battingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)
+                                                    battingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.Student?.name || p.name}</SelectItem>)
                                                 ) : <div className="p-2 text-center text-sm text-muted-foreground">No players in roster.</div>}
                                             </SelectContent>
                                         </Select>
@@ -308,7 +313,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                                             <SelectTrigger className="text-foreground"><SelectValue placeholder="Select Player..." /></SelectTrigger>
                                             <SelectContent>
                                                 {battingTeamPlayers.length > 0 ? (
-                                                    battingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)
+                                                    battingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.Student?.name || p.name}</SelectItem>)
                                                 ) : <div className="p-2 text-center text-sm text-muted-foreground">No players in roster.</div>}
                                             </SelectContent>
                                         </Select>
@@ -435,7 +440,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                         <Label>Player Out</Label>
                         <Select value={playerOutId ?? undefined} onValueChange={setPlayerOutId}>
                             <SelectTrigger className="text-foreground"><SelectValue placeholder="Select player who got out" /></SelectTrigger>
-                            <SelectContent>{battingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)}</SelectContent>
+                            <SelectContent>{battingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.Student?.name || p.name}</SelectItem>)}</SelectContent>
                         </Select>
                     </div>
                     {(wicketType === 'caught' || wicketType === 'runout' || wicketType === 'stumped') && (
@@ -443,7 +448,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                             <Label>Fielder</Label>
                             <Select value={fielderId ?? undefined} onValueChange={setFielderId}>
                                 <SelectTrigger className="text-foreground"><SelectValue placeholder="Select fielder" /></SelectTrigger>
-                                <SelectContent>{bowlingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)}</SelectContent>
+                                <SelectContent>{bowlingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.Student?.name || p.name}</SelectItem>)}</SelectContent>
                             </Select>
                         </div>
                     )}
