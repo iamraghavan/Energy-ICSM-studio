@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { endMatch, postCricketScore, getLineup, type ApiMatch } from "@/lib/api";
+import { endMatch, postCricketScore, getLineup, getScorerTeamDetails, type ApiMatch, type FullSportsHeadTeam, type StudentTeamMember } from "@/lib/api";
 import { ArrowLeft, Send, Timer as TimerIcon, Play, Pause, Goal, Replace, Square, Info, Shield, Users, ArrowRight, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
@@ -25,7 +25,8 @@ const wicketTypes = ['bowled', 'caught', 'lbw', 'run_out', 'stumped', 'hit_wicke
 export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, onBack: () => void }) {
     const [score, setScore] = useState(match.score_details || {});
     const [lastBall, setLastBall] = useState<any>(null);
-    const [lineup, setLineup] = useState<{ teamA: any[], teamB: any[] } | null>(null);
+    const [teamARoster, setTeamARoster] = useState<StudentTeamMember[]>([]);
+    const [teamBRoster, setTeamBRoster] = useState<StudentTeamMember[]>([]);
 
     const [battingTeamId, setBattingTeamId] = useState<string | null>(null);
     const [strikerId, setStrikerId] = useState<string | null>(null);
@@ -33,8 +34,16 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
     const [bowlerId, setBowlerId] = useState<string | null>(null);
     
     const [isExtraModalOpen, setIsExtraModalOpen] = useState(false);
-    const [isWicketModalOpen, setIsWicketModalOpen] = useState(false);
+    const [extraType, setExtraType] = useState<string>('wide');
+    const [extraRuns, setExtraRuns] = useState<number>(1);
     
+    const [isWicketModalOpen, setIsWicketModalOpen] = useState(false);
+    const [wicketType, setWicketType] = useState<string>('bowled');
+    const [playerOutId, setPlayerOutId] = useState<string|null>(null);
+    const [fielderId, setFielderId] = useState<string|null>(null);
+    const [runsOnWicket, setRunsOnWicket] = useState<number>(0);
+
+
     const [isEndMatchDialogOpen, setIsEndMatchDialogOpen] = useState(false);
     const [winnerId, setWinnerId] = useState<string | null>(null);
 
@@ -56,37 +65,39 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
 
         socket.on('cricket_score_update', handleScoreUpdate);
 
-        const fetchLineupData = async () => {
+        const fetchRosterData = async () => {
             try {
-                const lineupData: any[] = await getLineup(match.id);
-
-                if (!Array.isArray(lineupData)) {
-                    toast({ variant: 'destructive', title: 'Error', description: 'Received invalid lineup data format.' });
-                    setLineup({ teamA: [], teamB: [] });
-                    return;
+                const [teamAData, teamBData] = await Promise.all([
+                    getScorerTeamDetails(match.team_a_id),
+                    getScorerTeamDetails(match.team_b_id)
+                ]);
+                setTeamARoster(teamAData.members || []);
+                setTeamBRoster(teamBData.members || []);
+                 if ((teamAData.members || []).length === 0 || (teamBData.members || []).length === 0) {
+                     toast({ variant: 'default', title: 'Lineup is Empty', description: 'Please add players to the team rosters via the Sports Head dashboard.' });
                 }
-
-                if (lineupData.length === 0) {
-                     toast({ variant: 'default', title: 'Lineup is Empty', description: 'Please add players to the lineup using the "Lineups" tab.' });
-                }
-
-                setLineup({
-                    teamA: lineupData.filter(p => p.team_id === match.team_a_id && p.Student).map(p => p.Student),
-                    teamB: lineupData.filter(p => p.team_id === match.team_b_id && p.Student).map(p => p.Student)
-                });
             } catch (error) {
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch lineup. Please ensure players are added to the lineup for this match.' });
-                setLineup({ teamA: [], teamB: [] });
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch team rosters. Scoring may be limited.' });
             }
         };
 
-        fetchLineupData();
+
+        fetchRosterData();
 
         return () => {
             socket.emit("leave_match", match.id);
             socket.off('cricket_score_update', handleScoreUpdate);
         };
     }, [match.id, match.team_a_id, match.team_b_id, toast]);
+    
+    useEffect(() => {
+        if(wicketType === 'bowled' || wicketType === 'lbw' || wicketType === 'stumped' || wicketType === 'hit_wicket') {
+            setPlayerOutId(strikerId);
+        } else {
+            setPlayerOutId(null);
+        }
+    }, [wicketType, strikerId]);
+
 
     const handleBallPlayed = async (ballData: any) => {
         const requiredFields = { batting_team_id: battingTeamId, striker_id: strikerId, non_striker_id: nonStrikerId, bowler_id: bowlerId };
@@ -99,9 +110,23 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
         
         try {
             await postCricketScore(match.id, { ...requiredFields, ...ballData });
+            setIsExtraModalOpen(false);
+            setIsWicketModalOpen(false);
+            setExtraRuns(1);
+            setRunsOnWicket(0);
         } catch (err: any) {
             toast({ variant: 'destructive', title: 'Error', description: err.response?.data?.error || 'Failed to post ball event.' });
         }
+    }
+    
+    const handleWicketSubmit = () => {
+        handleBallPlayed({
+            is_wicket: true,
+            wicket_type: wicketType,
+            player_out_id: playerOutId,
+            fielder_id: fielderId,
+            runs: runsOnWicket,
+        });
     }
 
     const handleEndMatch = async () => {
@@ -120,9 +145,9 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
     };
 
     const battingTeamPlayers = useMemo(() => {
-        if (!lineup || !battingTeamId) return [];
-        return battingTeamId === match.team_a_id ? lineup.teamA : lineup.teamB;
-    }, [lineup, battingTeamId, match.team_a_id, match.team_b_id]);
+        if (!battingTeamId) return [];
+        return battingTeamId === match.team_a_id ? teamARoster : teamBRoster;
+    }, [battingTeamId, teamARoster, teamBRoster, match.team_a_id]);
 
     const bowlingTeamId = useMemo(() => {
         if (!battingTeamId) return null;
@@ -130,9 +155,9 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
     }, [battingTeamId, match.team_a_id, match.team_b_id]);
 
     const bowlingTeamPlayers = useMemo(() => {
-        if (!lineup || !bowlingTeamId) return [];
-        return bowlingTeamId === match.team_a_id ? lineup.teamA : lineup.teamB;
-    }, [lineup, bowlingTeamId, match.team_a_id, match.team_b_id]);
+        if (!bowlingTeamId) return [];
+        return bowlingTeamId === match.team_a_id ? teamARoster : teamBRoster;
+    }, [bowlingTeamId, teamARoster, teamBRoster, match.team_a_id]);
     
     const teamAScore = score[match.team_a_id] || { runs: 0, wickets: 0, overs: 0.0 };
     const teamBScore = score[match.team_b_id] || { runs: 0, wickets: 0, overs: 0.0 };
@@ -170,9 +195,9 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                         <CardHeader><CardTitle>Current Players</CardTitle></CardHeader>
                         <CardContent className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             <Select onValueChange={setBattingTeamId} value={battingTeamId ?? undefined}><SelectTrigger><SelectValue placeholder="Batting Team..." /></SelectTrigger><SelectContent><SelectItem value={match.team_a_id}>{match.TeamA.team_name}</SelectItem><SelectItem value={match.team_b_id}>{match.TeamB.team_name}</SelectItem></SelectContent></Select>
-                            <Select onValueChange={setStrikerId} value={strikerId ?? undefined} disabled={!battingTeamId}><SelectTrigger><SelectValue placeholder="Striker..." /></SelectTrigger><SelectContent>{battingTeamPlayers.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select>
-                            <Select onValueChange={setNonStrikerId} value={nonStrikerId ?? undefined} disabled={!battingTeamId}><SelectTrigger><SelectValue placeholder="Non-Striker..." /></SelectTrigger><SelectContent>{battingTeamPlayers.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select>
-                            <Select onValueChange={setBowlerId} value={bowlerId ?? undefined} disabled={!bowlingTeamId}><SelectTrigger><SelectValue placeholder="Bowler..." /></SelectTrigger><SelectContent>{bowlingTeamPlayers.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select>
+                            <Select onValueChange={setStrikerId} value={strikerId ?? undefined} disabled={!battingTeamId}><SelectTrigger><SelectValue placeholder="Striker..." /></SelectTrigger><SelectContent>{battingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)}</SelectContent></Select>
+                            <Select onValueChange={setNonStrikerId} value={nonStrikerId ?? undefined} disabled={!battingTeamId}><SelectTrigger><SelectValue placeholder="Non-Striker..." /></SelectTrigger><SelectContent>{battingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)}</SelectContent></Select>
+                            <Select onValueChange={setBowlerId} value={bowlerId ?? undefined} disabled={!bowlingTeamId}><SelectTrigger><SelectValue placeholder="Bowler..." /></SelectTrigger><SelectContent>{bowlingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)}</SelectContent></Select>
                         </CardContent>
                     </Card>
 
@@ -239,6 +264,62 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+        
+        {/* Extra Modal */}
+        <Dialog open={isExtraModalOpen} onOpenChange={setIsExtraModalOpen}>
+            <DialogContent>
+                <DialogHeader><DialogTitle>Log Extra</DialogTitle></DialogHeader>
+                <div className="py-4 space-y-4">
+                    <RadioGroup value={extraType} onValueChange={setExtraType} className="flex gap-4">
+                        {extraTypes.map(type => (
+                            <div key={type} className="flex items-center space-x-2">
+                                <RadioGroupItem value={type} id={`extra-${type}`} /><Label htmlFor={`extra-${type}`} className="capitalize">{type}</Label>
+                            </div>
+                        ))}
+                    </RadioGroup>
+                    <div className="space-y-2">
+                        <Label htmlFor="extra-runs">Runs from extra (incl. overthrow)</Label>
+                        <Input id="extra-runs" type="number" min={0} value={extraRuns} onChange={e => setExtraRuns(parseInt(e.target.value) || 0)} />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
+                    <Button onClick={() => handleBallPlayed({ extras: extraRuns, extra_type: extraType })}>Log Extra</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        {/* Wicket Modal */}
+        <Dialog open={isWicketModalOpen} onOpenChange={setIsWicketModalOpen}>
+            <DialogContent>
+                <DialogHeader><DialogTitle>Log Wicket</DialogTitle></DialogHeader>
+                <div className="py-4 space-y-4">
+                    <div className="space-y-2">
+                        <Label>Wicket Type</Label>
+                        <Select value={wicketType} onValueChange={setWicketType}><SelectTrigger><SelectValue placeholder="Select dismissal type" /></SelectTrigger><SelectContent>{wicketTypes.map(t => <SelectItem key={t} value={t} className="capitalize">{t.replace('_', ' ')}</SelectItem>)}</SelectContent></Select>
+                    </div>
+                     <div className="space-y-2">
+                        <Label>Player Out</Label>
+                        <Select value={playerOutId ?? undefined} onValueChange={setPlayerOutId}><SelectTrigger><SelectValue placeholder="Select player who got out" /></SelectTrigger><SelectContent>{battingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)}</SelectContent></Select>
+                    </div>
+                    {(wicketType === 'caught' || wicketType === 'run_out' || wicketType === 'stumped') && (
+                        <div className="space-y-2">
+                            <Label>Fielder</Label>
+                            <Select value={fielderId ?? undefined} onValueChange={setFielderId}><SelectTrigger><SelectValue placeholder="Select fielder" /></SelectTrigger><SelectContent>{bowlingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)}</SelectContent></Select>
+                        </div>
+                    )}
+                     <div className="space-y-2">
+                        <Label htmlFor="wicket-runs">Runs Scored on this ball (if any)</Label>
+                        <Input id="wicket-runs" type="number" min={0} value={runsOnWicket} onChange={e => setRunsOnWicket(parseInt(e.target.value) || 0)} />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
+                    <Button onClick={handleWicketSubmit}>Log Wicket</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
         </>
     )
 }
