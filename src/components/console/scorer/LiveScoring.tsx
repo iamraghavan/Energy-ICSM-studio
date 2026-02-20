@@ -3,12 +3,23 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getLiveMatches, type ApiMatch } from "@/lib/api";
+import { getLiveMatches, deleteMatch, type ApiMatch } from "@/lib/api";
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MatchCard } from './MatchCard';
-import { ArrowRight, Clapperboard } from 'lucide-react';
+import { ArrowRight, Clapperboard, Trash2 } from 'lucide-react';
 import { socket } from '@/lib/socket';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 export function LiveScoring() {
     const [liveFixtures, setLiveFixtures] = useState<ApiMatch[]>([]);
@@ -53,6 +64,20 @@ export function LiveScoring() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    const handleDeleteMatch = async (matchId: string) => {
+        try {
+            await deleteMatch(matchId);
+            toast({ title: 'Match Deleted!', description: 'The live match has been removed.' });
+            fetchLiveMatches();
+        } catch (error: any) {
+            toast({ 
+                variant: 'destructive', 
+                title: 'Error', 
+                description: error.response?.data?.error || 'Failed to delete the match.' 
+            });
+        }
+    };
+
 
     return (
          <Card>
@@ -65,11 +90,30 @@ export function LiveScoring() {
                 {!isLoading && liveFixtures.length > 0 ? (
                     liveFixtures.map(match => (
                        <MatchCard key={match.id} match={match}>
-                           <Button asChild>
-                               <Link href={`/console/scorer/live/${match.id}`}>
-                                    Score Match <ArrowRight className="ml-2 h-4 w-4" />
-                               </Link>
-                           </Button>
+                           <div className="flex gap-2">
+                               <Button asChild>
+                                   <Link href={`/console/scorer/live/${match.id}`}>
+                                        Score Match <ArrowRight className="ml-2 h-4 w-4" />
+                                   </Link>
+                               </Button>
+                               <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                       <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                This will permanently delete the match between {match.TeamA.team_name} and {match.TeamB.team_name}. This action cannot be undone.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleDeleteMatch(match.id)}>Delete</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                           </div>
                        </MatchCard>
                     ))
                 ) : (
