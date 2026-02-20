@@ -422,6 +422,11 @@ export const createMatch = async (matchData: any) => {
     return response.data;
 }
 
+export const deleteMatch = async (matchId: string) => {
+    const response = await api.delete(`/scorer/matches/${matchId}`);
+    return response.data;
+};
+
 export const startMatch = async (matchId: string) => {
     const response = await api.post(`/scorer/matches/${matchId}/start`);
     return response.data;
@@ -753,4 +758,5 @@ export type ApiMatch = {
     TeamB: ApiTeam;
     match_events?: any[];
 };
+
 

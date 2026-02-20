@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -5,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getMatchesBySport, createMatch, getTeamsBySport, type ApiMatch, type ApiTeam, startMatch } from "@/lib/api";
+import { getMatchesBySport, createMatch, getTeamsBySport, type ApiMatch, type ApiTeam, startMatch, deleteMatch } from "@/lib/api";
 import { MatchCard } from "./MatchCard";
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -13,8 +14,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Loader2, PlusCircle, CalendarCog } from 'lucide-react';
+import { Loader2, PlusCircle, CalendarCog, Trash2 } from 'lucide-react';
 import { io } from 'socket.io-client';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 const SOCKET_URL = 'https://energy-sports-meet-backend.onrender.com';
 
@@ -91,6 +103,20 @@ export function MatchScheduler({ sportId }: { sportId?: string }) {
         }
     };
 
+    const handleDeleteMatch = async (matchId: string) => {
+        try {
+            await deleteMatch(matchId);
+            toast({ title: 'Match Deleted!', description: 'The scheduled match has been removed.' });
+            fetchUpcoming();
+        } catch (error: any) {
+            toast({ 
+                variant: 'destructive', 
+                title: 'Error', 
+                description: error.response?.data?.error || 'Failed to delete the match.' 
+            });
+        }
+    };
+
     const renderContent = () => {
         if (!sportId) {
              return (
@@ -106,7 +132,26 @@ export function MatchScheduler({ sportId }: { sportId?: string }) {
         if (upcomingMatches.length > 0) {
             return upcomingMatches.map(match => (
                <MatchCard key={match.id} match={match}>
-                   <Button onClick={() => handleStartMatch(match.id)}>Start Match</Button>
+                   <div className="flex gap-2">
+                       <Button onClick={() => handleStartMatch(match.id)}>Start Match</Button>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                               <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This will permanently delete the match between {match.TeamA.team_name} and {match.TeamB.team_name}. This action cannot be undone.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteMatch(match.id)}>Delete</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                   </div>
                </MatchCard>
             ))
         }
