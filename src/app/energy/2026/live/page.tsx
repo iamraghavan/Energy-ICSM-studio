@@ -9,6 +9,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Clapperboard, MapPin, Trophy, Goal, Square, Replace, Info } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { cn } from '@/lib/utils';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 
 function TimelineEvent({ event, match }: { event: any, match: ApiMatch }) {
@@ -58,34 +62,6 @@ function TimelineEvent({ event, match }: { event: any, match: ApiMatch }) {
     );
 };
 
-
-function MatchListItem({ match, isSelected, onSelect }: { match: ApiMatch, isSelected: boolean, onSelect: () => void }) {
-    const teamAScore = match.score_details?.[match.team_a_id]?.score ?? match.score_details?.[match.team_a_id]?.runs ?? 0;
-    const teamBScore = match.score_details?.[match.team_b_id]?.score ?? match.score_details?.[match.team_b_id]?.runs ?? 0;
-    const isCricket = match.Sport.name === 'Cricket';
-    
-    return (
-        <button
-            onClick={onSelect}
-            className={cn(
-                "w-full text-left border p-3 rounded-lg transition-colors hover:bg-muted/80",
-                isSelected && "bg-muted ring-2 ring-primary"
-            )}
-        >
-            <div className="flex items-center justify-between gap-2">
-                <div className="flex-1 space-y-1">
-                    <p className="text-sm font-semibold truncate">{match.TeamA.team_name} vs {match.TeamB.team_name}</p>
-                    <p className="text-xs text-muted-foreground">{match.Sport.name}</p>
-                </div>
-                <div className="text-right shrink-0">
-                    <p className="font-bold font-mono text-lg">{teamAScore} - {teamBScore}</p>
-                    <Badge className="animate-pulse h-5">LIVE</Badge>
-                </div>
-            </div>
-        </button>
-    );
-}
-
 function DetailedLiveView({ matchId, initialMatches }: { matchId: string | null, initialMatches: ApiMatch[] }) {
     const [match, setMatch] = useState<ApiMatch | null>(null);
     const [events, setEvents] = useState<any[]>([]);
@@ -101,7 +77,6 @@ function DetailedLiveView({ matchId, initialMatches }: { matchId: string | null,
 
         const initialEvents = selectedMatch.match_events || [];
         setEvents(Array.isArray(initialEvents) ? [...initialEvents].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) : []);
-
 
         if (socket.connected) {
             socket.emit("join_match", selectedMatch.id);
@@ -141,7 +116,7 @@ function DetailedLiveView({ matchId, initialMatches }: { matchId: string | null,
 
     if (!match) {
         return (
-            <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-8 border rounded-lg bg-muted/50">
+            <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-8 border rounded-lg bg-muted/50 min-h-[60vh]">
                 <Clapperboard className="h-12 w-12 mb-4" />
                 <p className="font-medium">Select a match to view details</p>
                 <p className="text-sm">Live scores and events will appear here.</p>
@@ -149,49 +124,114 @@ function DetailedLiveView({ matchId, initialMatches }: { matchId: string | null,
         );
     }
 
-    const { TeamA, TeamB, Sport } = match;
+    const { TeamA, TeamB, Sport, status } = match;
     const isCricket = Sport.name === 'Cricket';
-    const teamAScore = match.score_details?.[match.team_a_id];
-    const teamBScore = match.score_details?.[match.team_b_id];
+    const teamAScoreDetails = match.score_details?.[match.team_a_id];
+    const teamBScoreDetails = match.score_details?.[match.team_b_id];
+
+    const teamAScore = teamAScoreDetails?.runs ?? teamAScoreDetails?.score ?? 0;
+    const teamBScore = teamBScoreDetails?.runs ?? teamBScoreDetails?.score ?? 0;
+    
+    const teamAScoreDisplay = `${teamAScore}${isCricket && teamAScoreDetails?.wickets !== undefined ? `/${teamAScoreDetails.wickets}` : ''}`;
+    const teamBScoreDisplay = `${teamBScore}${isCricket && teamBScoreDetails?.wickets !== undefined ? `/${teamBScoreDetails.wickets}` : ''}`;
+
+    const getResultText = () => {
+        if (status === 'live') return 'Match is currently live';
+        if (status === 'completed') {
+            const winner = teamAScore > teamBScore ? TeamA.team_name : TeamB.team_name;
+            const margin = Math.abs(teamAScore - teamBScore);
+            return `${winner} won by ${margin} ${isCricket ? 'runs' : 'points'}`;
+        }
+        return 'Match scheduled';
+    }
+
 
     return (
-        <div className="border rounded-lg h-full flex flex-col">
-            <div className="p-4 border-b bg-muted/20">
-                <div className="grid grid-cols-3 items-center gap-4 text-center">
-                    <div className="text-right">
-                        <h3 className="font-bold text-lg truncate">{TeamA.team_name}</h3>
-                        {isCricket && <p className="text-xs text-muted-foreground">{teamAScore?.overs?.toFixed(1) || '0.0'} Overs</p>}
+        <Card className="h-full flex flex-col">
+            <CardContent className="pt-6 flex-1 flex flex-col min-h-0">
+                <p className="text-sm text-muted-foreground uppercase font-bold tracking-wider">{status}</p>
+                <p className="text-sm text-muted-foreground">{Sport.name} - {match.venue}</p>
+
+                <div className="my-6 space-y-4">
+                    <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-4">
+                            <Avatar className="h-10 w-10 border"><AvatarFallback>{TeamA.team_name.slice(0,2)}</AvatarFallback></Avatar>
+                            <span className="text-2xl font-bold">{TeamA.team_name}</span>
+                        </div>
+                        <div className="text-4xl font-bold font-mono">{teamAScoreDisplay}</div>
                     </div>
-                    <div className="font-bold text-4xl font-mono flex items-center justify-center gap-2">
-                        <span>{teamAScore?.runs ?? teamAScore?.score ?? 0}{isCricket && teamAScore?.wickets !== undefined ? `/${teamAScore.wickets}` : ''}</span>
-                        <span className="text-muted-foreground text-2xl">-</span>
-                        <span>{teamBScore?.runs ?? teamBScore?.score ?? 0}{isCricket && teamBScore?.wickets !== undefined ? `/${teamBScore.wickets}` : ''}</span>
+                     <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-4">
+                            <Avatar className="h-10 w-10 border"><AvatarFallback>{TeamB.team_name.slice(0,2)}</AvatarFallback></Avatar>
+                            <span className="text-2xl font-bold">{TeamB.team_name}</span>
+                        </div>
+                        <div className="text-4xl font-bold font-mono">{teamBScoreDisplay}</div>
                     </div>
-                    <div className="text-left">
-                        <h3 className="font-bold text-lg truncate">{TeamB.team_name}</h3>
-                        {isCricket && <p className="text-xs text-muted-foreground">{teamBScore?.overs?.toFixed(1) || '0.0'} Overs</p>}
-                    </div>
+                    {isCricket && (
+                        <div className="flex justify-between items-center text-sm text-muted-foreground">
+                            <span>({teamAScoreDetails?.overs?.toFixed(1) || '0.0'} ov)</span>
+                             <span>({teamBScoreDetails?.overs?.toFixed(1) || '0.0'} ov)</span>
+                        </div>
+                    )}
                 </div>
 
-                <div className="flex items-center justify-center gap-x-4 text-sm text-muted-foreground mt-2 text-center">
-                    <div className="flex items-center gap-2"><Trophy className="w-4 h-4" /><span>{Sport.name}</span></div>
-                    <div className="flex items-center gap-2"><MapPin className="w-4 h-4" /><span>{match.venue}</span></div>
-                </div>
-            </div>
-            <div className="flex-1 p-4 overflow-y-auto">
-                 <h4 className="font-semibold mb-4">Match Timeline</h4>
-                 <div className="space-y-4">
-                    {events.length > 0 ? (
-                        events.map((event, i) => <TimelineEvent key={i} event={event} match={match} />)
-                    ) : (
-                        <p className="text-muted-foreground text-center py-8 text-sm">No match events logged yet...</p>
-                    )}
-                 </div>
-            </div>
-        </div>
+                 <p className="text-center font-semibold text-primary mb-6">{getResultText()}</p>
+
+                <Tabs defaultValue="timeline" className="flex-1 flex flex-col min-h-0">
+                    <TabsList className="w-full">
+                        <TabsTrigger value="timeline" className="flex-1">Live Timeline</TabsTrigger>
+                        <TabsTrigger value="scorecard" className="flex-1" disabled>Scorecard</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="timeline" className="flex-1 mt-4 -mx-6 overflow-hidden">
+                        <ScrollArea className="h-full px-6">
+                            <div className="space-y-4">
+                                {events.length > 0 ? (
+                                    events.map((event, i) => <TimelineEvent key={i} event={event} match={match} />)
+                                ) : (
+                                    <p className="text-muted-foreground text-center py-8 text-sm">No match events logged yet...</p>
+                                )}
+                            </div>
+                        </ScrollArea>
+                    </TabsContent>
+                </Tabs>
+            </CardContent>
+        </Card>
     );
 }
 
+function SmallMatchCard({ match, onSelect, isSelected }: { match: ApiMatch, isSelected: boolean, onSelect: () => void }) {
+    const isCricket = match.Sport.name === 'Cricket';
+    const teamAScoreDetails = match.score_details?.[match.team_a_id];
+    const teamBScoreDetails = match.score_details?.[match.team_b_id];
+
+    const teamAScore = teamAScoreDetails?.runs ?? teamAScoreDetails?.score ?? 0;
+    const teamBScore = teamBScoreDetails?.runs ?? teamBScoreDetails?.score ?? 0;
+    
+    const teamAScoreDisplay = `${teamAScore}${isCricket && teamAScoreDetails?.wickets !== undefined ? `/${teamAScoreDetails.wickets}` : ''}`;
+    const teamBScoreDisplay = `${teamBScore}${isCricket && teamBScoreDetails?.wickets !== undefined ? `/${teamBScoreDetails.wickets}` : ''}`;
+
+    return (
+        <button
+            onClick={onSelect}
+            className={cn(
+                "w-full h-full text-left p-3 rounded-lg transition-colors border",
+                isSelected ? "ring-2 ring-primary bg-primary/5" : "bg-card hover:bg-muted/50"
+            )}
+        >
+            <p className="text-xs text-muted-foreground">{match.Sport.name}</p>
+            <div className="flex justify-between items-center mt-2 gap-2">
+                <div className="space-y-1 flex-1">
+                    <p className="font-semibold truncate flex items-center gap-2"><Avatar className="h-5 w-5 text-xs"><AvatarFallback>{match.TeamA.team_name.slice(0,2)}</AvatarFallback></Avatar>{match.TeamA.team_name}</p>
+                    <p className="font-semibold truncate flex items-center gap-2"><Avatar className="h-5 w-5 text-xs"><AvatarFallback>{match.TeamB.team_name.slice(0,2)}</AvatarFallback></Avatar>{match.TeamB.team_name}</p>
+                </div>
+                 <div className="space-y-1 text-right font-mono font-semibold">
+                    <p>{teamAScoreDisplay}</p>
+                    <p>{teamBScoreDisplay}</p>
+                </div>
+            </div>
+        </button>
+    );
+}
 
 export default function LivePage() {
     const [liveMatches, setLiveMatches] = useState<ApiMatch[]>([]);
@@ -204,7 +244,6 @@ export default function LivePage() {
         try {
             const matches = await getLiveMatches();
             setLiveMatches(matches);
-            // If no match is selected, or selected match is no longer live, select the first one.
             if (!selectedMatchId || !matches.some(m => m.id === selectedMatchId)) {
                 setSelectedMatchId(matches[0]?.id || null);
             }
@@ -240,40 +279,53 @@ export default function LivePage() {
     }, []);
 
     return (
-        <div className="container py-8 md:py-12">
-             <Card>
+        <div className="container py-8 md:py-12 space-y-8">
+            <Card>
                 <CardHeader>
                     <CardTitle className="font-headline text-3xl">Live Matches</CardTitle>
                     <CardDescription>Live scores and updates from ongoing matches.</CardDescription>
                 </CardHeader>
-                <CardContent>
+                 <CardContent>
                     {isLoading ? (
-                        <Skeleton className="h-[60vh] w-full" />
+                        <Skeleton className="h-32 w-full" />
                     ) : liveMatches.length > 0 ? (
-                        <div className="grid lg:grid-cols-3 gap-8 items-start">
-                            <div className="lg:col-span-1 space-y-3 lg:h-[65vh] lg:overflow-y-auto pr-2">
-                                {liveMatches.map(match => (
-                                    <MatchListItem
-                                        key={match.id}
-                                        match={match}
-                                        isSelected={selectedMatchId === match.id}
-                                        onSelect={() => setSelectedMatchId(match.id)}
-                                    />
+                         <Carousel
+                            opts={{ align: "start" }}
+                            className="w-full"
+                        >
+                            <CarouselContent className="-ml-2">
+                                {liveMatches.map((match) => (
+                                    <CarouselItem key={match.id} className="md:basis-1/2 lg:basis-1/3 pl-2">
+                                        <div className="p-1">
+                                            <SmallMatchCard 
+                                                match={match} 
+                                                onSelect={() => setSelectedMatchId(match.id)} 
+                                                isSelected={selectedMatchId === match.id} 
+                                            />
+                                        </div>
+                                    </CarouselItem>
                                 ))}
-                            </div>
-                            <div className="lg:col-span-2 lg:h-[65vh]">
-                                <DetailedLiveView matchId={selectedMatchId} initialMatches={liveMatches} />
-                            </div>
-                        </div>
+                            </CarouselContent>
+                            <CarouselPrevious className="ml-12" />
+                            <CarouselNext className="mr-12" />
+                        </Carousel>
                     ) : (
-                         <div className="text-center py-24 text-muted-foreground border rounded-lg bg-muted/50">
+                         <div className="text-center py-16 text-muted-foreground border rounded-lg bg-muted/50">
                             <Clapperboard className="h-12 w-12 mx-auto mb-4" />
                             <p className="font-medium">No matches are currently live.</p>
                             <p className="text-sm">Check back soon for real-time updates!</p>
                         </div>
                     )}
-                </CardContent>
+                 </CardContent>
             </Card>
+            
+            <div className="min-h-[70vh]">
+                 {isLoading ? (
+                    <Skeleton className="h-[70vh] w-full" />
+                 ) : liveMatches.length > 0 ? (
+                    <DetailedLiveView matchId={selectedMatchId} initialMatches={liveMatches} />
+                 ) : null}
+            </div>
         </div>
     );
 }
