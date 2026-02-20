@@ -9,7 +9,7 @@ export const socket = io(SOCKET_URL, {
   reconnection: true,
   reconnectionAttempts: 10,
   reconnectionDelay: 1000,
-  timeout: 10000,
+  timeout: 20000, // Increased timeout for cold starts
 });
 
 // Debug Lifecycle Events (Scorer Console)
