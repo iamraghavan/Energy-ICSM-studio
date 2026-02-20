@@ -708,6 +708,16 @@ export const sportsHeadBulkAddPlayers = async (teamId: string, players: any[]) =
     return response.data;
 };
 
+export const getScorerTeamDetails = async (teamId: string): Promise<FullSportsHeadTeam> => {
+    const response = await api.get(`/scorer/teams/${teamId}`);
+    const data = response.data.data || response.data;
+    if (data.Members && !data.members) {
+        data.members = data.Members;
+        delete data.Members;
+    }
+    return data;
+}
+
 export const removePlayerFromTeam = async (teamId: string, studentId: string) => {
     const response = await api.delete(`/sports-head/teams/${teamId}/players/${studentId}`);
     return response.data;

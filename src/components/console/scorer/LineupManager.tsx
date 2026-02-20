@@ -1,8 +1,9 @@
 
+
 'use client';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getMatchesBySport, getLiveMatches, getLineup, manageLineup, getSportsHeadTeamDetails, type ApiMatch, type FullSportsHeadTeam } from '@/lib/api';
+import { getMatchesBySport, getLiveMatches, getLineup, manageLineup, getScorerTeamDetails, type ApiMatch, type FullSportsHeadTeam } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from '@/components/ui/skeleton';
@@ -39,8 +40,8 @@ function LineupEditor({ match }: { match: ApiMatch }) {
 
                 // 2. Get full team details for squad lists
                 const [teamADetails, teamBDetails] = await Promise.all([
-                    getSportsHeadTeamDetails(match.team_a_id),
-                    getSportsHeadTeamDetails(match.team_b_id)
+                    getScorerTeamDetails(match.team_a_id),
+                    getScorerTeamDetails(match.team_b_id)
                 ]);
 
                 const processTeamData = (teamDetails: FullSportsHeadTeam, currentMatchLineup: any[]): TeamLineup => {
@@ -52,8 +53,8 @@ function LineupEditor({ match }: { match: ApiMatch }) {
                     return {
                         team: { id: teamDetails.id, team_name: teamDetails.team_name },
                         squad: squadMembers,
-                        lineup: currentMatchLineup.filter(p => !p.is_substitute).map(p => p.Student.id),
-                        substitutes: currentMatchLineup.filter(p => p.is_substitute).map(p => p.Student.id),
+                        lineup: currentMatchLineup.filter(p => p.Student && !p.is_substitute).map(p => p.Student.id),
+                        substitutes: currentMatchLineup.filter(p => p.Student && p.is_substitute).map(p => p.Student.id),
                     };
                 };
 
