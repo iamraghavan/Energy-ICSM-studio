@@ -421,8 +421,13 @@ export const startMatch = async (matchId: string) => {
     return response.data;
 };
 
-export const updateScore = async (matchId: string, scoreDetails: any, status: 'live' | 'completed') => {
-    const response = await api.patch(`/scorer/matches/${matchId}/score`, { score_details: scoreDetails, status });
+export const postStandardScore = async (matchId: string, data: any) => {
+    const response = await api.post(`/scorer/matches/${matchId}/score/standard`, data);
+    return response.data;
+};
+
+export const postCricketScore = async (matchId: string, data: any) => {
+    const response = await api.post(`/scorer/matches/${matchId}/score/cricket`, data);
     return response.data;
 };
 
