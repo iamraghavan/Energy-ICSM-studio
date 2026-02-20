@@ -4,7 +4,7 @@ import io from "socket.io-client";
 const SOCKET_URL = "https://energy-sports-meet-backend.onrender.com";
 
 export const socket = io(SOCKET_URL, {
-  transports: ["polling", "websocket"],
+  transports: ["websocket"],
   secure: true,
   reconnection: true,
   reconnectionAttempts: Infinity,
@@ -28,3 +28,4 @@ socket.on("disconnect", (reason) => {
     socket.connect();
   }
 });
+

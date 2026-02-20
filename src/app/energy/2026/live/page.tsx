@@ -99,7 +99,9 @@ function DetailedLiveView({ matchId, initialMatches }: { matchId: string | null,
             return;
         }
 
-        setEvents(selectedMatch.match_events?.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) || []);
+        const initialEvents = selectedMatch.match_events || [];
+        setEvents(Array.isArray(initialEvents) ? [...initialEvents].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) : []);
+
 
         if (socket.connected) {
             socket.emit("join_match", selectedMatch.id);
@@ -129,7 +131,9 @@ function DetailedLiveView({ matchId, initialMatches }: { matchId: string | null,
         socket.on('cricket_score_update', handleCricketUpdate);
 
         return () => {
-            socket.emit("leave_match", selectedMatch.id);
+            if(selectedMatch.id) {
+                socket.emit("leave_match", selectedMatch.id);
+            }
             socket.off('score_updated', handleScoreUpdate);
             socket.off('cricket_score_update', handleCricketUpdate);
         };
@@ -270,4 +274,5 @@ export default function LivePage() {
         </div>
     );
 }
+
 
