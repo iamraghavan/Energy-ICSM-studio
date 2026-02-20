@@ -60,7 +60,7 @@ function CricketTimelineEvent({ event, match }: { event: any, match: ApiMatch | 
 
 export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, onBack: () => void }) {
     const [score, setScore] = useState(match.score_details || {});
-    const [events, setEvents] = useState<any[]>(Array.isArray(match.match_events) ? [...match.match_events].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) : []);
+    const [events, setEvents] = useState<any[]>([]);
     const [teamARoster, setTeamARoster] = useState<StudentTeamMember[]>([]);
     const [teamBRoster, setTeamBRoster] = useState<StudentTeamMember[]>([]);
     const [rostersLoading, setRostersLoading] = useState(true);
@@ -87,6 +87,8 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
     const { toast } = useToast();
 
      useEffect(() => {
+        setEvents(Array.isArray(match.match_events) ? [...match.match_events].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) : []);
+
         if (socket.connected) {
             socket.emit("join_match", match.id);
         } else {
@@ -130,7 +132,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
             socket.emit("leave_match", match.id);
             socket.off('cricket_score_update', handleScoreUpdate);
         };
-    }, [match.id, match.team_a_id, match.team_b_id, toast]);
+    }, [match.id, match.team_a_id, match.team_b_id, toast, match.match_events]);
     
     useEffect(() => {
         if(wicketType === 'bowled' || wicketType === 'lbw' || wicketType === 'stumped' || wicketType === 'hit_wicket') {
@@ -218,17 +220,17 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                 <div className="lg:col-span-2 space-y-6">
                     {/* Scoreboard */}
                     <Card>
-                        <CardContent className="p-6 grid grid-cols-[1fr,auto,1fr] items-center gap-4">
-                            <div className="text-center space-y-2">
-                                <h3 className="font-bold text-xl truncate">{match.TeamA.team_name}</h3>
-                                <p className="text-4xl font-bold">{teamAScore.runs}/{teamAScore.wickets}</p>
-                                <p className="text-muted-foreground">({teamAScore.overs.toFixed(1)} Overs)</p>
+                        <CardContent className="p-4 sm:p-6 grid grid-cols-[1fr,auto,1fr] items-center gap-2 sm:gap-4 text-center">
+                            <div className="space-y-2">
+                                <h3 className="font-bold text-lg sm:text-xl truncate">{match.TeamA.team_name}</h3>
+                                <p className="text-3xl sm:text-4xl font-bold">{teamAScore.runs}/{teamAScore.wickets}</p>
+                                <p className="text-xs sm:text-sm text-muted-foreground">({teamAScore.overs.toFixed(1)} Overs)</p>
                             </div>
-                            <div className="text-4xl font-bold text-muted-foreground">VS</div>
-                            <div className="text-center space-y-2">
-                                <h3 className="font-bold text-xl truncate">{match.TeamB.team_name}</h3>
-                                <p className="text-4xl font-bold">{teamBScore.runs}/{teamBScore.wickets}</p>
-                                <p className="text-muted-foreground">({teamBScore.overs.toFixed(1)} Overs)</p>
+                            <div className="text-2xl sm:text-4xl font-bold text-muted-foreground">VS</div>
+                            <div className="space-y-2">
+                                <h3 className="font-bold text-lg sm:text-xl truncate">{match.TeamB.team_name}</h3>
+                                <p className="text-3xl sm:text-4xl font-bold">{teamBScore.runs}/{teamBScore.wickets}</p>
+                                <p className="text-xs sm:text-sm text-muted-foreground">({teamBScore.overs.toFixed(1)} Overs)</p>
                             </div>
                         </CardContent>
                     </Card>
@@ -238,63 +240,54 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                         <CardHeader><CardTitle>Current Players</CardTitle></CardHeader>
                         <CardContent>
                         {rostersLoading ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Skeleton className="h-16 w-full" />
-                                <Skeleton className="h-16 w-full" />
-                                <Skeleton className="h-16 w-full" />
-                                <Skeleton className="h-16 w-full" />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                 <div className="space-y-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
                                     <Label>Batting Team</Label>
                                     <Select onValueChange={setBattingTeamId} value={battingTeamId ?? undefined}>
-                                        <SelectTrigger><SelectValue placeholder="Batting Team..." /></SelectTrigger>
+                                        <SelectTrigger><SelectValue placeholder="Select Team..." /></SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value={match.team_a_id}>{match.TeamA.team_name}</SelectItem>
                                             <SelectItem value={match.team_b_id}>{match.TeamB.team_name}</SelectItem>
                                         </SelectContent>
                                     </Select>
-                                 </div>
-                                  <div className="space-y-2">
+                                </div>
+                                <div className="space-y-1.5">
                                     <Label>Bowler</Label>
                                     <Select onValueChange={setBowlerId} value={bowlerId ?? undefined} disabled={!bowlingTeamId}>
-                                        <SelectTrigger><SelectValue placeholder="Bowler..." /></SelectTrigger>
+                                        <SelectTrigger><SelectValue placeholder="Select Player..." /></SelectTrigger>
                                         <SelectContent>
                                             {bowlingTeamPlayers.length > 0 ? (
                                                 bowlingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)
-                                            ) : (
-                                                <div className="p-2 text-center text-sm text-muted-foreground">No players in roster.</div>
-                                            )}
+                                            ) : <div className="p-2 text-center text-sm text-muted-foreground">No players in roster.</div>}
                                         </SelectContent>
                                     </Select>
-                                  </div>
-                                  <div className="space-y-2">
+                                </div>
+                                <div className="space-y-1.5">
                                     <Label>Striker</Label>
                                     <Select onValueChange={setStrikerId} value={strikerId ?? undefined} disabled={!battingTeamId}>
-                                        <SelectTrigger><SelectValue placeholder="Striker..." /></SelectTrigger>
+                                        <SelectTrigger><SelectValue placeholder="Select Player..." /></SelectTrigger>
                                         <SelectContent>
                                             {battingTeamPlayers.length > 0 ? (
                                                 battingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)
-                                            ) : (
-                                                <div className="p-2 text-center text-sm text-muted-foreground">No players in roster.</div>
-                                            )}
+                                            ) : <div className="p-2 text-center text-sm text-muted-foreground">No players in roster.</div>}
                                         </SelectContent>
                                     </Select>
-                                  </div>
-                                  <div className="space-y-2">
+                                </div>
+                                <div className="space-y-1.5">
                                     <Label>Non-Striker</Label>
                                     <Select onValueChange={setNonStrikerId} value={nonStrikerId ?? undefined} disabled={!battingTeamId}>
-                                        <SelectTrigger><SelectValue placeholder="Non-Striker..." /></SelectTrigger>
+                                        <SelectTrigger><SelectValue placeholder="Select Player..." /></SelectTrigger>
                                         <SelectContent>
-                                             {battingTeamPlayers.length > 0 ? (
+                                            {battingTeamPlayers.length > 0 ? (
                                                 battingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)
-                                            ) : (
-                                                <div className="p-2 text-center text-sm text-muted-foreground">No players in roster.</div>
-                                            )}
+                                            ) : <div className="p-2 text-center text-sm text-muted-foreground">No players in roster.</div>}
                                         </SelectContent>
                                     </Select>
-                                  </div>
+                                </div>
                             </div>
                         )}
                         </CardContent>
@@ -325,7 +318,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                         <CardHeader><CardTitle>Match Timeline</CardTitle></CardHeader>
                         <CardContent>
                              <ScrollArea className="h-[400px]">
-                                <div className="space-y-4">
+                                <div className="space-y-4 pr-3">
                                 {events.length > 0 ? (
                                     events.map((event, i) => <CricketTimelineEvent key={i} event={event} match={match} />)
                                 ) : (
