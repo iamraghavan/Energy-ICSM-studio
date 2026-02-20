@@ -1,15 +1,16 @@
-import io from "socket.io-client";
+import { io, type Socket } from "socket.io-client";
 
 // Initialize Socket (Singleton)
 const SOCKET_URL = "https://energy-sports-meet-backend.onrender.com";
-export const socket = io(SOCKET_URL, {
-  transports: ["websocket"], // 🚀 Force websocket to bypass 502 polling errors on Render
+export const socket: Socket = io(SOCKET_URL, {
+  transports: ["websocket"], // 🚀 CRITICAL: Force WebSocket to bypass polling timeouts
+  upgrade: false, // Prevents trying to "upgrade" from polling
   withCredentials: true,
   autoConnect: true,
   reconnection: true,
   reconnectionAttempts: 10,
-  reconnectionDelay: 1000,
-  timeout: 20000, // Increased timeout for cold starts
+  reconnectionDelay: 5000, // Increased delay
+  timeout: 60000, // Increased timeout for cold starts (1 minute)
 });
 
 // Debug Lifecycle Events (Scorer Console)
@@ -19,10 +20,6 @@ socket.on("connect", () => {
 
 socket.on("connect_error", (err) => {
   console.error("🔴 Connection Error:", err.message);
-  // Auto-fallback to polling if absolute websocket failure
-  if (err.message === "xhr poll error") {
-    socket.io.opts.transports = ["polling", "websocket"];
-  }
 });
 
 socket.on("disconnect", (reason) => {
