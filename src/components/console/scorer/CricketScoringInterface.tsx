@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { endMatch, postCricketScore, getScorerTeamDetails, type ApiMatch, type FullSportsHeadTeam, type StudentTeamMember } from "@/lib/api";
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Shield, Disc, Trophy } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -16,14 +16,51 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 
 const extraTypes = ['wide', 'noball', 'bye', 'legbye'];
 const wicketTypes = ['bowled', 'caught', 'lbw', 'run_out', 'stumped', 'hit_wicket'];
 
+function CricketTimelineEvent({ event, match }: { event: any, match: ApiMatch | null }) {
+    if (!event) return null;
+
+    const getEventDetails = (e: any) => {
+        if (e.is_wicket) {
+            return { icon: Shield, color: 'text-red-500 bg-red-500/10', title: `WICKET! (${e.wicket_type || 'Dismissed'})` };
+        }
+        if (e.extras > 0) {
+             return { icon: PlusCircle, color: 'text-blue-500 bg-blue-500/10', title: `${e.extras} ${e.extra_type}` };
+        }
+        if (e.runs > 0) {
+             return { icon: Trophy, color: 'text-green-500 bg-green-500/10', title: `${e.runs} run${e.runs > 1 ? 's' : ''}` };
+        }
+        return { icon: Disc, color: 'text-gray-500 bg-gray-500/10', title: 'Dot Ball' };
+    };
+
+    const { icon: Icon, color, title } = getEventDetails(event);
+    
+    const time = new Date(event.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    return (
+        <div className="flex items-start gap-3">
+            <div className="text-xs text-muted-foreground pt-1.5">{time}</div>
+            <div className={cn("flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center", color)}>
+                <Icon className="h-4 w-4" />
+            </div>
+            <div className="flex-grow">
+                <p className="font-semibold">{title}</p>
+                 <p className="text-sm text-muted-foreground">Over {event.over_number}.{event.ball_number}</p>
+            </div>
+        </div>
+    );
+};
+
+
 export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, onBack: () => void }) {
     const [score, setScore] = useState(match.score_details || {});
-    const [lastBall, setLastBall] = useState<any>(null);
+    const [events, setEvents] = useState<any[]>(match.match_events || []);
     const [teamARoster, setTeamARoster] = useState<StudentTeamMember[]>([]);
     const [teamBRoster, setTeamBRoster] = useState<StudentTeamMember[]>([]);
     const [rostersLoading, setRostersLoading] = useState(true);
@@ -59,7 +96,9 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
         const handleScoreUpdate = (data: any) => {
              if (data.matchId === match.id) {
                 setScore(data.score);
-                setLastBall(data.last_ball);
+                 if (data.last_ball) {
+                    setEvents(prev => [data.last_ball, ...prev].slice(0, 50)); // Keep last 50 events
+                }
             }
         };
 
@@ -106,7 +145,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
         const requiredFields = { batting_team_id: battingTeamId, striker_id: strikerId, non_striker_id: nonStrikerId, bowler_id: bowlerId };
         for (const [key, value] of Object.entries(requiredFields)) {
             if (!value) {
-                toast({ variant: "destructive", title: "Error", description: `Please select ${key.replace(/_/g, ' ')}` });
+                toast({ variant: "destructive", title: "Selection Missing", description: `Please select the ${key.replace(/_/g, ' ')}.` });
                 return;
             }
         }
@@ -175,117 +214,119 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                     <Badge className="ml-auto animate-pulse">LIVE</Badge>
                 </div>
             </CardHeader>
-            <CardContent className="grid lg:grid-cols-3 gap-6">
+             <CardContent className="grid lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
                     {/* Scoreboard */}
-                    <Card>
-                         <CardContent className="pt-6 grid grid-cols-[1fr,auto,1fr] items-center gap-4">
-                             <div className="text-center space-y-2">
-                                <h3 className="font-bold text-xl truncate">{match.TeamA.team_name}</h3>
-                                <p className="text-4xl font-bold">{teamAScore.runs}/{teamAScore.wickets}</p>
-                                <p className="text-muted-foreground">({teamAScore.overs.toFixed(1)} Overs)</p>
-                            </div>
-                            <div className="text-4xl font-bold text-muted-foreground">VS</div>
-                             <div className="text-center space-y-2">
-                                <h3 className="font-bold text-xl truncate">{match.TeamB.team_name}</h3>
-                                <p className="text-4xl font-bold">{teamBScore.runs}/{teamBScore.wickets}</p>
-                                <p className="text-muted-foreground">({teamBScore.overs.toFixed(1)} Overs)</p>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <div className="border rounded-lg p-6 grid grid-cols-[1fr,auto,1fr] items-center gap-4">
+                         <div className="text-center space-y-2">
+                            <h3 className="font-bold text-xl truncate">{match.TeamA.team_name}</h3>
+                            <p className="text-4xl font-bold">{teamAScore.runs}/{teamAScore.wickets}</p>
+                            <p className="text-muted-foreground">({teamAScore.overs.toFixed(1)} Overs)</p>
+                        </div>
+                        <div className="text-4xl font-bold text-muted-foreground">VS</div>
+                         <div className="text-center space-y-2">
+                            <h3 className="font-bold text-xl truncate">{match.TeamB.team_name}</h3>
+                            <p className="text-4xl font-bold">{teamBScore.runs}/{teamBScore.wickets}</p>
+                            <p className="text-muted-foreground">({teamBScore.overs.toFixed(1)} Overs)</p>
+                        </div>
+                    </div>
                     
-                    {/* Player Selection */}
-                     <Card>
-                        <CardHeader><CardTitle>Current Players</CardTitle></CardHeader>
-                         <CardContent>
-                            {rostersLoading ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                    <Skeleton className="h-10 w-full" />
-                                    <Skeleton className="h-10 w-full" />
-                                    <Skeleton className="h-10 w-full" />
-                                    <Skeleton className="h-10 w-full" />
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                     <div className="space-y-2">
-                                        <Label>Batting Team</Label>
-                                        <Select onValueChange={setBattingTeamId} value={battingTeamId ?? undefined}>
-                                            <SelectTrigger><SelectValue placeholder="Batting Team..." /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value={match.team_a_id}>{match.TeamA.team_name}</SelectItem>
-                                                <SelectItem value={match.team_b_id}>{match.TeamB.team_name}</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                     </div>
-                                      <div className="space-y-2">
-                                        <Label>Striker</Label>
-                                        <Select onValueChange={setStrikerId} value={strikerId ?? undefined} disabled={!battingTeamId}>
-                                            <SelectTrigger><SelectValue placeholder="Striker..." /></SelectTrigger>
-                                            <SelectContent>
-                                                {battingTeamPlayers.length > 0 ? (
-                                                    battingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)
-                                                ) : (
-                                                    <div className="p-2 text-center text-sm text-muted-foreground">No players in roster.</div>
-                                                )}
-                                            </SelectContent>
-                                        </Select>
-                                      </div>
-                                      <div className="space-y-2">
-                                        <Label>Non-Striker</Label>
-                                        <Select onValueChange={setNonStrikerId} value={nonStrikerId ?? undefined} disabled={!battingTeamId}>
-                                            <SelectTrigger><SelectValue placeholder="Non-Striker..." /></SelectTrigger>
-                                            <SelectContent>
-                                                 {battingTeamPlayers.length > 0 ? (
-                                                    battingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)
-                                                ) : (
-                                                    <div className="p-2 text-center text-sm text-muted-foreground">No players in roster.</div>
-                                                )}
-                                            </SelectContent>
-                                        </Select>
-                                      </div>
-                                      <div className="space-y-2">
-                                        <Label>Bowler</Label>
-                                        <Select onValueChange={setBowlerId} value={bowlerId ?? undefined} disabled={!bowlingTeamId}>
-                                            <SelectTrigger><SelectValue placeholder="Bowler..." /></SelectTrigger>
-                                            <SelectContent>
-                                                {bowlingTeamPlayers.length > 0 ? (
-                                                    bowlingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)
-                                                ) : (
-                                                    <div className="p-2 text-center text-sm text-muted-foreground">No players in roster.</div>
-                                                )}
-                                            </SelectContent>
-                                        </Select>
-                                      </div>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-
                     {/* Scoring Controls */}
-                    <Card>
-                        <CardHeader><CardTitle>Log Ball Event</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="space-y-2">
-                                <Label>Runs Scored</Label>
-                                <div className="flex flex-wrap gap-2">
-                                    {[0, 1, 2, 3, 4, 6].map(runs => <Button key={runs} variant="outline" onClick={() => handleBallPlayed({ runs })}>{runs}</Button>)}
-                                </div>
+                     <div className="border rounded-lg p-6 space-y-4">
+                        <h3 className="text-lg font-semibold">Log Ball Event</h3>
+                        <div className="space-y-2">
+                            <Label>Runs Scored</Label>
+                            <div className="flex flex-wrap gap-2">
+                                {[0, 1, 2, 3, 4, 6].map(runs => <Button key={runs} size="lg" variant="outline" onClick={() => handleBallPlayed({ runs })}>{runs}</Button>)}
                             </div>
-                             <div className="space-y-2">
-                                <Label>Events</Label>
-                                <div className="flex flex-wrap gap-2">
-                                    <Button variant="secondary" onClick={() => setIsExtraModalOpen(true)}>Extra</Button>
-                                    <Button variant="destructive" onClick={() => setIsWicketModalOpen(true)}>Wicket</Button>
-                                </div>
+                        </div>
+                         <div className="space-y-2">
+                            <Label>Events</Label>
+                            <div className="flex flex-wrap gap-2">
+                                <Button variant="secondary" onClick={() => setIsExtraModalOpen(true)}>Extra</Button>
+                                <Button variant="destructive" onClick={() => setIsWicketModalOpen(true)}>Wicket</Button>
                             </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
+
+                    {/* Player Selection */}
+                     <div className="border rounded-lg p-6">
+                        <h3 className="text-lg font-semibold mb-4">Current Players</h3>
+                        {rostersLoading ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Skeleton className="h-16 w-full" />
+                                <Skeleton className="h-16 w-full" />
+                                <Skeleton className="h-16 w-full" />
+                                <Skeleton className="h-16 w-full" />
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                 <div className="space-y-2">
+                                    <Label>Batting Team</Label>
+                                    <Select onValueChange={setBattingTeamId} value={battingTeamId ?? undefined}>
+                                        <SelectTrigger><SelectValue placeholder="Batting Team..." /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value={match.team_a_id}>{match.TeamA.team_name}</SelectItem>
+                                            <SelectItem value={match.team_b_id}>{match.TeamB.team_name}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                 </div>
+                                  <div className="space-y-2">
+                                    <Label>Bowler</Label>
+                                    <Select onValueChange={setBowlerId} value={bowlerId ?? undefined} disabled={!bowlingTeamId}>
+                                        <SelectTrigger><SelectValue placeholder="Bowler..." /></SelectTrigger>
+                                        <SelectContent>
+                                            {bowlingTeamPlayers.length > 0 ? (
+                                                bowlingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)
+                                            ) : (
+                                                <div className="p-2 text-center text-sm text-muted-foreground">No players in roster.</div>
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label>Striker</Label>
+                                    <Select onValueChange={setStrikerId} value={strikerId ?? undefined} disabled={!battingTeamId}>
+                                        <SelectTrigger><SelectValue placeholder="Striker..." /></SelectTrigger>
+                                        <SelectContent>
+                                            {battingTeamPlayers.length > 0 ? (
+                                                battingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)
+                                            ) : (
+                                                <div className="p-2 text-center text-sm text-muted-foreground">No players in roster.</div>
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label>Non-Striker</Label>
+                                    <Select onValueChange={setNonStrikerId} value={nonStrikerId ?? undefined} disabled={!battingTeamId}>
+                                        <SelectTrigger><SelectValue placeholder="Non-Striker..." /></SelectTrigger>
+                                        <SelectContent>
+                                             {battingTeamPlayers.length > 0 ? (
+                                                battingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)
+                                            ) : (
+                                                <div className="p-2 text-center text-sm text-muted-foreground">No players in roster.</div>
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                  </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
-                <div className="lg:col-span-1">
+                 <div className="lg:col-span-1">
                      <Card>
-                        <CardHeader><CardTitle>Last Ball</CardTitle></CardHeader>
+                        <CardHeader><CardTitle>Match Timeline</CardTitle></CardHeader>
                         <CardContent>
-                            {lastBall ? <pre className="text-xs bg-muted p-2 rounded-md">{JSON.stringify(lastBall, null, 2)}</pre> : <p className="text-muted-foreground text-center">Waiting for first ball...</p>}
+                             <ScrollArea className="h-[400px]">
+                                <div className="space-y-4">
+                                {events.length > 0 ? (
+                                    events.map((event, i) => <CricketTimelineEvent key={i} event={event} match={match} />)
+                                ) : (
+                                    <p className="text-muted-foreground text-center py-8 text-sm">Waiting for first ball...</p>
+                                )}
+                                </div>
+                            </ScrollArea>
                         </CardContent>
                     </Card>
                 </div>
