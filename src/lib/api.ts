@@ -751,4 +751,6 @@ export type ApiMatch = {
     Sport: ApiSport;
     TeamA: ApiTeam;
     TeamB: ApiTeam;
+    match_events?: any[];
 };
+
