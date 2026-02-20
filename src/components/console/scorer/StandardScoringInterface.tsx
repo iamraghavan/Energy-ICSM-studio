@@ -95,6 +95,8 @@ export function StandardScoringInterface({ match, onBack }: { match: ApiMatch, o
     const [winnerId, setWinnerId] = useState<string | null>(null);
 
      useEffect(() => {
+        setEvents(Array.isArray(match.match_events) ? [...match.match_events].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) : []);
+        
         if (socket.connected) {
             socket.emit("join_match", match.id);
         } else {
@@ -116,7 +118,7 @@ export function StandardScoringInterface({ match, onBack }: { match: ApiMatch, o
             socket.emit("leave_match", match.id);
             socket.off('score_updated', handleScoreUpdate);
         };
-    }, [match.id]);
+    }, [match.id, match.match_events]);
     
     const handleScoreEvent = async (teamId: string) => {
         try {

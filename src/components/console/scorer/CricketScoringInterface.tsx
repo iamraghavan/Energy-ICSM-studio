@@ -60,7 +60,7 @@ function CricketTimelineEvent({ event, match }: { event: any, match: ApiMatch | 
 
 export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, onBack: () => void }) {
     const [score, setScore] = useState(match.score_details || {});
-    const [events, setEvents] = useState<any[]>(match.match_events || []);
+    const [events, setEvents] = useState<any[]>(Array.isArray(match.match_events) ? [...match.match_events].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) : []);
     const [teamARoster, setTeamARoster] = useState<StudentTeamMember[]>([]);
     const [teamBRoster, setTeamBRoster] = useState<StudentTeamMember[]>([]);
     const [rostersLoading, setRostersLoading] = useState(true);
@@ -97,7 +97,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
              if (data.matchId === match.id) {
                 setScore(data.score);
                  if (data.last_ball) {
-                    setEvents(prev => [data.last_ball, ...prev].slice(0, 50)); // Keep last 50 events
+                    setEvents(prev => [data.last_ball, ...(Array.isArray(prev) ? prev : [])].slice(0, 50));
                 }
             }
         };
@@ -217,41 +217,26 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
              <CardContent className="grid lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
                     {/* Scoreboard */}
-                    <div className="border rounded-lg p-6 grid grid-cols-[1fr,auto,1fr] items-center gap-4">
-                         <div className="text-center space-y-2">
-                            <h3 className="font-bold text-xl truncate">{match.TeamA.team_name}</h3>
-                            <p className="text-4xl font-bold">{teamAScore.runs}/{teamAScore.wickets}</p>
-                            <p className="text-muted-foreground">({teamAScore.overs.toFixed(1)} Overs)</p>
-                        </div>
-                        <div className="text-4xl font-bold text-muted-foreground">VS</div>
-                         <div className="text-center space-y-2">
-                            <h3 className="font-bold text-xl truncate">{match.TeamB.team_name}</h3>
-                            <p className="text-4xl font-bold">{teamBScore.runs}/{teamBScore.wickets}</p>
-                            <p className="text-muted-foreground">({teamBScore.overs.toFixed(1)} Overs)</p>
-                        </div>
-                    </div>
-                    
-                    {/* Scoring Controls */}
-                     <div className="border rounded-lg p-6 space-y-4">
-                        <h3 className="text-lg font-semibold">Log Ball Event</h3>
-                        <div className="space-y-2">
-                            <Label>Runs Scored</Label>
-                            <div className="flex flex-wrap gap-2">
-                                {[0, 1, 2, 3, 4, 6].map(runs => <Button key={runs} size="lg" variant="outline" onClick={() => handleBallPlayed({ runs })}>{runs}</Button>)}
+                    <Card>
+                        <CardContent className="p-6 grid grid-cols-[1fr,auto,1fr] items-center gap-4">
+                            <div className="text-center space-y-2">
+                                <h3 className="font-bold text-xl truncate">{match.TeamA.team_name}</h3>
+                                <p className="text-4xl font-bold">{teamAScore.runs}/{teamAScore.wickets}</p>
+                                <p className="text-muted-foreground">({teamAScore.overs.toFixed(1)} Overs)</p>
                             </div>
-                        </div>
-                         <div className="space-y-2">
-                            <Label>Events</Label>
-                            <div className="flex flex-wrap gap-2">
-                                <Button variant="secondary" onClick={() => setIsExtraModalOpen(true)}>Extra</Button>
-                                <Button variant="destructive" onClick={() => setIsWicketModalOpen(true)}>Wicket</Button>
+                            <div className="text-4xl font-bold text-muted-foreground">VS</div>
+                            <div className="text-center space-y-2">
+                                <h3 className="font-bold text-xl truncate">{match.TeamB.team_name}</h3>
+                                <p className="text-4xl font-bold">{teamBScore.runs}/{teamBScore.wickets}</p>
+                                <p className="text-muted-foreground">({teamBScore.overs.toFixed(1)} Overs)</p>
                             </div>
-                        </div>
-                    </div>
+                        </CardContent>
+                    </Card>
 
                     {/* Player Selection */}
-                     <div className="border rounded-lg p-6">
-                        <h3 className="text-lg font-semibold mb-4">Current Players</h3>
+                     <Card>
+                        <CardHeader><CardTitle>Current Players</CardTitle></CardHeader>
+                        <CardContent>
                         {rostersLoading ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Skeleton className="h-16 w-full" />
@@ -312,7 +297,28 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                                   </div>
                             </div>
                         )}
-                    </div>
+                        </CardContent>
+                    </Card>
+                    
+                    {/* Scoring Controls */}
+                     <Card>
+                        <CardHeader><CardTitle>Log Ball Event</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <Label>Runs Scored</Label>
+                                <div className="flex flex-wrap gap-2">
+                                    {[0, 1, 2, 3, 4, 6].map(runs => <Button key={runs} size="lg" variant="outline" onClick={() => handleBallPlayed({ runs })}>{runs}</Button>)}
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Events</Label>
+                                <div className="flex flex-wrap gap-2">
+                                    <Button variant="secondary" onClick={() => setIsExtraModalOpen(true)}>Extra</Button>
+                                    <Button variant="destructive" onClick={() => setIsWicketModalOpen(true)}>Wicket</Button>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
                  <div className="lg:col-span-1">
                      <Card>
