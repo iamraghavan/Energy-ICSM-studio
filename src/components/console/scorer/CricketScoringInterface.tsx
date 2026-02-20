@@ -1,5 +1,3 @@
-
-
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -11,14 +9,13 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { socket } from '@/lib/socket';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
+import { useMatchSync } from '@/hooks/useMatchSync';
 
 const extraTypes = ['wide', 'noball', 'bye', 'legbye'];
 const wicketTypes = ['bowled', 'caught', 'runout', 'lbw', 'stumped', 'hit_wicket'];
@@ -59,8 +56,10 @@ function CricketTimelineEvent({ event, match }: { event: any, match: ApiMatch | 
 
 
 export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, onBack: () => void }) {
+    const { syncedData, submitAction } = useMatchSync(match.id);
+    
     const [score, setScore] = useState(match.score_details || {});
-    const [events, setEvents] = useState<any[]>([]);
+    const [events, setEvents] = useState<any[]>(Array.isArray(match.match_events) ? [...match.match_events].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) : []);
     const [teamARoster, setTeamARoster] = useState<StudentTeamMember[]>([]);
     const [teamBRoster, setTeamBRoster] = useState<StudentTeamMember[]>([]);
     const [rostersLoading, setRostersLoading] = useState(true);
@@ -86,42 +85,21 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
 
     const { toast } = useToast();
 
-    const handleRotateStrike = () => {
-        if (!strikerId || !nonStrikerId) {
-            toast({
-                variant: "destructive",
-                title: "Cannot Rotate Strike",
-                description: "Please select both a striker and a non-striker.",
-            });
-            return;
+    useEffect(() => {
+        if(syncedData) {
+            if (syncedData.score_details) {
+                setScore(syncedData.score_details);
+            }
+            if (syncedData.match_events) {
+                setEvents(prev => [...syncedData.match_events!, ...prev]
+                    .filter((v, i, a) => a.findIndex(t => t?.id === v?.id) === i)
+                    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                );
+            }
         }
-        const currentStriker = strikerId;
-        const currentNonStriker = nonStrikerId;
-        setStrikerId(currentNonStriker);
-        setNonStrikerId(currentStriker);
-        toast({ title: "Strike Rotated", description: "Striker and non-striker have been swapped." });
-    };
+    }, [syncedData]);
 
      useEffect(() => {
-        setEvents(Array.isArray(match.match_events) ? [...match.match_events].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) : []);
-
-        if (socket.connected) {
-            socket.emit("join_match", match.id);
-        } else {
-            socket.on("connect", () => socket.emit("join_match", match.id));
-        }
-
-        const handleScoreUpdate = (data: any) => {
-             if (data.matchId === match.id) {
-                setScore(data.score);
-                 if (data.last_ball) {
-                    setEvents(prev => [data.last_ball, ...(Array.isArray(prev) ? prev : [])].slice(0, 50));
-                }
-            }
-        };
-
-        socket.on('cricket_score_update', handleScoreUpdate);
-
         const fetchRosterData = async () => {
             setRostersLoading(true);
             try {
@@ -141,14 +119,8 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
             }
         };
 
-
         fetchRosterData();
-
-        return () => {
-            socket.emit("leave_match", match.id);
-            socket.off('cricket_score_update', handleScoreUpdate);
-        };
-    }, [match.id, match.team_a_id, match.team_b_id, toast, match.match_events]);
+    }, [match.team_a_id, match.team_b_id, toast]);
     
     useEffect(() => {
         if(wicketType === 'bowled' || wicketType === 'lbw' || wicketType === 'stumped' || wicketType === 'hit_wicket') {
@@ -159,7 +131,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
     }, [wicketType, strikerId]);
 
 
-    const handleBallPlayed = (ballData: any) => {
+    const handleBallPlayed = async (ballData: any) => {
         const requiredFields = { batting_team_id: battingTeamId, striker_id: strikerId, non_striker_id: nonStrikerId, bowler_id: bowlerId };
         for (const [key, value] of Object.entries(requiredFields)) {
             if (!value) {
@@ -168,19 +140,17 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
             }
         }
         
-        const payload = { matchId: match.id, ...requiredFields, ...ballData };
-
-        socket.emit("submit_cricket_ball", payload, (response: { status: string, message?: string }) => {
-            if (response.status === "ok") {
-                toast({ title: "Ball Synced!" });
-                setIsExtraModalOpen(false);
-                setIsWicketModalOpen(false);
-                setExtraRuns(1);
-                setRunsOnWicket(0);
-            } else {
-                toast({ variant: 'destructive', title: 'Sync Error', description: response.message || 'Failed to sync ball event.' });
-            }
-        });
+        const payload = { ...requiredFields, ...ballData };
+        try {
+            await submitAction("submit_cricket_ball", payload);
+            toast({ title: "Ball Synced!" });
+            setIsExtraModalOpen(false);
+            setIsWicketModalOpen(false);
+            setExtraRuns(1);
+            setRunsOnWicket(0);
+        } catch(error) {
+            toast({ variant: 'destructive', title: 'Sync Error', description: String(error) });
+        }
     }
     
     const handleWicketSubmit = () => {
@@ -202,25 +172,39 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
         });
     }
 
-    const handleEndMatch = () => {
+    const handleEndMatch = async () => {
         if (!winnerId) {
             toast({ variant: 'destructive', title: 'Error', description: 'Please select a winner.' });
             return;
         }
         const payload = {
-            matchId: match.id,
             status: "completed",
             winner_id: winnerId === 'draw' ? null : winnerId
         };
-        socket.emit("update_match_status", payload, (res: { status: string }) => {
-            if (res.status === "ok") {
-                toast({ title: 'Match Ended!', description: 'The match has been moved to completed status.' });
-                setIsEndMatchDialogOpen(false);
-                onBack();
-            } else {
-                toast({ variant: 'destructive', title: 'Error', description: 'Failed to end the match.' });
-            }
-        });
+        try {
+            await submitAction("update_match_status", payload);
+            toast({ title: 'Match Ended!', description: 'The match has been moved to completed status.' });
+            setIsEndMatchDialogOpen(false);
+            onBack();
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: String(error) });
+        }
+    };
+    
+    const handleRotateStrike = () => {
+        if (!strikerId || !nonStrikerId) {
+            toast({
+                variant: "destructive",
+                title: "Cannot Rotate Strike",
+                description: "Please select both a striker and a non-striker.",
+            });
+            return;
+        }
+        const currentStriker = strikerId;
+        const currentNonStriker = nonStrikerId;
+        setStrikerId(currentNonStriker);
+        setNonStrikerId(currentStriker);
+        toast({ title: "Strike Rotated", description: "Striker and non-striker have been swapped." });
     };
 
     const battingTeamPlayers = useMemo(() => {
@@ -365,7 +349,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                         <CardContent>
                             <ScrollArea className="h-[400px]">
                                 <div className="space-y-4 pr-3">
-                                {Array.isArray(events) && events.length > 0 ? (
+                                {events.length > 0 ? (
                                     events.map((event, i) => <CricketTimelineEvent key={i} event={event} match={match} />)
                                 ) : (
                                     <p className="text-muted-foreground text-center py-8 text-sm">Waiting for first ball...</p>

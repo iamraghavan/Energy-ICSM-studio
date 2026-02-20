@@ -1,11 +1,9 @@
-
-
 'use client';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { postMatchEvent, type ApiMatch } from "@/lib/api";
-import { ArrowLeft, Send, Timer as TimerIcon, Play, Pause, Goal, Replace, Square, Info, Shield } from 'lucide-react';
+import { type ApiMatch } from "@/lib/api";
+import { ArrowLeft, Timer as TimerIcon, Play, Pause, Goal, Replace, Square, Info } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -13,7 +11,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { socket } from '@/lib/socket';
+import { useMatchSync } from '@/hooks/useMatchSync';
 
 function MatchTimer({ startTime, status }: { startTime: string, status: 'live' | 'scheduled' | 'completed' }) {
     const [elapsedTime, setElapsedTime] = useState('00:00');
@@ -87,91 +85,74 @@ function TimelineEvent({ event, match }: { event: any, match: ApiMatch }) {
 };
 
 export function StandardScoringInterface({ match, onBack }: { match: ApiMatch, onBack: () => void }) {
+    const { syncedData, submitAction } = useMatchSync(match.id);
+    
     const [score, setScore] = useState(match.score_details || {});
-    const [events, setEvents] = useState<any[]>([]);
+    const [events, setEvents] = useState<any[]>(Array.isArray(match.match_events) ? [...match.match_events].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) : []);
     const [selectedTeamForEvent, setSelectedTeamForEvent] = useState<string>(match.team_a_id);
-    const { toast } = useToast();
     const [isEndMatchDialogOpen, setIsEndMatchDialogOpen] = useState(false);
     const [winnerId, setWinnerId] = useState<string | null>(null);
+    const { toast } = useToast();
 
-     useEffect(() => {
-        setEvents(Array.isArray(match.match_events) ? [...match.match_events].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) : []);
-        
-        if (socket.connected) {
-            socket.emit("join_match", match.id);
-        } else {
-            socket.on("connect", () => socket.emit("join_match", match.id));
-        }
-
-        const handleScoreUpdate = (data: any) => {
-             if (data.matchId === match.id) {
-                setScore(data.score);
-                if (data.event) {
-                    setEvents(prev => [data.event, ...prev].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
-                }
+    useEffect(() => {
+        if(syncedData) {
+            if (syncedData.score_details) {
+                setScore(syncedData.score_details);
             }
-        };
-
-        socket.on('score_updated', handleScoreUpdate);
-
-        return () => {
-            socket.emit("leave_match", match.id);
-            socket.off('score_updated', handleScoreUpdate);
-        };
-    }, [match.id, match.match_events]);
+            if (syncedData.match_events) {
+                setEvents(prev => [...syncedData.match_events!, ...prev]
+                    .filter((v, i, a) => a.findIndex(t => t.id === v.id) === i)
+                    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                );
+            }
+        }
+    }, [syncedData]);
     
-    const handleScoreEvent = (teamId: string) => {
+    const handleScoreEvent = async (teamId: string) => {
         const payload = {
-            matchId: match.id,
             points: 1,
             team_id: teamId,
             event_type: 'goal',
         };
-        socket.emit("submit_standard_score", payload, (response: { status: string, message?: string }) => {
-            if (response.status === "ok") {
-                toast({ title: "Point Synced!", description: `+1 point for ${teamId === match.team_a_id ? match.TeamA.team_name : match.TeamB.team_name}` });
-            } else {
-                toast({ variant: 'destructive', title: 'Sync Error', description: response.message || 'Failed to sync point.' });
-            }
-        });
+        try {
+            await submitAction("submit_standard_score", payload);
+            toast({ title: "Point Synced!", description: `+1 point for ${teamId === match.team_a_id ? match.TeamA.team_name : match.TeamB.team_name}` });
+        } catch(error) {
+            toast({ variant: 'destructive', title: 'Sync Error', description: String(error) });
+        }
     };
     
-    const handleLogEvent = (eventType: string) => {
+    const handleLogEvent = async (eventType: string) => {
         const payload = {
-            matchId: match.id,
-            points: 0, // Events don't carry points
+            points: 0,
             team_id: selectedTeamForEvent,
             event_type: eventType,
         };
-        socket.emit("submit_standard_score", payload, (response: { status: string, message?: string }) => {
-            if (response.status === "ok") {
-                toast({ title: "Event Synced!", description: `${eventType} logged for ${selectedTeamForEvent === match.team_a_id ? match.TeamA.team_name : match.TeamB.team_name}` });
-            } else {
-                toast({ variant: 'destructive', title: 'Sync Error', description: response.message || 'Failed to sync event.' });
-            }
-        });
+        try {
+            await submitAction("submit_standard_score", payload);
+            toast({ title: "Event Synced!", description: `${eventType} logged for ${selectedTeamForEvent === match.team_a_id ? match.TeamA.team_name : match.TeamB.team_name}` });
+        } catch (error) {
+             toast({ variant: 'destructive', title: 'Sync Error', description: String(error) });
+        }
     };
 
-
-    const handleEndMatch = () => {
+    const handleEndMatch = async () => {
         if (!winnerId) {
             toast({ variant: 'destructive', title: 'Error', description: 'Please select a winner or draw.' });
             return;
         }
         const payload = {
-            matchId: match.id,
             status: "completed",
             winner_id: winnerId === 'draw' ? null : winnerId
         };
-        socket.emit("update_match_status", payload, (res: { status: string }) => {
-            if (res.status === "ok") {
-                toast({ title: 'Match Ended!', description: 'The match has been moved to completed status.' });
-                setIsEndMatchDialogOpen(false);
-                onBack();
-            } else {
-                toast({ variant: 'destructive', title: 'Error', description: 'Failed to end the match.' });
-            }
-        });
+        try {
+            await submitAction("update_match_status", payload);
+            toast({ title: 'Match Ended!', description: 'The match has been moved to completed status.' });
+            setIsEndMatchDialogOpen(false);
+            onBack();
+        } catch(error) {
+            toast({ variant: 'destructive', title: 'Error', description: String(error) });
+        }
     };
     
     const teamAScore = score?.[match.team_a_id]?.score ?? 0;
