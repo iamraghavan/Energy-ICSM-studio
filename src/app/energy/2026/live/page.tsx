@@ -156,24 +156,27 @@ function DetailedLiveView({ matchId, initialMatches }: { matchId: string | null,
 
     return (
         <div className="border rounded-lg h-full flex flex-col">
-            <div className="p-4 border-b">
-                <div className="grid grid-cols-[1fr,auto,1fr] items-center gap-4">
-                    <div className="text-center space-y-1">
-                        <h3 className="font-bold text-lg">{TeamA.team_name}</h3>
-                        <p className="text-4xl font-bold">{teamAScore?.runs ?? teamAScore?.score ?? 0}{isCricket && teamAScore?.wickets !== undefined ? `/${teamAScore.wickets}` : ''}</p>
-                        {isCricket && <p className="text-xs text-muted-foreground">({teamAScore?.overs?.toFixed(1) || '0.0'} Overs)</p>}
+            <div className="p-4 border-b bg-muted/20">
+                <div className="grid grid-cols-3 items-center gap-4 text-center">
+                    <div className="text-right">
+                        <h3 className="font-bold text-lg truncate">{TeamA.team_name}</h3>
+                        {isCricket && <p className="text-xs text-muted-foreground">{teamAScore?.overs?.toFixed(1) || '0.0'} Overs</p>}
                     </div>
-                     <p className="text-2xl font-bold text-muted-foreground">vs</p>
-                    <div className="text-center space-y-1">
-                        <h3 className="font-bold text-lg">{TeamB.team_name}</h3>
-                        <p className="text-4xl font-bold">{teamBScore?.runs ?? teamBScore?.score ?? 0}{isCricket && teamBScore?.wickets !== undefined ? `/${teamBScore.wickets}` : ''}</p>
-                         {isCricket && <p className="text-xs text-muted-foreground">({teamBScore?.overs?.toFixed(1) || '0.0'} Overs)</p>}
+                    <div className="font-bold text-4xl font-mono flex items-center justify-center gap-2">
+                        <span>{teamAScore?.runs ?? teamAScore?.score ?? 0}{isCricket && teamAScore?.wickets !== undefined ? `/${teamAScore.wickets}` : ''}</span>
+                        <span className="text-muted-foreground text-2xl">-</span>
+                        <span>{teamBScore?.runs ?? teamBScore?.score ?? 0}{isCricket && teamBScore?.wickets !== undefined ? `/${teamBScore.wickets}` : ''}</span>
+                    </div>
+                    <div className="text-left">
+                        <h3 className="font-bold text-lg truncate">{TeamB.team_name}</h3>
+                        {isCricket && <p className="text-xs text-muted-foreground">{teamBScore?.overs?.toFixed(1) || '0.0'} Overs</p>}
                     </div>
                 </div>
-                 <div className="flex items-center justify-center gap-x-4 text-sm text-muted-foreground mt-3">
-                     <div className="flex items-center gap-2"><Trophy className="w-4 h-4" /><span>{Sport.name}</span></div>
-                     <div className="flex items-center gap-2"><MapPin className="w-4 h-4" /><span>{match.venue}</span></div>
-                 </div>
+
+                <div className="flex items-center justify-center gap-x-4 text-sm text-muted-foreground mt-2 text-center">
+                    <div className="flex items-center gap-2"><Trophy className="w-4 h-4" /><span>{Sport.name}</span></div>
+                    <div className="flex items-center gap-2"><MapPin className="w-4 h-4" /><span>{match.venue}</span></div>
+                </div>
             </div>
             <div className="flex-1 p-4 overflow-y-auto">
                  <h4 className="font-semibold mb-4">Match Timeline</h4>
@@ -274,5 +277,3 @@ export default function LivePage() {
         </div>
     );
 }
-
-

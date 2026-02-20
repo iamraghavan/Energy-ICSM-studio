@@ -17,6 +17,7 @@ import { socket } from '@/lib/socket';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 const extraTypes = ['wide', 'noball', 'bye', 'legbye'];
@@ -27,6 +28,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
     const [lastBall, setLastBall] = useState<any>(null);
     const [teamARoster, setTeamARoster] = useState<StudentTeamMember[]>([]);
     const [teamBRoster, setTeamBRoster] = useState<StudentTeamMember[]>([]);
+    const [rostersLoading, setRostersLoading] = useState(true);
 
     const [battingTeamId, setBattingTeamId] = useState<string | null>(null);
     const [strikerId, setStrikerId] = useState<string | null>(null);
@@ -66,6 +68,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
         socket.on('cricket_score_update', handleScoreUpdate);
 
         const fetchRosterData = async () => {
+            setRostersLoading(true);
             try {
                 const [teamAData, teamBData] = await Promise.all([
                     getScorerTeamDetails(match.team_a_id),
@@ -78,6 +81,8 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                 }
             } catch (error) {
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch team rosters. Scoring may be limited.' });
+            } finally {
+                setRostersLoading(false);
             }
         };
 
@@ -193,11 +198,55 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                     {/* Player Selection */}
                      <Card>
                         <CardHeader><CardTitle>Current Players</CardTitle></CardHeader>
-                        <CardContent className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <Select onValueChange={setBattingTeamId} value={battingTeamId ?? undefined}><SelectTrigger><SelectValue placeholder="Batting Team..." /></SelectTrigger><SelectContent><SelectItem value={match.team_a_id}>{match.TeamA.team_name}</SelectItem><SelectItem value={match.team_b_id}>{match.TeamB.team_name}</SelectItem></SelectContent></Select>
-                            <Select onValueChange={setStrikerId} value={strikerId ?? undefined} disabled={!battingTeamId}><SelectTrigger><SelectValue placeholder="Striker..." /></SelectTrigger><SelectContent>{battingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)}</SelectContent></Select>
-                            <Select onValueChange={setNonStrikerId} value={nonStrikerId ?? undefined} disabled={!battingTeamId}><SelectTrigger><SelectValue placeholder="Non-Striker..." /></SelectTrigger><SelectContent>{battingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)}</SelectContent></Select>
-                            <Select onValueChange={setBowlerId} value={bowlerId ?? undefined} disabled={!bowlingTeamId}><SelectTrigger><SelectValue placeholder="Bowler..." /></SelectTrigger><SelectContent>{bowlingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)}</SelectContent></Select>
+                         <CardContent className="flex flex-col sm:flex-row flex-wrap items-center gap-4">
+                             {rostersLoading ? (
+                                <div className="flex gap-4 w-full">
+                                    <Skeleton className="h-10 flex-1" />
+                                    <Skeleton className="h-10 flex-1" />
+                                    <Skeleton className="h-10 flex-1" />
+                                    <Skeleton className="h-10 flex-1" />
+                                </div>
+                            ) : (
+                                <>
+                                    <Select onValueChange={setBattingTeamId} value={battingTeamId ?? undefined}>
+                                        <SelectTrigger className="flex-1 min-w-[150px]"><SelectValue placeholder="Batting Team..." /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value={match.team_a_id}>{match.TeamA.team_name}</SelectItem>
+                                            <SelectItem value={match.team_b_id}>{match.TeamB.team_name}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <Select onValueChange={setStrikerId} value={strikerId ?? undefined} disabled={!battingTeamId}>
+                                        <SelectTrigger className="flex-1 min-w-[150px]"><SelectValue placeholder="Striker..." /></SelectTrigger>
+                                        <SelectContent>
+                                            {battingTeamPlayers.length > 0 ? (
+                                                battingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)
+                                            ) : (
+                                                <div className="p-2 text-center text-sm text-muted-foreground">No players in roster.</div>
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                    <Select onValueChange={setNonStrikerId} value={nonStrikerId ?? undefined} disabled={!battingTeamId}>
+                                        <SelectTrigger className="flex-1 min-w-[150px]"><SelectValue placeholder="Non-Striker..." /></SelectTrigger>
+                                        <SelectContent>
+                                             {battingTeamPlayers.length > 0 ? (
+                                                battingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)
+                                            ) : (
+                                                <div className="p-2 text-center text-sm text-muted-foreground">No players in roster.</div>
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                    <Select onValueChange={setBowlerId} value={bowlerId ?? undefined} disabled={!bowlingTeamId}>
+                                        <SelectTrigger className="flex-1 min-w-[150px]"><SelectValue placeholder="Bowler..." /></SelectTrigger>
+                                        <SelectContent>
+                                            {bowlingTeamPlayers.length > 0 ? (
+                                                bowlingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)
+                                            ) : (
+                                                <div className="p-2 text-center text-sm text-muted-foreground">No players in roster.</div>
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                </>
+                            )}
                         </CardContent>
                     </Card>
 
