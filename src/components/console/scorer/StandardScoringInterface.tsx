@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -149,7 +150,7 @@ export function StandardScoringInterface({ match, onBack }: { match: ApiMatch, o
             return;
         }
         try {
-            await endMatch(match.id, winnerId === 'draw' ? null : winnerId);
+            await endMatch(match.id, winnerId === 'draw' ? null : winnerId, score);
             toast({ title: 'Match Ended', description: 'The match has been moved to completed status.' });
             setIsEndMatchDialogOpen(false);
             onBack();

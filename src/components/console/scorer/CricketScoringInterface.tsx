@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -109,7 +110,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
             return;
         }
         try {
-            await endMatch(match.id, winnerId === 'draw' ? null : winnerId);
+            await endMatch(match.id, winnerId === 'draw' ? null : winnerId, score);
             toast({ title: 'Match Ended', description: 'The match has been moved to completed status.' });
             setIsEndMatchDialogOpen(false);
             onBack();
@@ -137,6 +138,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
     const teamBScore = score[match.team_b_id] || { runs: 0, wickets: 0, overs: 0.0 };
 
     return (
+        <>
         <Card>
             <CardHeader>
                 <div className="flex items-center gap-4">
@@ -207,5 +209,36 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                 <Button variant="destructive" onClick={() => setIsEndMatchDialogOpen(true)}>End Match</Button>
             </CardFooter>
         </Card>
+         <Dialog open={isEndMatchDialogOpen} onOpenChange={setIsEndMatchDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>End Match & Select Winner</DialogTitle>
+                    <DialogDescription>
+                        Select the winning team to finalize the match. This action cannot be undone.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                    <RadioGroup onValueChange={setWinnerId} className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value={match.team_a_id} id={`team-a-${match.id}`} />
+                            <Label htmlFor={`team-a-${match.id}`}>{match.TeamA.team_name}</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value={match.team_b_id} id={`team-b-${match.id}`} />
+                            <Label htmlFor={`team-b-${match.id}`}>{match.TeamB.team_name}</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="draw" id={`draw-${match.id}`} />
+                            <Label htmlFor={`draw-${match.id}`}>Match Draw</Label>
+                        </div>
+                    </RadioGroup>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
+                    <Button onClick={handleEndMatch} disabled={!winnerId}>Confirm & End Match</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        </>
     )
 }

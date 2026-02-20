@@ -1,4 +1,5 @@
 
+
 import axios from 'axios';
 import type { College } from './types';
 
@@ -441,10 +442,11 @@ export const postMatchEvent = async (matchId: string, eventData: any) => {
     return response.data;
 }
 
-export const endMatch = async (matchId: string, winnerId: string | null) => {
-    const response = await api.post(`/scorer/matches/${matchId}/end`, {
+export const endMatch = async (matchId: string, winnerId: string | null, scoreDetails?: any) => {
+    const response = await api.put(`/scorer/matches/${matchId}/score`, {
         status: 'completed',
-        winner_id: winnerId
+        winner_id: winnerId,
+        score_details: scoreDetails,
     });
     return response.data;
 };
