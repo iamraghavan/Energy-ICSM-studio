@@ -217,7 +217,6 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
             </CardHeader>
              <CardContent className="grid lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-6">
-                    
                     {/* Unified Scoreboard */}
                     <div className="p-4 sm:p-6 grid grid-cols-[1fr,auto,1fr] items-center gap-2 sm:gap-4 text-center border rounded-lg bg-muted/50">
                         <div className="space-y-2">
@@ -233,83 +232,91 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                         </div>
                     </div>
 
-                    {/* Scoring Controls */}
-                    <div className="space-y-4">
-                        <h4 className="font-semibold text-lg">Log Ball Event</h4>
-                        <div className="space-y-3">
-                            <Label>Runs Scored</Label>
-                            <div className="flex flex-wrap gap-2">
-                                {[0, 1, 2, 3, 4, 6].map(runs => <Button key={runs} size="lg" variant="outline" onClick={() => handleBallPlayed({ runs })}>{runs}</Button>)}
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Other Events</Label>
-                            <div className="flex flex-wrap gap-2">
-                                <Button variant="secondary" onClick={() => setIsExtraModalOpen(true)}>Extra</Button>
-                                <Button variant="destructive" onClick={() => setIsWicketModalOpen(true)}>Wicket</Button>
-                            </div>
-                        </div>
-                    </div>
-
                     {/* Player Selection */}
-                    <div className="space-y-4">
-                        <h4 className="font-semibold text-lg">Current Players</h4>
-                        {rostersLoading ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Current Players</CardTitle>
+                        </CardHeader>
+                         <CardContent>
+                            {rostersLoading ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <Label>Batting Team</Label>
+                                        <Select onValueChange={setBattingTeamId} value={battingTeamId ?? undefined}>
+                                            <SelectTrigger><SelectValue placeholder="Select Team..." /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value={match.team_a_id}>{match.TeamA.team_name}</SelectItem>
+                                                <SelectItem value={match.team_b_id}>{match.TeamB.team_name}</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label>Bowler</Label>
+                                        <Select onValueChange={setBowlerId} value={bowlerId ?? undefined} disabled={!bowlingTeamId}>
+                                            <SelectTrigger><SelectValue placeholder="Select Player..." /></SelectTrigger>
+                                            <SelectContent>
+                                                {bowlingTeamPlayers.length > 0 ? (
+                                                    bowlingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)
+                                                ) : <div className="p-2 text-center text-sm text-muted-foreground">No players in roster.</div>}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label>Striker</Label>
+                                        <Select onValueChange={setStrikerId} value={strikerId ?? undefined} disabled={!battingTeamId}>
+                                            <SelectTrigger><SelectValue placeholder="Select Player..." /></SelectTrigger>
+                                            <SelectContent>
+                                                {battingTeamPlayers.length > 0 ? (
+                                                    battingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)
+                                                ) : <div className="p-2 text-center text-sm text-muted-foreground">No players in roster.</div>}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label>Non-Striker</Label>
+                                        <Select onValueChange={setNonStrikerId} value={nonStrikerId ?? undefined} disabled={!battingTeamId}>
+                                            <SelectTrigger><SelectValue placeholder="Select Player..." /></SelectTrigger>
+                                            <SelectContent>
+                                                {battingTeamPlayers.length > 0 ? (
+                                                    battingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)
+                                                ) : <div className="p-2 text-center text-sm text-muted-foreground">No players in roster.</div>}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                            )}
+                         </CardContent>
+                    </Card>
+
+                    {/* Scoring Controls */}
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>Log Ball Event</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-3">
+                                <Label>Runs Scored</Label>
+                                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                                    {[0, 1, 2, 3, 4, 6].map(runs => <Button key={runs} size="lg" variant="outline" onClick={() => handleBallPlayed({ runs })}>{runs}</Button>)}
+                                </div>
                             </div>
-                        ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <Label>Batting Team</Label>
-                                    <Select onValueChange={setBattingTeamId} value={battingTeamId ?? undefined}>
-                                        <SelectTrigger><SelectValue placeholder="Select Team..." /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value={match.team_a_id}>{match.TeamA.team_name}</SelectItem>
-                                            <SelectItem value={match.team_b_id}>{match.TeamB.team_name}</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label>Bowler</Label>
-                                    <Select onValueChange={setBowlerId} value={bowlerId ?? undefined} disabled={!bowlingTeamId}>
-                                        <SelectTrigger><SelectValue placeholder="Select Player..." /></SelectTrigger>
-                                        <SelectContent>
-                                            {bowlingTeamPlayers.length > 0 ? (
-                                                bowlingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)
-                                            ) : <div className="p-2 text-center text-sm text-muted-foreground">No players in roster.</div>}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label>Striker</Label>
-                                    <Select onValueChange={setStrikerId} value={strikerId ?? undefined} disabled={!battingTeamId}>
-                                        <SelectTrigger><SelectValue placeholder="Select Player..." /></SelectTrigger>
-                                        <SelectContent>
-                                            {battingTeamPlayers.length > 0 ? (
-                                                battingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)
-                                            ) : <div className="p-2 text-center text-sm text-muted-foreground">No players in roster.</div>}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label>Non-Striker</Label>
-                                    <Select onValueChange={setNonStrikerId} value={nonStrikerId ?? undefined} disabled={!battingTeamId}>
-                                        <SelectTrigger><SelectValue placeholder="Select Player..." /></SelectTrigger>
-                                        <SelectContent>
-                                            {battingTeamPlayers.length > 0 ? (
-                                                battingTeamPlayers.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.name}</SelectItem>)
-                                            ) : <div className="p-2 text-center text-sm text-muted-foreground">No players in roster.</div>}
-                                        </SelectContent>
-                                    </Select>
+                            <div className="space-y-2 mt-4">
+                                <Label>Other Events</Label>
+                                <div className="flex flex-wrap gap-2">
+                                    <Button variant="secondary" onClick={() => setIsExtraModalOpen(true)}>Extra</Button>
+                                    <Button variant="destructive" onClick={() => setIsWicketModalOpen(true)}>Wicket</Button>
                                 </div>
                             </div>
-                        )}
-                    </div>
+                         </CardContent>
+                    </Card>
                 </div>
 
                  <div className="lg:col-span-1">
-                    <div className="border rounded-lg sticky top-24">
+                    <Card className="sticky top-24">
                         <CardHeader>
                             <CardTitle>Match Timeline</CardTitle>
                         </CardHeader>
@@ -324,7 +331,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                                 </div>
                             </ScrollArea>
                         </CardContent>
-                    </div>
+                    </Card>
                 </div>
             </CardContent>
              <CardFooter className="justify-end">
