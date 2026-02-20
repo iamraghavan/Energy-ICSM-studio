@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { socketInstance as socket } from "@/lib/socket";
+import { socket } from "@/lib/socket";
 import type { ApiMatch } from "@/lib/api";
 
 export const useMatchSync = (matchId: string) => {
