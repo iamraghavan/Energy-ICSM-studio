@@ -3,7 +3,7 @@ import io from "socket.io-client";
 const SOCKET_URL = "https://energy-sports-meet-backend.onrender.com";
 
 export const socket = io(SOCKET_URL, {
-  transports: ["websocket", "polling"],
+  transports: ["websocket"], // Force websocket first
   secure: true,
   withCredentials: true,
   reconnection: true,
@@ -21,6 +21,10 @@ socket.on("connect", () => {
 
 socket.on("connect_error", (err) => {
   console.error("🔴 Connection Error:", err.message);
+  // Auto-fallback to polling if absolute websocket failure
+  if (err.message === "xhr poll error") {
+    socket.io.opts.transports = ["polling", "websocket"];
+  }
 });
 
 socket.on("disconnect", (reason) => {
