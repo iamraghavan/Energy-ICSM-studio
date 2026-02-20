@@ -91,7 +91,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
         const requiredFields = { batting_team_id: battingTeamId, striker_id: strikerId, non_striker_id: nonStrikerId, bowler_id: bowlerId };
         for (const [key, value] of Object.entries(requiredFields)) {
             if (!value) {
-                toast({ variant: "destructive", title: "Error", description: `Please select ${key.replace('_', ' ')}` });
+                toast({ variant: "destructive", title: "Error", description: `Please select ${key.replace(/_/g, ' ')}` });
                 return;
             }
         }
@@ -121,7 +121,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
     const battingTeamPlayers = useMemo(() => {
         if (!lineup || !battingTeamId) return [];
         return battingTeamId === match.team_a_id ? lineup.teamA : lineup.teamB;
-    }, [lineup, battingTeamId, match.team_a_id]);
+    }, [lineup, battingTeamId, match.team_a_id, match.team_b_id]);
 
     const bowlingTeamId = useMemo(() => {
         if (!battingTeamId) return null;
@@ -131,7 +131,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
     const bowlingTeamPlayers = useMemo(() => {
         if (!lineup || !bowlingTeamId) return [];
         return bowlingTeamId === match.team_a_id ? lineup.teamA : lineup.teamB;
-    }, [lineup, bowlingTeamId, match.team_a_id]);
+    }, [lineup, bowlingTeamId, match.team_a_id, match.team_b_id]);
     
     const teamAScore = score[match.team_a_id] || { runs: 0, wickets: 0, overs: 0.0 };
     const teamBScore = score[match.team_b_id] || { runs: 0, wickets: 0, overs: 0.0 };
@@ -167,10 +167,10 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                      <Card>
                         <CardHeader><CardTitle>Current Players</CardTitle></CardHeader>
                         <CardContent className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <Select onValueChange={setBattingTeamId}><SelectTrigger><SelectValue placeholder="Batting Team..." /></SelectTrigger><SelectContent><SelectItem value={match.team_a_id}>{match.TeamA.team_name}</SelectItem><SelectItem value={match.team_b_id}>{match.TeamB.team_name}</SelectItem></SelectContent></Select>
-                            <Select onValueChange={setStrikerId} disabled={!battingTeamId}><SelectTrigger><SelectValue placeholder="Striker..." /></SelectTrigger><SelectContent>{battingTeamPlayers.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select>
-                            <Select onValueChange={setNonStrikerId} disabled={!battingTeamId}><SelectTrigger><SelectValue placeholder="Non-Striker..." /></SelectTrigger><SelectContent>{battingTeamPlayers.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select>
-                            <Select onValueChange={setBowlerId} disabled={!bowlingTeamId}><SelectTrigger><SelectValue placeholder="Bowler..." /></SelectTrigger><SelectContent>{bowlingTeamPlayers.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select>
+                            <Select onValueChange={setBattingTeamId} value={battingTeamId ?? undefined}><SelectTrigger><SelectValue placeholder="Batting Team..." /></SelectTrigger><SelectContent><SelectItem value={match.team_a_id}>{match.TeamA.team_name}</SelectItem><SelectItem value={match.team_b_id}>{match.TeamB.team_name}</SelectItem></SelectContent></Select>
+                            <Select onValueChange={setStrikerId} value={strikerId ?? undefined} disabled={!battingTeamId}><SelectTrigger><SelectValue placeholder="Striker..." /></SelectTrigger><SelectContent>{battingTeamPlayers.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select>
+                            <Select onValueChange={setNonStrikerId} value={nonStrikerId ?? undefined} disabled={!battingTeamId}><SelectTrigger><SelectValue placeholder="Non-Striker..." /></SelectTrigger><SelectContent>{battingTeamPlayers.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select>
+                            <Select onValueChange={setBowlerId} value={bowlerId ?? undefined} disabled={!bowlingTeamId}><SelectTrigger><SelectValue placeholder="Bowler..." /></SelectTrigger><SelectContent>{bowlingTeamPlayers.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select>
                         </CardContent>
                     </Card>
 
