@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -20,7 +19,7 @@ export function LiveScoring() {
         setIsLoading(true);
         try {
             const matches = await getLiveMatches();
-            setLiveFixtures(matches);
+            setLiveFixtures(matches.filter(m => m.status === 'live'));
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch live matches.' });
         } finally {
@@ -78,7 +77,7 @@ export function LiveScoring() {
                     <div className="text-center py-16 text-muted-foreground border rounded-lg">
                         <Clapperboard className="h-12 w-12 mx-auto mb-4" />
                         <p className="font-medium">No matches are currently live.</p>
-                        <p className="text-sm">Scheduled matches will appear here once they are started.</p>
+                        <p className="text-sm">Start a match from the "Schedule" tab to begin scoring.</p>
                     </div>
                 )}
             </CardContent>
