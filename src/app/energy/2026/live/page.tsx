@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { getLiveMatches, type ApiMatch } from "@/lib/api";
-import { socket } from "@/lib/socket";
+import { getSocket } from "@/lib/socket";
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Clapperboard, MapPin, Trophy, Goal, Square, Replace, Info, Radio, Shield, Play, BarChart2 as BarChart } from 'lucide-react';
@@ -66,6 +66,7 @@ function TimelineEvent({ event, match }: { event: any, match: ApiMatch }) {
 function MatchDetailsDialog({ match: initialMatch, isOpen, onClose }: { match: ApiMatch | null, isOpen: boolean, onClose: () => void }) {
     const [match, setMatch] = useState<ApiMatch | null>(initialMatch);
     const [events, setEvents] = useState<any[]>([]);
+    const socket = getSocket();
 
     useEffect(() => {
         if (!initialMatch) return;
@@ -108,7 +109,7 @@ function MatchDetailsDialog({ match: initialMatch, isOpen, onClose }: { match: A
             socket.off('score_updated', handleScoreUpdate);
             socket.off('cricket_score_update', handleCricketUpdate);
         };
-    }, [initialMatch]);
+    }, [initialMatch, socket]);
 
     if (!isOpen || !match) {
         return null;
@@ -267,6 +268,7 @@ export default function LivePage() {
     const [selectedMatch, setSelectedMatch] = useState<ApiMatch | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
+    const socket = getSocket();
 
     const fetchLiveMatches = async () => {
         setIsLoading(true);

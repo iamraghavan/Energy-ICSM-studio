@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MatchCard } from './MatchCard';
 import { ArrowRight, Clapperboard, Trash2 } from 'lucide-react';
-import { socket } from '@/lib/socket';
+import { getSocket } from '@/lib/socket';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -25,6 +25,7 @@ export function LiveScoring() {
     const [liveFixtures, setLiveFixtures] = useState<ApiMatch[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
+    const socket = getSocket();
 
     const fetchLiveMatches = async () => {
         setIsLoading(true);

@@ -1,77 +1,37 @@
 "use client";
+import { io, Socket } from "socket.io-client";
 
-import { io, type Socket } from "socket.io-client";
+const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://energy-sports-meet-backend.onrender.com";
 
-/**
- * IMPROVED SOCKET.IO CLIENT CONFIGURATION
- * Optimized for Cloud Workstations & Render Deployment.
- */
-let socketSingleton: Socket;
+let socketInstance: Socket | null = null;
 
-function getSocket(): Socket {
-    // 1. Server-Side Rendering (SSR) Guard
+export const getSocket = (): Socket => {
+    // 1. SSR Guard: Ensure we only run on the browser
     if (typeof window === "undefined") {
-        return {
-            on: () => {},
-            off: () => {},
-            emit: () => {},
-            connected: false,
+        return { 
+            on: () => {}, off: () => {}, emit: () => {}, connected: false 
         } as unknown as Socket;
     }
 
-    if (!socketSingleton) {
-        const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://energy-sports-meet-backend.onrender.com";
-        
-        socketSingleton = io(SOCKET_URL, {
-            // 🚀 Force WebSocket transport to avoid polling issues in cloud environments.
-            transports: ["websocket"],
-            upgrade: false,
-
-            // 🔄 RECONNECTION: Aggressive but controlled
-            reconnection: true,
-            reconnectionAttempts: Infinity, 
+    if (!socketInstance) {
+        socketInstance = io(SOCKET_URL, {
+            // 🚀 SUCCESS CONFIG: Start with polling, then upgrade to WebSocket.
+            transports: ["polling", "websocket"],
+            
+            // ⏱️ RESILIENCE: High timeouts for Render "Cold Starts"
+            timeout: 60000,
+            reconnectionAttempts: 10,
             reconnectionDelay: 2000,
-            reconnectionDelayMax: 5000,
-            randomizationFactor: 0.5,
             
-            // ⏱️ TIMEOUTS: Balanced for Render's "Cold Starts"
-            timeout: 45000, 
-            
+            // 🔐 MATCH BACKEND: Use the exact same path
+            path: "/socket.io",
             autoConnect: true,
         });
 
-        // --- ENHANCED EVENT LOGGING ---
-        socketSingleton.on("connect", () => {
-            console.log("%c🟢 WebSocket Connected", "color: #4ade80; font-weight: bold", {
-                id: socketSingleton.id,
-                url: SOCKET_URL
-            });
-        });
-
-        socketSingleton.on("connect_error", (err) => {
-            console.error("%c🔴 WebSocket Error", "color: #f87171; font-weight: bold", err.message);
-            
-            if (err.message === "websocket error") {
-                console.warn("Possible Proxy/Firewall blockage detected.");
-            }
-        });
-
-        socketSingleton.on("disconnect", (reason) => {
-            console.warn("%c⚠️ WebSocket Disconnected", "color: #fbbf24; font-weight: bold", reason);
-            
-            // If the server kicked us out manually, try to reconnect
-            if (reason === "io server disconnect") {
-                socketSingleton.connect();
-            }
-        });
-
-        // 🛡️ RECOVERY: Log when connection state recovery succeeds
-        socketSingleton.on("reconnect", (attempt) => {
-            console.log(`♻️ Reconnected after ${attempt} attempts`);
-        });
+        // Diagnostic logs
+        socketInstance.on("connect", () => console.log("🔌 Connected to Backend:", socketInstance?.id));
+        socketInstance.on("connect_error", (err) => console.error("❌ Socket Error:", err.message));
+        socketInstance.on("disconnect", (reason) => console.warn("⚠️ WebSocket Disconnected", reason));
     }
-
-    return socketSingleton;
-}
-
-export const socket = getSocket();
+    return socketInstance;
+};

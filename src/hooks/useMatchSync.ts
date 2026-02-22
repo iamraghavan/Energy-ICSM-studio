@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
-import { socket } from "@/lib/socket";
+import { getSocket } from "@/lib/socket";
 import type { ApiMatch } from "@/lib/api";
 
 export const useMatchSync = (matchId: string) => {
+  const socket = getSocket();
   const [syncedData, setSyncedData] = useState<Partial<ApiMatch> | null>(null);
   const [isConnected, setIsConnected] = useState(socket.connected);
 
@@ -49,7 +50,7 @@ export const useMatchSync = (matchId: string) => {
       socket.off("score_updated", onUpdate);
       socket.off("cricket_score_update", onUpdate);
     };
-  }, [matchId]);
+  }, [matchId, socket]);
 
   /**
    * Submits an action via WebSocket and returns a promise that resolves or rejects

@@ -16,7 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Loader2, PlusCircle, CalendarCog, Trash2 } from 'lucide-react';
-import { socket } from '@/lib/socket';
+import { getSocket } from '@/lib/socket';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -49,6 +49,7 @@ export function MatchScheduler({ sportId }: { sportId?: string }) {
     const [isLoading, setIsLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const { toast } = useToast();
+    const socket = getSocket();
 
     const fetchUpcoming = async () => {
         if (!sportId) return;

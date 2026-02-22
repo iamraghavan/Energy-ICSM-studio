@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Loader2, Users } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { socket } from '@/lib/socket';
+import { getSocket } from '@/lib/socket';
 
 
 interface Player {
@@ -31,6 +31,7 @@ function LineupEditor({ match }: { match: ApiMatch }) {
     const [teamB, setTeamB] = useState<TeamLineup | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
+    const socket = getSocket();
 
     const fetchLineupData = async () => {
         setIsLoading(true);
