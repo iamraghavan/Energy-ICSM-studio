@@ -91,104 +91,109 @@ export function Header() {
         
 
         <div className="flex items-center gap-3">
-             {!isClient ? (
-                <div className="hidden md:flex items-center gap-3">
-                  <Skeleton className="h-9 w-24" />
-                  <Skeleton className="h-9 w-20" />
-                </div>
-              ) : studentSession ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="flex items-center gap-2 rounded-full h-10 px-2 pr-4">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>{studentSession.name ? studentSession.name.charAt(0).toUpperCase() : 'S'}</AvatarFallback>
-                      </Avatar>
-                       <span className="hidden md:inline-block font-medium">
-                        {studentSession.name || 'Student'}
-                    </span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56" align="end" forceMount>
-                    <DropdownMenuLabel className="font-normal">
-                      <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium leading-none">{studentSession.name || 'Student'}</p>
-                      </div>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link href="/energy/2026/student/dashboard">
-                        <User className="mr-2 h-4 w-4" />
-                        <span>Dashboard</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={handleLogout}>
-                      Logout
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <>
-                  <Button asChild size="sm" className="hidden md:inline-flex bg-primary hover:bg-primary/90">
-                    <Link href="/energy/2026/registration">Register</Link>
+          {/* Desktop Auth */}
+          <div className="hidden md:flex items-center gap-3">
+            {!isClient ? (
+              <>
+                <Skeleton className="h-9 w-24" />
+                <Skeleton className="h-9 w-20" />
+              </>
+            ) : studentSession ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center gap-2 rounded-full h-10 px-2 pr-4">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback>{studentSession.name ? studentSession.name.charAt(0).toUpperCase() : 'S'}</AvatarFallback>
+                    </Avatar>
+                     <span className="hidden md:inline-block font-medium">
+                      {studentSession.name || 'Student'}
+                  </span>
                   </Button>
-                  <Button asChild variant="outline" size="sm" className="hidden md:inline-flex">
-                    <Link href="/energy/2026/auth?action=login">Login</Link>
-                  </Button>
-                </>
-              )}
-            
-            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-            <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden">
-                <Menu className="h-6 w-6" />
-                <span className="sr-only">Toggle Menu</span>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">{studentSession.name || 'Student'}</p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/energy/2026/student/dashboard">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Dashboard</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={handleLogout}>
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <>
+                <Button asChild size="sm" className="bg-primary hover:bg-primary/90">
+                  <Link href="/energy/2026/registration">Register</Link>
                 </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-full max-w-xs p-0">
-                 <SheetHeader className="p-4 border-b">
-                    <SheetTitle asChild>
-                        <Link href="/energy/2026" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center space-x-2">
-                            <Logo />
-                        </Link>
-                    </SheetTitle>
-                    <SheetDescription className="sr-only">Mobile Navigation Menu</SheetDescription>
-                 </SheetHeader>
-                <div className="flex flex-col space-y-2 p-4">
-                {navLinks.map((link) => (
-                    <Button key={`mobile-${link.label}`} asChild variant="ghost" className="justify-start">
-                        <Link
-                            href={link.href}
-                            onClick={() => setIsMobileMenuOpen(false)}
-                        >
-                           {link.label}
-                        </Link>
-                    </Button>
-                ))}
-                <div className='pt-4 space-y-2'>
-                    {!isClient ? (
-                        <div className="space-y-2">
-                            <Skeleton className="h-10 w-full" />
-                            <Skeleton className="h-10 w-full" />
-                        </div>
-                    ) : studentSession ? (
-                      <Button asChild className="w-full" onClick={() => setIsMobileMenuOpen(false)}>
-                        <Link href="/energy/2026/student/dashboard">Go to Dashboard</Link>
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/energy/2026/auth?action=login">Login</Link>
+                </Button>
+              </>
+            )}
+          </div>
+
+          {/* Mobile Menu */}
+          <div className="md:hidden">
+            {!isClient ? (
+              <Skeleton className="h-10 w-10" />
+            ) : (
+              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+              <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                  <Menu className="h-6 w-6" />
+                  <span className="sr-only">Toggle Menu</span>
+                  </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-full max-w-xs p-0">
+                  <SheetHeader className="p-4 border-b">
+                      <SheetTitle asChild>
+                          <Link href="/energy/2026" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center space-x-2">
+                              <Logo />
+                          </Link>
+                      </SheetTitle>
+                      <SheetDescription className="sr-only">Mobile Navigation Menu</SheetDescription>
+                  </SheetHeader>
+                  <div className="flex flex-col space-y-2 p-4">
+                  {navLinks.map((link) => (
+                      <Button key={`mobile-${link.label}`} asChild variant="ghost" className="justify-start">
+                          <Link
+                              href={link.href}
+                              onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            {link.label}
+                          </Link>
                       </Button>
-                    ) : (
-                      <>
+                  ))}
+                  <div className='pt-4 space-y-2'>
+                      {studentSession ? (
                         <Button asChild className="w-full" onClick={() => setIsMobileMenuOpen(false)}>
-                            <Link href="/energy/2026/registration">Register Now</Link>
+                          <Link href="/energy/2026/student/dashboard">Go to Dashboard</Link>
                         </Button>
-                        <Button asChild variant="outline" className="w-full" onClick={() => setIsMobileMenuOpen(false)}>
-                            <Link href="/energy/2026/auth?action=login">Login</Link>
-                        </Button>
-                      </>
-                    )}
-                </div>
-                </div>
-            </SheetContent>
-            </Sheet>
+                      ) : (
+                        <>
+                          <Button asChild className="w-full" onClick={() => setIsMobileMenuOpen(false)}>
+                              <Link href="/energy/2026/registration">Register Now</Link>
+                          </Button>
+                          <Button asChild variant="outline" className="w-full" onClick={() => setIsMobileMenuOpen(false)}>
+                              <Link href="/energy/2026/auth?action=login">Login</Link>
+                          </Button>
+                        </>
+                      )}
+                  </div>
+                  </div>
+              </SheetContent>
+              </Sheet>
+            )}
+          </div>
         </div>
       </div>
     </header>
