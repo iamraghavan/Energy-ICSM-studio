@@ -23,14 +23,17 @@ function getSocket(): Socket {
         const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://energy-sports-meet-backend.onrender.com";
         
         socketSingleton = io(SOCKET_URL, {
-            // Let the client negotiate the transport, starting with polling.
-            
+            // 🚀 Force WebSocket transport to avoid polling issues in cloud environments.
+            transports: ["websocket"],
+            upgrade: false,
+
             // 🔄 RECONNECTION: Aggressive but controlled
             reconnection: true,
             reconnectionAttempts: Infinity, 
             reconnectionDelay: 2000,
             reconnectionDelayMax: 5000,
             randomizationFactor: 0.5,
+            
             // ⏱️ TIMEOUTS: Balanced for Render's "Cold Starts"
             timeout: 45000, 
             
