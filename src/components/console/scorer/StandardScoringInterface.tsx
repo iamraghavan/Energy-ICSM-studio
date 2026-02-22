@@ -85,7 +85,7 @@ function TimelineEvent({ event, match }: { event: any, match: ApiMatch }) {
 };
 
 export function StandardScoringInterface({ match, onBack }: { match: ApiMatch, onBack: () => void }) {
-    const { syncedData, submitAction } = useMatchSync(match.id);
+    const { syncedData, sendScore } = useMatchSync(match.id);
     
     const [score, setScore] = useState(match.score_details || {});
     const [events, setEvents] = useState<any[]>(Array.isArray(match.match_events) ? [...match.match_events].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) : []);
@@ -115,7 +115,7 @@ export function StandardScoringInterface({ match, onBack }: { match: ApiMatch, o
             event_type: 'goal',
         };
         try {
-            await submitAction("submit_standard_score", payload);
+            await sendScore("submit_standard_score", payload);
             toast({ title: "Point Synced!", description: `+1 point for ${teamId === match.team_a_id ? match.TeamA.team_name : match.TeamB.team_name}` });
         } catch(error) {
             toast({ variant: 'destructive', title: 'Sync Error', description: String(error) });
@@ -129,7 +129,7 @@ export function StandardScoringInterface({ match, onBack }: { match: ApiMatch, o
             event_type: eventType,
         };
         try {
-            await submitAction("submit_standard_score", payload);
+            await sendScore("submit_standard_score", payload);
             toast({ title: "Event Synced!", description: `${eventType} logged for ${selectedTeamForEvent === match.team_a_id ? match.TeamA.team_name : match.TeamB.team_name}` });
         } catch (error) {
              toast({ variant: 'destructive', title: 'Sync Error', description: String(error) });
@@ -146,7 +146,7 @@ export function StandardScoringInterface({ match, onBack }: { match: ApiMatch, o
             winner_id: winnerId === 'draw' ? null : winnerId
         };
         try {
-            await submitAction("update_match_status", payload);
+            await sendScore("update_match_status", payload);
             toast({ title: 'Match Ended!', description: 'The match has been moved to completed status.' });
             setIsEndMatchDialogOpen(false);
             onBack();

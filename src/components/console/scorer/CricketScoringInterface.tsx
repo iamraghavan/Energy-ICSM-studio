@@ -56,7 +56,7 @@ function CricketTimelineEvent({ event, match }: { event: any, match: ApiMatch | 
 
 
 export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, onBack: () => void }) {
-    const { syncedData, submitAction } = useMatchSync(match.id);
+    const { syncedData, sendScore } = useMatchSync(match.id);
     
     const [score, setScore] = useState(match.score_details || {});
     const [events, setEvents] = useState<any[]>(Array.isArray(match.match_events) ? [...match.match_events].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) : []);
@@ -142,7 +142,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
         
         const payload = { ...requiredFields, ...ballData };
         try {
-            await submitAction("submit_cricket_ball", payload);
+            await sendScore("submit_cricket_ball", payload);
             toast({ title: "Ball Synced!" });
             setIsExtraModalOpen(false);
             setIsWicketModalOpen(false);
@@ -182,7 +182,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
             winner_id: winnerId === 'draw' ? null : winnerId
         };
         try {
-            await submitAction("update_match_status", payload);
+            await sendScore("update_match_status", payload);
             toast({ title: 'Match Ended!', description: 'The match has been moved to completed status.' });
             setIsEndMatchDialogOpen(false);
             onBack();

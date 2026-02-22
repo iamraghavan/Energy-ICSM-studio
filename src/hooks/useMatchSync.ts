@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { getSocket } from "@/lib/socket";
 import type { ApiMatch } from "@/lib/api";
 
@@ -11,38 +11,37 @@ export const useMatchSync = (matchId: string) => {
   useEffect(() => {
     if (!matchId) return;
 
-    // --- Event Handlers ---
     const onConnect = () => setIsConnected(true);
     const onDisconnect = () => setIsConnected(false);
     
     const onUpdate = (data: any) => {
-      if (data.matchId === matchId) {
-        // Merge incoming data with previous state
-        setSyncedData(prev => {
-            const newEvents = data.event ? [data.event, ...(prev?.match_events || [])] :
-                              data.last_ball ? [data.last_ball, ...(prev?.match_events || [])] :
-                              prev?.match_events || [];
+        if (data.matchId === matchId) {
+            setSyncedData((prev) => {
+                const newEvents = data.event ? [data.event, ...(prev?.match_events || [])] :
+                                  data.last_ball ? [data.last_ball, ...(prev?.match_events || [])] :
+                                  prev?.match_events;
 
-            return {
-                ...prev,
-                score_details: data.score || prev?.score_details,
-                match_events: newEvents,
-            };
-        });
-      }
+                return {
+                    ...prev,
+                    score_details: data.score || data.scoreDetails || prev?.score_details,
+                    match_events: newEvents,
+                };
+            });
+        }
     };
     
-    // --- Register Listeners ---
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
     socket.on("score_updated", onUpdate);
     socket.on("cricket_score_update", onUpdate);
     
-    // --- Initial Actions ---
-    if (socket.connected) onConnect(); else onDisconnect();
+    if (socket.connected) {
+        onConnect();
+    } else {
+        socket.connect();
+    }
     socket.emit("join_match", matchId);
 
-    // --- Cleanup ---
     return () => {
       socket.emit("leave_match", matchId);
       socket.off("connect", onConnect);
@@ -52,11 +51,7 @@ export const useMatchSync = (matchId: string) => {
     };
   }, [matchId, socket]);
 
-  /**
-   * Submits an action via WebSocket and returns a promise that resolves or rejects
-   * based on the server's acknowledgment callback.
-   */
-  const submitAction = (eventName: string, payload: any): Promise<any> => {
+  const sendScore = useCallback((eventName: string, payload: any): Promise<any> => {
     return new Promise((resolve, reject) => {
       if (!socket.connected) {
           reject("Not connected to the server.");
@@ -70,7 +65,7 @@ export const useMatchSync = (matchId: string) => {
         }
       });
     });
-  };
+  }, [socket, matchId]);
 
-  return { syncedData, isConnected, submitAction };
+  return { syncedData, isConnected, sendScore };
 };
