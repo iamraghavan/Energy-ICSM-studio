@@ -23,11 +23,7 @@ function getSocket(): Socket {
         const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://energy-sports-meet-backend.onrender.com";
         
         socketSingleton = io(SOCKET_URL, {
-            // 🚀 TRANSPORT: Only use WebSocket. 
-            // DO NOT fallback to polling, as cloud workstations/Render proxies 
-            // frequently timeout during the polling handshake.
-            transports: ["websocket"], 
-            upgrade: false, 
+            // Re-allowing polling as the primary transport based on successful test case.
             
             // 🔄 RECONNECTION: Aggressive but controlled
             reconnection: true,
@@ -54,8 +50,6 @@ function getSocket(): Socket {
         socketSingleton.on("connect_error", (err) => {
             console.error("%c🔴 WebSocket Error", "color: #f87171; font-weight: bold", err.message);
             
-            // Note: We removed the "xhr poll error" fallback logic because 
-            // it leads to Infinite Timeout loops in your specific infrastructure.
             if (err.message === "websocket error") {
                 console.warn("Possible Proxy/Firewall blockage detected.");
             }
