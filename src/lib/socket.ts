@@ -23,7 +23,7 @@ function getSocket(): Socket {
         const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://energy-sports-meet-backend.onrender.com";
         
         socketSingleton = io(SOCKET_URL, {
-            // Re-allowing polling as the primary transport based on successful test case.
+            // Let the client negotiate the transport, starting with polling.
             
             // 🔄 RECONNECTION: Aggressive but controlled
             reconnection: true,
@@ -34,8 +34,6 @@ function getSocket(): Socket {
             // ⏱️ TIMEOUTS: Balanced for Render's "Cold Starts"
             timeout: 45000, 
             
-            // 🔐 SECURITY: Matches Backend CORS
-            withCredentials: true,
             autoConnect: true,
         });
 
