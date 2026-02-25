@@ -122,11 +122,15 @@ const QrCodeSticker = React.forwardRef<HTMLDivElement, QrCodeStickerProps>(
             <p className="text-sm font-medium mt-2">Pay using any UPI App</p>
 
             <div className="my-4">
-                {totalAmount > 0 ? (
+                {totalAmount > 0 && qrCodeUrl ? (
                     <Image src={qrCodeUrl} alt="Payment QR Code" width={170} height={170} />
                 ) : (
                     <div className="w-[170px] h-[170px] flex items-center justify-center bg-muted border rounded-md">
-                        <p className="text-xs text-muted-foreground text-center p-2">Select a sport to generate QR code</p>
+                        {totalAmount > 0 ? (
+                            <Loader2 className="h-8 w-8 animate-spin" />
+                        ) : (
+                           <p className="text-xs text-muted-foreground text-center p-2">Select a sport to generate QR code</p>
+                        )}
                     </div>
                 )}
             </div>
