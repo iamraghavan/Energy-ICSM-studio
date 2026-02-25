@@ -66,7 +66,7 @@ export function ScorerDashboard() {
                 </div>
                 
                 <TabsContent value="live">
-                    <LiveScoring />
+                    <LiveScoring sportId={selectedSportId} />
                 </TabsContent>
                 <TabsContent value="schedule">
                     <MatchScheduler sportId={selectedSportId} />

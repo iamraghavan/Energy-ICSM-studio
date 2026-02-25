@@ -1,9 +1,10 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getLiveMatches, deleteMatch, type ApiMatch } from "@/lib/api";
+import { getMatchesBySport, deleteMatch, type ApiMatch } from "@/lib/api";
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MatchCard } from './MatchCard';
@@ -21,17 +22,21 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
-export function LiveScoring() {
+export function LiveScoring({ sportId }: { sportId?: string }) {
     const [liveFixtures, setLiveFixtures] = useState<ApiMatch[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
     const socket = getSocket();
 
     const fetchLiveMatches = async () => {
+        if (!sportId) {
+            setLiveFixtures([]);
+            return;
+        }
         setIsLoading(true);
         try {
-            const matches = await getLiveMatches();
-            setLiveFixtures(matches.filter(m => m.status === 'live'));
+            const matches = await getMatchesBySport(sportId, 'live');
+            setLiveFixtures(matches);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch live matches.' });
         } finally {
@@ -63,7 +68,7 @@ export function LiveScoring() {
             socket.off('match_status_change', onUpdate);
         };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [sportId]);
 
     const handleDeleteMatch = async (matchId: string) => {
         try {
@@ -79,6 +84,59 @@ export function LiveScoring() {
         }
     };
 
+    const renderContent = () => {
+        if (!sportId) {
+            return (
+                <div className="text-center py-16 text-muted-foreground border rounded-lg">
+                    <Clapperboard className="h-12 w-12 mx-auto mb-4" />
+                    <p className="font-medium">Select a sport to view live matches.</p>
+                </div>
+            );
+        }
+
+        if (isLoading) {
+            return [...Array(3)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />);
+        }
+        
+        if (liveFixtures.length > 0) {
+            return liveFixtures.map(match => (
+                <MatchCard key={match.id} match={match}>
+                   <div className="flex gap-2">
+                       <Button asChild>
+                           <Link href={`/console/scorer/live/${match.id}`}>
+                                Score Match <ArrowRight className="ml-2 h-4 w-4" />
+                           </Link>
+                       </Button>
+                       <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                               <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This will permanently delete the match between {match.TeamA.team_name} and {match.TeamB.team_name}. This action cannot be undone.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteMatch(match.id)}>Delete</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                   </div>
+               </MatchCard>
+            ));
+        }
+
+        return (
+            <div className="text-center py-16 text-muted-foreground border rounded-lg">
+                <Clapperboard className="h-12 w-12 mx-auto mb-4" />
+                <p className="font-medium">No matches are currently live for this sport.</p>
+                <p className="text-sm">Start a match from the "Schedule" tab to begin scoring.</p>
+            </div>
+        );
+    }
 
     return (
          <Card>
@@ -87,44 +145,7 @@ export function LiveScoring() {
                 <CardDescription>Select a match to start live scoring on its dedicated page.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                {isLoading && [...Array(3)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
-                {!isLoading && liveFixtures.length > 0 ? (
-                    liveFixtures.map(match => (
-                       <MatchCard key={match.id} match={match}>
-                           <div className="flex gap-2">
-                               <Button asChild>
-                                   <Link href={`/console/scorer/live/${match.id}`}>
-                                        Score Match <ArrowRight className="ml-2 h-4 w-4" />
-                                   </Link>
-                               </Button>
-                               <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                       <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                This will permanently delete the match between {match.TeamA.team_name} and {match.TeamB.team_name}. This action cannot be undone.
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleDeleteMatch(match.id)}>Delete</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                           </div>
-                       </MatchCard>
-                    ))
-                ) : (
-                    !isLoading && 
-                    <div className="text-center py-16 text-muted-foreground border rounded-lg">
-                        <Clapperboard className="h-12 w-12 mx-auto mb-4" />
-                        <p className="font-medium">No matches are currently live.</p>
-                        <p className="text-sm">Start a match from the "Schedule" tab to begin scoring.</p>
-                    </div>
-                )}
+                {renderContent()}
             </CardContent>
         </Card>
     );
