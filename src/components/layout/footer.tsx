@@ -1,6 +1,8 @@
+'use client'
 import Link from 'next/link';
 import { Logo } from '@/components/shared/logo';
 import { Phone, MapPin } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const quickLinks = [
   { href: '/energy/2026', label: 'Home' },
@@ -19,7 +21,13 @@ const resourceLinks = [
 
 export function Footer() {
   return (
-    <footer className="border-t bg-primary text-primary-foreground">
+    <motion.footer
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true, amount: 0.2 }}
+        transition={{ duration: 0.8 }}
+        className="border-t bg-primary text-primary-foreground"
+    >
       <div className="container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 py-12">
         <div className="md:col-span-1 space-y-4">
           <Logo />
@@ -83,6 +91,6 @@ export function Footer() {
             </div>
         </div>
       </div>
-    </footer>
+    </motion.footer>
   );
 }

@@ -1,6 +1,14 @@
+'use client';
+import { motion } from 'framer-motion';
+
 export function Hero() {
   return (
-    <section className="relative w-full h-[60vh] md:h-[80vh] overflow-hidden">
+    <motion.section 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1 }}
+        className="relative w-full h-[60vh] md:h-[80vh] overflow-hidden"
+    >
       <video
         autoPlay
         loop
@@ -11,7 +19,6 @@ export function Hero() {
         <source src="/201.mp4" type="video/mp4" />
         Your browser does not support the video tag.
       </video>
-    </section>
+    </motion.section>
   );
 }
-// 07

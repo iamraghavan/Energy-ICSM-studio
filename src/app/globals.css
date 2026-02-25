@@ -27,29 +27,6 @@
     --chart-2: 320 100% 46%; /* Pink #ed008e */
     --radius: 0.5rem;
   }
-  .dark {
-    --background: 215 82% 10%;
-    --foreground: 0 0% 98%;
-    --card: 215 82% 15%;
-    --card-foreground: 0 0% 98%;
-    --popover: 215 82% 15%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 192 97% 44%; /* Light Blue for primary in dark mode */
-    --primary-foreground: 215 82% 10%;
-    --secondary: 320 100% 20%; /* Darker Pink */
-    --secondary-foreground: 0 0% 98%;
-    --muted: 215 82% 20%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 320 100% 56%; /* Brighter Pink for accent in dark mode */
-    --accent-foreground: 215 82% 10%;
-    --destructive: 30 99% 54%; /* Orange */
-    --destructive-foreground: 0 0% 98%;
-    --border: 215 82% 25%;
-    --input: 215 82% 25%;
-    --ring: 192 97% 44%;
-    --chart-1: 192 97% 44%;
-    --chart-2: 320 100% 56%;
-  }
 }
 
 @layer base {

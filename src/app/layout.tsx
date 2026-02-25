@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Script from 'next/script';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
+import SmoothScroll from '@/components/shared/smooth-scroll';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://energy.egspgroup.in'),
@@ -70,7 +71,9 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased" suppressHydrationWarning={true}>
-        {children}
+        <SmoothScroll>
+            {children}
+        </SmoothScroll>
         <Toaster />
         <Script
           src={`https://maps.googleapis.com/maps/api/js?key=AIzaSyDfUl7G2CIfkJdCRwakYUQeen2o5cCzcVE&libraries=places`}

@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { format } from 'date-fns';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // --- Timeline Event Component (from existing code, seems fine) ---
 function TimelineEvent({ event, match }: { event: any, match: ApiMatch }) {
@@ -49,7 +50,14 @@ function TimelineEvent({ event, match }: { event: any, match: ApiMatch }) {
     const time = new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     return (
-        <div className="flex items-start gap-3">
+        <motion.div 
+            layout
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.3 }}
+            className="flex items-start gap-3"
+        >
             <div className="text-xs text-muted-foreground pt-1.5">{time}</div>
             <div className={cn("flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center", color)}>
                 <Icon className="h-4 w-4" fill={['yellow_card', 'red_card'].includes(event.event_type) ? 'currentColor' : 'none'} />
@@ -58,7 +66,7 @@ function TimelineEvent({ event, match }: { event: any, match: ApiMatch }) {
                 <p className="font-semibold">{title}</p>
                 <p className="text-sm text-muted-foreground">{commentary || teamName}</p>
             </div>
-        </div>
+        </motion.div>
     );
 };
 
@@ -180,11 +188,13 @@ function MatchDetailsDialog({ match: initialMatch, isOpen, onClose }: { match: A
                     <TabsContent value="timeline" className="mt-4">
                         <ScrollArea className="h-64 pr-4">
                             <div className="space-y-4">
+                                <AnimatePresence initial={false}>
                                 {events.length > 0 ? (
-                                    events.map((event, i) => <TimelineEvent key={i} event={event} match={match} />)
+                                    events.map((event, i) => <TimelineEvent key={event.id || `${event.timestamp}-${i}`} event={event} match={match} />)
                                 ) : (
                                     <p className="text-muted-foreground text-center py-8 text-sm">No match events logged yet...</p>
                                 )}
+                                </AnimatePresence>
                             </div>
                         </ScrollArea>
                     </TabsContent>
@@ -213,6 +223,13 @@ function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => v
     };
 
     return (
+        <motion.div
+            layout
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+        >
         <Card 
             onClick={onSelect} 
             className="cursor-pointer group overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-card"
@@ -276,6 +293,7 @@ function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => v
                 </div>
             </div>
         </Card>
+        </motion.div>
     );
 }
 
@@ -338,15 +356,17 @@ export default function LivePage() {
                             {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-60 w-full" />)}
                         </div>
                     ) : liveMatches.length > 0 ? (
-                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {liveMatches.map((match) => (
-                                <LiveMatchCard 
-                                    key={match.id} 
-                                    match={match} 
-                                    onSelect={() => setSelectedMatch(match)} 
-                                />
-                            ))}
-                        </div>
+                         <AnimatePresence>
+                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {liveMatches.map((match) => (
+                                    <LiveMatchCard 
+                                        key={match.id} 
+                                        match={match} 
+                                        onSelect={() => setSelectedMatch(match)} 
+                                    />
+                                ))}
+                            </div>
+                        </AnimatePresence>
                     ) : (
                          <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg">
                             <Clapperboard className="h-12 w-12 mx-auto mb-4" />
