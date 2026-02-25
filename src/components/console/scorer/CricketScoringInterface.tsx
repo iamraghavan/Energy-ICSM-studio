@@ -85,7 +85,7 @@ const ThisOverBall = ({ event }: { event: any }) => {
 
 
 export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, onBack: () => void }) {
-    const { syncedData, sendScore } = useMatchSync(match.id);
+    const { syncedData, sendEvent } = useMatchSync(match.id);
     
     const [score, setScore] = useState(match.score_details || {});
     const [events, setEvents] = useState<any[]>(Array.isArray(match.match_events) ? [...match.match_events].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) : []);
@@ -178,7 +178,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
 
         const payload = { ...requiredFields, ...ballData };
         try {
-            await sendScore("submit_cricket_ball", payload);
+            await sendEvent("submit_cricket_ball", payload);
             if(ballData.runs % 2 !== 0 && !ballData.extra_type) {
                 setStrikerId(nonStrikerId);
                 setNonStrikerId(strikerId);
@@ -190,7 +190,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
         } catch(error) {
             toast({ variant: 'destructive', title: 'Sync Error', description: String(error) });
         }
-    }, [battingTeamId, bowlerId, nonStrikerId, sendScore, strikerId, toast, nonStrikerId]);
+    }, [battingTeamId, bowlerId, nonStrikerId, sendEvent, strikerId, toast]);
     
     const handleWicketSubmit = () => {
         if (!wicketType || !playerOutId) return toast({ variant: 'destructive', title: 'Missing Details' });
@@ -201,7 +201,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
         if (!winnerId) return toast({ variant: 'destructive', title: 'Error', description: 'Please select a winner.' });
         const payload = { status: "completed", winner_id: winnerId === 'draw' ? null : winnerId };
         try {
-            await sendScore("update_match_status", payload);
+            await sendEvent("update_match_status", payload);
             toast({ title: 'Match Ended!' });
             setIsEndMatchDialogOpen(false);
             onBack();
