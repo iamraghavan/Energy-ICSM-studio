@@ -28,6 +28,9 @@ export const getSocket = (): Socket => {
       reconnectionAttempts: 10,
       reconnectionDelay: 2000,
       
+      // ✅ CRITICAL FIX: Explicitly set the path to match the backend server.
+      path: "/socket.io/",
+      
       autoConnect: true,
       withCredentials: true,
     });
