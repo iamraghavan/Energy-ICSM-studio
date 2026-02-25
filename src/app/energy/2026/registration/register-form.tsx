@@ -10,6 +10,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Tesseract from 'tesseract.js';
 import html2canvas from 'html2canvas';
+import { motion } from 'framer-motion';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,6 +74,28 @@ interface QrCodeStickerProps {
     selectedSportIds: string[];
     apiSports: ApiSport[];
 }
+
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.1,
+        },
+    },
+};
+
+const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+        y: 0,
+        opacity: 1,
+        transition: {
+            duration: 0.3,
+        },
+    },
+};
+
 
 const QrCodeSticker = React.forwardRef<HTMLDivElement, QrCodeStickerProps>(
     ({ qrCodeUrl, upiId, totalAmount, selectedSportIds, apiSports }, ref) => {
@@ -487,7 +510,13 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                 </CardHeader>
                 <CardContent className="p-4 md:p-8">
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                        <motion.form 
+                            onSubmit={form.handleSubmit(onSubmit)} 
+                            className="space-y-8"
+                            variants={containerVariants}
+                            initial="hidden"
+                            animate="visible"
+                        >
                             
                             <FormSection title="Personal Details">
                                 <Alert>
@@ -694,11 +723,13 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                                 </div>
                              </FormSection>
 
-                            <Button type="submit" className="w-full" disabled={isSubmitting}>
-                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {isSubmitting ? "Processing..." : 'Register Now'}
-                            </Button>
-                        </form>
+                             <motion.div variants={itemVariants}>
+                                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    {isSubmitting ? "Processing..." : 'Register Now'}
+                                </Button>
+                             </motion.div>
+                        </motion.form>
                     </Form>
                 </CardContent>
             </Card>
@@ -708,9 +739,9 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
 
 function FormSection({ title, children }: { title: string, children: React.ReactNode }) {
     return (
-        <div className="space-y-4">
+        <motion.div className="space-y-4" variants={itemVariants}>
             <h3 className="text-xl font-semibold font-headline border-b pb-2">{title}</h3>
             <div className="space-y-4 pt-4">{children}</div>
-        </div>
+        </motion.div>
     );
 }
