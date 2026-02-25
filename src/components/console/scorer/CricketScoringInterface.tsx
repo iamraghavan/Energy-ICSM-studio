@@ -92,7 +92,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
     
     const [score, setScore] = useState(initialMatch.score_details || {});
     const [activePlayers, setActivePlayers] = useState(initialMatch.match_state || {});
-    const [events, setEvents] = useState<any[]>(Array.isArray(initialMatch.match_events) ? [...initialMatch.match_events].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) : []);
+    const [events, setEvents] = useState<any[]>([]);
 
     const [teamARoster, setTeamARoster] = useState<StudentTeamMember[]>([]);
     const [teamBRoster, setTeamBRoster] = useState<StudentTeamMember[]>([]);
@@ -132,24 +132,29 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
         const fetchRosterData = async () => {
             setRostersLoading(true);
             try {
-                const [teamAData, teamBData] = await Promise.all([
+                const [teamAData, teamBData, matchEvents] = await Promise.all([
                     getScorerTeamDetails(initialMatch.team_a_id),
-                    getScorerTeamDetails(initialMatch.team_b_id)
+                    getScorerTeamDetails(initialMatch.team_b_id),
+                    axios.get(`${API_BASE_URL}/scorer/matches/${initialMatch.id}/events`).then(res => res.data)
                 ]);
                 setTeamARoster(teamAData.members || []);
                 setTeamBRoster(teamBData.members || []);
-                setModalBattingTeamId(activePlayers?.batting_team_id || initialMatch.team_a_id);
-                setModalStrikerId(activePlayers?.striker_id);
-                setModalNonStrikerId(activePlayers?.non_striker_id);
-                setModalBowlerId(activePlayers?.bowler_id);
+                setEvents(matchEvents || []);
+                
+                const currentState = initialMatch.match_state || {};
+                setActivePlayers(currentState);
+                setModalBattingTeamId(currentState?.batting_team_id || initialMatch.team_a_id);
+                setModalStrikerId(currentState?.striker_id);
+                setModalNonStrikerId(currentState?.non_striker_id);
+                setModalBowlerId(currentState?.bowler_id);
             } catch (error) {
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch team rosters.' });
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch team rosters or events.' });
             } finally {
                 setRostersLoading(false);
             }
         };
         fetchRosterData();
-    }, [initialMatch.team_a_id, initialMatch.team_b_id, toast, activePlayers]);
+    }, [initialMatch.team_a_id, initialMatch.team_b_id, initialMatch.id, initialMatch.match_state, toast]);
     
     const { batting_team_id, striker_id, non_striker_id, bowler_id } = activePlayers;
 
@@ -196,13 +201,18 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
             {
                 striker_id: modalStrikerId,
                 non_striker_id: modalNonStrikerId,
-                bowler_id: modalBowlerId,
-                batting_team_id: modalBattingTeamId
+                bowler_id: modalBowlerId
             }, 
             {
                 headers: { Authorization: `Bearer ${token}` }
             });
             toast({ title: 'Players selection saved!' });
+            setActivePlayers({
+                 ...activePlayers,
+                 striker_id: modalStrikerId,
+                 non_striker_id: modalNonStrikerId,
+                 bowler_id: modalBowlerId
+            })
             setIsPlayerSelectOpen(false);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Could not save player selection.' });
