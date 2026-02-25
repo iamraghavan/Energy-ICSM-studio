@@ -1,10 +1,9 @@
-
 'use client';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getScorerTeamDetails, type ApiMatch, type FullSportsHeadTeam, type StudentTeamMember } from "@/lib/api";
-import { ArrowLeft, Timer as TimerIcon, Play, Pause, Goal, Replace, Square, Info, MessageSquare, RotateCcw, SendHorizone } from 'lucide-react';
+import { ArrowLeft, Timer as TimerIcon, Play, Pause, Goal, Replace, Square, Info, MessageSquare, RotateCcw, SendHorizonal, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -329,7 +328,7 @@ export function StandardScoringInterface({ match, onBack }: { match: ApiMatch, o
                             <CardContent className="flex items-start gap-2">
                                 <Textarea placeholder="What's happening in the match?" value={commentary} onChange={(e) => setCommentary(e.target.value)} />
                                 <Button onClick={handleAddCommentary} disabled={isSubmittingCommentary} size="icon">
-                                    {isSubmittingCommentary ? <Loader2 className="h-4 w-4 animate-spin"/> : <SendHorizone className="h-4 w-4" />}
+                                    {isSubmittingCommentary ? <Loader2 className="h-4 w-4 animate-spin"/> : <SendHorizonal className="h-4 w-4" />}
                                 </Button>
                             </CardContent>
                         </Card>
