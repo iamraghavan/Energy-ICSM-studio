@@ -427,11 +427,6 @@ export const deleteMatch = async (matchId: string) => {
     return response.data;
 };
 
-export const startMatch = async (matchId: string) => {
-    const response = await api.post(`/scorer/matches/${matchId}/start`);
-    return response.data;
-};
-
 export const postStandardScore = async (matchId: string, data: any) => {
     const response = await api.post(`/scorer/matches/${matchId}/score/standard`, data);
     return response.data;
@@ -771,10 +766,5 @@ export const getMatchEvents = async (matchId: string): Promise<any[]> => {
 
 export const saveLineup = async (matchId: string, lineup: {player_id: string, is_substitute: boolean}[]) => {
     const response = await api.post(`/scorer/matches/${matchId}/lineup`, { players: lineup });
-    return response.data;
-}
-
-export const saveToss = async (matchId: string, tossData: {winner_id: string, decision: 'bat' | 'field', details: string}) => {
-    const response = await api.post(`/scorer/matches/${matchId}/toss`, tossData);
     return response.data;
 }

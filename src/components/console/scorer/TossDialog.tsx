@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -8,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { saveToss, startMatch, type ApiMatch } from '@/lib/api';
+import { type ApiMatch } from '@/lib/api';
 import { Loader2 } from 'lucide-react';
+import { getSocket } from '@/lib/socket';
 
 interface TossDialogProps {
     isOpen: boolean;
@@ -30,26 +32,48 @@ export function TossDialog({ isOpen, onClose, match, onTossDecided }: TossDialog
             return;
         }
         setIsSubmitting(true);
-        try {
-            const winnerName = tossWinnerId === match.team_a_id ? match.TeamA.team_name : match.TeamB.team_name;
-            const details = `${winnerName} won the toss and elected to ${decision}.`;
+        const socket = getSocket();
 
-            // First, save the toss details
-            await saveToss(match.id, {
+        const winnerName = tossWinnerId === match.team_a_id ? match.TeamA.team_name : match.TeamB.team_name;
+        const details = `${winnerName} won the toss and elected to ${decision}.`;
+
+        const tossPromise = new Promise<void>((resolve, reject) => {
+            socket.emit('update_toss', {
+                matchId: match.id,
                 winner_id: tossWinnerId,
                 decision,
                 details,
+            }, (ack: { status: string; message?: string }) => {
+                if (ack && ack.status === 'ok') {
+                    resolve();
+                } else {
+                    reject(new Error(ack?.message || 'Failed to update toss.'));
+                }
             });
+        });
 
-            // Then, start the match
-            await startMatch(match.id);
+        const startMatchPromise = new Promise<void>((resolve, reject) => {
+            socket.emit('update_match_status', {
+                matchId: match.id,
+                status: 'live',
+            }, (ack: { status: string; message?: string }) => {
+                if (ack && ack.status === 'ok') {
+                    resolve();
+                } else {
+                    reject(new Error(ack?.message || 'Failed to start match.'));
+                }
+            });
+        });
+
+        try {
+            await Promise.all([tossPromise, startMatchPromise]);
             
             toast({ title: 'Match is Live!', description: 'The match has been started successfully.' });
             onTossDecided();
             onClose();
 
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not start the match.' });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error', description: error.message || 'Could not start the match.' });
         } finally {
             setIsSubmitting(false);
         }
