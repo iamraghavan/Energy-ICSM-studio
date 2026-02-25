@@ -2,7 +2,7 @@
 import { io, Socket } from "socket.io-client";
 
 const SOCKET_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";
+  process.env.NEXT_PUBLIC_BACKEND_URL || "https://energy-sports-meet-backend.onrender.com";
 
 let socketInstance: Socket | null = null;
 
@@ -20,7 +20,7 @@ export const getSocket = (): Socket => {
     socketInstance = io(SOCKET_URL, {
       // Force WebSocket-only transport to bypass HTTP polling issues.
       transports: ["websocket"],
-      path: "/socket.io",
+      path: "/socket.io/",
       
       // Resilience settings
       reconnection: true,
