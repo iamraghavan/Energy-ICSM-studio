@@ -1,8 +1,9 @@
+
 "use client";
 import { io, Socket } from "socket.io-client";
 
 const SOCKET_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "https://energy-sports-meet-backend.onrender.com";
+  process.env.NEXT_PUBLIC_BACKEND_URL || "https://energy-sports-meet-backend.onrender.com/";
 
 let socketInstance: Socket | null = null;
 
@@ -18,26 +19,26 @@ export const getSocket = (): Socket => {
   }
   if (!socketInstance) {
     socketInstance = io(SOCKET_URL, {
-      // Force WebSocket-only transport to bypass HTTP polling issues.
-      transports: ["websocket"],
-      path: "/socket.io/",
-      
-      // Resilience settings
-      reconnection: true,
-      reconnectionAttempts: 5,
-      timeout: 10000, 
-      
+      // 🚀 SUCCESS CONFIG: Start with polling, then upgrade to WebSocket.
+      // This is critical for passing through cloud firewalls/proxies.
+      transports: ["polling", "websocket"],
+      // ⏱️ RESILIENCE: High timeouts for Render "Cold Starts"
+      timeout: 60000,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 2000,
+      // 🔐 MATCH BACKEND: Use the exact same path
+      path: "/socket.io",
       autoConnect: true,
+      withCredentials: true,
     });
-    
     // Diagnostic logs
     socketInstance.on("connect", () =>
-      console.log("🔌 Connected to Backend via WebSocket:", socketInstance?.id),
+      console.log("🔌 Connected to Backend:", socketInstance?.id),
     );
     socketInstance.on("connect_error", (err) =>
-      console.error("❌ Socket Connection Error:", err.message),
+      console.error("❌ Socket Error:", err.message),
     );
-     socketInstance.on("disconnect", (reason) => {
+    socketInstance.on("disconnect", (reason) => {
         console.warn("⚠️ WebSocket Disconnected:", reason);
     });
   }

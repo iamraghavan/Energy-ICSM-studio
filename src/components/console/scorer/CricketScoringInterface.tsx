@@ -1,6 +1,7 @@
 
 'use client';
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import axios from 'axios';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getScorerTeamDetails, type ApiMatch, type FullSportsHeadTeam, type StudentTeamMember } from "@/lib/api";
@@ -15,7 +16,9 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useMatchSync } from '@/hooks/useMatchSync';
+import { useMatchSocket } from '@/hooks/useMatchSync';
+
+const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
 
 const extraTypes = ['wide', 'noball', 'bye', 'legbye'];
 const wicketTypes = ['bowled', 'caught', 'runout', 'lbw', 'stumped', 'hit_wicket'];
@@ -84,19 +87,23 @@ const ThisOverBall = ({ event }: { event: any }) => {
 }
 
 
-export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, onBack: () => void }) {
-    const { syncedData, sendEvent } = useMatchSync(match.id);
+export function CricketScoringInterface({ match: initialMatch, onBack }: { match: ApiMatch, onBack: () => void }) {
+    const { score: liveScore, matchState, isConnected, submitAction } = useMatchSocket(initialMatch.id);
     
-    const [score, setScore] = useState(match.score_details || {});
-    const [events, setEvents] = useState<any[]>(Array.isArray(match.match_events) ? [...match.match_events].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) : []);
+    const [score, setScore] = useState(initialMatch.score_details || {});
+    const [activePlayers, setActivePlayers] = useState(initialMatch.match_state || {});
+    const [events, setEvents] = useState<any[]>(Array.isArray(initialMatch.match_events) ? [...initialMatch.match_events].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) : []);
+
     const [teamARoster, setTeamARoster] = useState<StudentTeamMember[]>([]);
     const [teamBRoster, setTeamBRoster] = useState<StudentTeamMember[]>([]);
     const [rostersLoading, setRostersLoading] = useState(true);
 
-    const [battingTeamId, setBattingTeamId] = useState<string | null>(match.team_a_id);
-    const [strikerId, setStrikerId] = useState<string | null>(null);
-    const [nonStrikerId, setNonStrikerId] = useState<string | null>(null);
-    const [bowlerId, setBowlerId] = useState<string | null>(null);
+    // State for the player selection modal
+    const [isPlayerSelectOpen, setIsPlayerSelectOpen] = useState(false);
+    const [modalBattingTeamId, setModalBattingTeamId] = useState<string | null>(activePlayers?.batting_team_id || initialMatch.team_a_id);
+    const [modalStrikerId, setModalStrikerId] = useState<string | null>(null);
+    const [modalNonStrikerId, setModalNonStrikerId] = useState<string | null>(null);
+    const [modalBowlerId, setModalBowlerId] = useState<string | null>(null);
     
     const [isExtraModalOpen, setIsExtraModalOpen] = useState(false);
     const [extraType, setExtraType] = useState<string>('wide');
@@ -109,43 +116,32 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
     const [runsOnWicket, setRunsOnWicket] = useState<number>(0);
 
     const [isEndMatchDialogOpen, setIsEndMatchDialogOpen] = useState(false);
-    const [isPlayerSelectOpen, setIsPlayerSelectOpen] = useState(false);
     const [winnerId, setWinnerId] = useState<string | null>(null);
 
     const { toast } = useToast();
     
-    const bowlingTeamId = useMemo(() => battingTeamId === match.team_a_id ? match.team_b_id : match.team_a_id, [battingTeamId, match]);
-    const battingTeam = useMemo(() => battingTeamId === match.team_a_id ? match.TeamA : match.TeamB, [battingTeamId, match]);
-    const bowlingTeam = useMemo(() => bowlingTeamId === match.team_a_id ? match.TeamA : match.TeamB, [bowlingTeamId, match]);
-    const battingTeamRoster = useMemo(() => battingTeamId === match.team_a_id ? teamARoster : teamBRoster, [battingTeamId, teamARoster, teamBRoster, match.team_a_id]);
-    const bowlingTeamRoster = useMemo(() => bowlingTeamId === match.team_a_id ? teamARoster : teamBRoster, [bowlingTeamId, teamARoster, teamBRoster, match.team_a_id]);
+    useEffect(() => {
+        if (liveScore) setScore(liveScore);
+    }, [liveScore]);
 
     useEffect(() => {
-        if(syncedData) {
-            if (syncedData.score_details) setScore(syncedData.score_details);
-            if (syncedData.match_events) {
-                setEvents(prev => [...syncedData.match_events!, ...prev]
-                    .filter((v, i, a) => a.findIndex(t => t?.id === v?.id) === i)
-                    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-                );
-            }
-        }
-    }, [syncedData]);
-
+        if (matchState) setActivePlayers(matchState);
+    }, [matchState]);
+    
      useEffect(() => {
         const fetchRosterData = async () => {
             setRostersLoading(true);
             try {
                 const [teamAData, teamBData] = await Promise.all([
-                    getScorerTeamDetails(match.team_a_id),
-                    getScorerTeamDetails(match.team_b_id)
+                    getScorerTeamDetails(initialMatch.team_a_id),
+                    getScorerTeamDetails(initialMatch.team_b_id)
                 ]);
                 setTeamARoster(teamAData.members || []);
                 setTeamBRoster(teamBData.members || []);
-                if (!strikerId) setStrikerId(teamAData.members?.[0]?.student_id || null);
-                if (!nonStrikerId) setNonStrikerId(teamAData.members?.[1]?.student_id || null);
-                if (!bowlerId) setBowlerId(teamBData.members?.[0]?.student_id || null);
-
+                setModalBattingTeamId(activePlayers?.batting_team_id || initialMatch.team_a_id);
+                setModalStrikerId(activePlayers?.striker_id);
+                setModalNonStrikerId(activePlayers?.non_striker_id);
+                setModalBowlerId(activePlayers?.bowler_id);
             } catch (error) {
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch team rosters.' });
             } finally {
@@ -153,36 +149,32 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
             }
         };
         fetchRosterData();
-    }, [match.team_a_id, match.team_b_id, toast, strikerId, nonStrikerId, bowlerId]);
+    }, [initialMatch.team_a_id, initialMatch.team_b_id, toast, activePlayers]);
     
+    const { batting_team_id, striker_id, non_striker_id, bowler_id } = activePlayers;
+
+    const bowlingTeamId = useMemo(() => batting_team_id === initialMatch.team_a_id ? initialMatch.team_b_id : initialMatch.team_a_id, [batting_team_id, initialMatch]);
+    const battingTeam = useMemo(() => batting_team_id === initialMatch.team_a_id ? initialMatch.TeamA : initialMatch.TeamB, [batting_team_id, initialMatch]);
+    const bowlingTeam = useMemo(() => bowlingTeamId === initialMatch.team_a_id ? initialMatch.TeamA : initialMatch.TeamB, [bowlingTeamId, initialMatch]);
+    const battingTeamRoster = useMemo(() => batting_team_id === initialMatch.team_a_id ? teamARoster : teamBRoster, [batting_team_id, teamARoster, teamBRoster, initialMatch.team_a_id]);
+    const bowlingTeamRoster = useMemo(() => bowlingTeamId === initialMatch.team_a_id ? teamARoster : teamBRoster, [bowlingTeamId, teamARoster, teamBRoster, initialMatch.team_a_id]);
+
     useEffect(() => {
-        if(wicketType === 'bowled' || wicketType === 'lbw' || wicketType === 'stumped' || wicketType === 'hit_wicket') setPlayerOutId(strikerId);
+        if(wicketType === 'bowled' || wicketType === 'lbw' || wicketType === 'stumped' || wicketType === 'hit_wicket') setPlayerOutId(striker_id);
         else setPlayerOutId(null);
-    }, [wicketType, strikerId]);
+    }, [wicketType, striker_id]);
 
 
     const handleBallPlayed = useCallback(async (ballData: any) => {
-        const requiredFields = { batting_team_id: battingTeamId, striker_id: strikerId, non_striker_id: nonStrikerId, bowler_id: bowlerId };
-        for (const [key, value] of Object.entries(requiredFields)) {
-            if (!value) {
-                toast({ variant: "destructive", title: "Selection Missing", description: `Please select the ${key.replace(/_/g, ' ')}.` });
-                setIsPlayerSelectOpen(true);
-                return;
-            }
-        }
-        if (strikerId === nonStrikerId) {
-            toast({ variant: "destructive", title: "Invalid Selection", description: `Striker and non-striker cannot be the same player.` });
+        if (!striker_id || !non_striker_id || !bowler_id) {
+            toast({ variant: "destructive", title: "Selection Missing", description: `Please select striker, non-striker, and bowler.` });
             setIsPlayerSelectOpen(true);
             return;
         }
-
-        const payload = { ...requiredFields, ...ballData };
+       
+        const payload = { ...ballData, striker_id, bowler_id, batting_team_id };
         try {
-            await sendEvent("submit_cricket_ball", payload);
-            if(ballData.runs % 2 !== 0 && !ballData.extra_type) {
-                setStrikerId(nonStrikerId);
-                setNonStrikerId(strikerId);
-            }
+            await submitAction("submit_cricket_ball", payload);
             toast({ title: "Ball Logged!" });
             setIsExtraModalOpen(false);
             setIsWicketModalOpen(false);
@@ -190,18 +182,38 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
         } catch(error) {
             toast({ variant: 'destructive', title: 'Sync Error', description: String(error) });
         }
-    }, [battingTeamId, bowlerId, nonStrikerId, sendEvent, strikerId, toast]);
+    }, [batting_team_id, bowler_id, submitAction, striker_id, non_striker_id, toast]);
     
     const handleWicketSubmit = () => {
         if (!wicketType || !playerOutId) return toast({ variant: 'destructive', title: 'Missing Details' });
         handleBallPlayed({ is_wicket: true, wicket_type: wicketType, player_out_id: playerOutId, fielder_id: fielderId || null, runs: runsOnWicket });
     }
 
+    const handleSaveSelection = async () => {
+        try {
+            const token = localStorage.getItem('jwt_token');
+            await axios.post(`${API_BASE_URL}/scorer/matches/${initialMatch.id}/state`, 
+            {
+                striker_id: modalStrikerId,
+                non_striker_id: modalNonStrikerId,
+                bowler_id: modalBowlerId,
+                batting_team_id: modalBattingTeamId
+            }, 
+            {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            toast({ title: 'Players selection saved!' });
+            setIsPlayerSelectOpen(false);
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not save player selection.' });
+        }
+    }
+
     const handleEndMatch = async () => {
         if (!winnerId) return toast({ variant: 'destructive', title: 'Error', description: 'Please select a winner.' });
         const payload = { status: "completed", winner_id: winnerId === 'draw' ? null : winnerId };
         try {
-            await sendEvent("update_match_status", payload);
+            await submitAction("update_match_status", payload);
             toast({ title: 'Match Ended!' });
             setIsEndMatchDialogOpen(false);
             onBack();
@@ -242,20 +254,20 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
     }, [events]);
 
     const currentOverEvents = useMemo(() => {
-        const teamScore = score[battingTeamId!] || { overs: 0.0 };
+        const teamScore = score[batting_team_id!] || { overs: 0.0 };
         const currentOver = Math.floor(teamScore.overs || 0);
-        return events.filter(e => e.batting_team_id === battingTeamId && Math.floor(e.over_number) === currentOver).sort((a,b) => a.ball_number - b.ball_number);
-    }, [events, score, battingTeamId]);
+        return events.filter(e => e.batting_team_id === batting_team_id && Math.floor(e.over_number) === currentOver).sort((a,b) => a.ball_number - b.ball_number);
+    }, [events, score, batting_team_id]);
     
-    const teamScore = score[battingTeamId!] || { runs: 0, wickets: 0, overs: 0.0 };
+    const teamScore = score[batting_team_id!] || { runs: 0, wickets: 0, overs: 0.0 };
     
-    const striker = useMemo(() => battingTeamRoster.find(p => p.student_id === strikerId), [strikerId, battingTeamRoster]);
-    const nonStriker = useMemo(() => battingTeamRoster.find(p => p.student_id === nonStrikerId), [nonStrikerId, battingTeamRoster]);
-    const bowler = useMemo(() => bowlingTeamRoster.find(p => p.student_id === bowlerId), [bowlerId, bowlingTeamRoster]);
+    const striker = useMemo(() => battingTeamRoster.find(p => p.student_id === striker_id), [striker_id, battingTeamRoster]);
+    const nonStriker = useMemo(() => battingTeamRoster.find(p => p.student_id === non_striker_id), [non_striker_id, battingTeamRoster]);
+    const bowler = useMemo(() => bowlingTeamRoster.find(p => p.student_id === bowler_id), [bowler_id, bowlingTeamRoster]);
 
-    const strikerStats = useMemo(() => calculatePlayerStats(strikerId), [strikerId, calculatePlayerStats]);
-    const nonStrikerStats = useMemo(() => calculatePlayerStats(nonStrikerId), [nonStrikerId, calculatePlayerStats]);
-    const bowlerStats = useMemo(() => calculateBowlerStats(bowlerId), [bowlerId, calculateBowlerStats]);
+    const strikerStats = useMemo(() => calculatePlayerStats(striker_id), [striker_id, calculatePlayerStats]);
+    const nonStrikerStats = useMemo(() => calculatePlayerStats(non_striker_id), [non_striker_id, calculatePlayerStats]);
+    const bowlerStats = useMemo(() => calculateBowlerStats(bowler_id), [bowler_id, calculateBowlerStats]);
 
     if (rostersLoading) return <div className="h-screen w-full flex items-center justify-center bg-slate-950"><Loader2 className="h-8 w-8 animate-spin text-white"/></div>
 
@@ -271,7 +283,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                 <Card className="bg-slate-900 border-slate-800 text-white text-center p-4">
                     <div className="flex justify-between items-center text-sm">
                         <p className="font-bold text-blue-400">{battingTeam.team_name}</p>
-                        <p className="text-slate-400">{match.Sport.name}</p>
+                        <p className="text-slate-400">{initialMatch.Sport.name}</p>
                         <p className="font-semibold">{bowlingTeam.team_name}</p>
                     </div>
                     <div className="my-4">
@@ -321,21 +333,21 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                 <DialogContent className="bg-slate-900 border-slate-700 text-white">
                     <DialogHeader><DialogTitle>Select Players</DialogTitle></DialogHeader>
                     <div className="space-y-4 py-4">
-                        <div className="space-y-1.5"><Label>Batting Team</Label><Select onValueChange={setBattingTeamId} value={battingTeamId!}><SelectTrigger className="bg-slate-800 border-slate-700"><SelectValue /></SelectTrigger><SelectContent><SelectItem value={match.team_a_id}>{match.TeamA.team_name}</SelectItem><SelectItem value={match.team_b_id}>{match.TeamB.team_name}</SelectItem></SelectContent></Select></div>
-                        <div className="space-y-1.5"><Label>Striker</Label><Select onValueChange={setStrikerId} value={strikerId!}><SelectTrigger className="bg-slate-800 border-slate-700"><SelectValue /></SelectTrigger><SelectContent>{battingTeamRoster.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.Student?.name || p.name}</SelectItem>)}</SelectContent></Select></div>
-                        <div className="space-y-1.5"><Label>Non-Striker</Label><Select onValueChange={setNonStrikerId} value={nonStrikerId!}><SelectTrigger className="bg-slate-800 border-slate-700"><SelectValue /></SelectTrigger><SelectContent>{battingTeamRoster.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.Student?.name || p.name}</SelectItem>)}</SelectContent></Select></div>
-                        <div className="space-y-1.5"><Label>Bowler</Label><Select onValueChange={setBowlerId} value={bowlerId!}><SelectTrigger className="bg-slate-800 border-slate-700"><SelectValue /></SelectTrigger><SelectContent>{bowlingTeamRoster.map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.Student?.name || p.name}</SelectItem>)}</SelectContent></Select></div>
+                        <div className="space-y-1.5"><Label>Batting Team</Label><Select onValueChange={setModalBattingTeamId} value={modalBattingTeamId!}><SelectTrigger className="bg-slate-800 border-slate-700"><SelectValue /></SelectTrigger><SelectContent><SelectItem value={initialMatch.team_a_id}>{initialMatch.TeamA.team_name}</SelectItem><SelectItem value={initialMatch.team_b_id}>{initialMatch.TeamB.team_name}</SelectItem></SelectContent></Select></div>
+                        <div className="space-y-1.5"><Label>Striker</Label><Select onValueChange={setModalStrikerId} value={modalStrikerId!}><SelectTrigger className="bg-slate-800 border-slate-700"><SelectValue /></SelectTrigger><SelectContent>{(modalBattingTeamId === initialMatch.team_a_id ? teamARoster : teamBRoster).map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.Student?.name || p.name}</SelectItem>)}</SelectContent></Select></div>
+                        <div className="space-y-1.5"><Label>Non-Striker</Label><Select onValueChange={setModalNonStrikerId} value={modalNonStrikerId!}><SelectTrigger className="bg-slate-800 border-slate-700"><SelectValue /></SelectTrigger><SelectContent>{(modalBattingTeamId === initialMatch.team_a_id ? teamARoster : teamBRoster).map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.Student?.name || p.name}</SelectItem>)}</SelectContent></Select></div>
+                        <div className="space-y-1.5"><Label>Bowler</Label><Select onValueChange={setModalBowlerId} value={modalBowlerId!}><SelectTrigger className="bg-slate-800 border-slate-700"><SelectValue /></SelectTrigger><SelectContent>{(modalBattingTeamId === initialMatch.team_a_id ? teamBRoster : teamARoster).map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.Student?.name || p.name}</SelectItem>)}</SelectContent></Select></div>
                     </div>
-                    <DialogFooter><DialogClose asChild><Button className="bg-blue-600">Done</Button></DialogClose></DialogFooter>
+                    <DialogFooter><Button onClick={handleSaveSelection} className="bg-blue-600">Save Selection</Button></DialogFooter>
                 </DialogContent>
             </Dialog>
 
              <Dialog open={isEndMatchDialogOpen} onOpenChange={setIsEndMatchDialogOpen}>
                 <DialogContent className="bg-slate-900 border-slate-700 text-white"><DialogHeader><DialogTitle>End Match</DialogTitle></DialogHeader>
                     <div className="py-4"><RadioGroup onValueChange={setWinnerId} className="space-y-2">
-                        <div className="flex items-center space-x-2"><RadioGroupItem value={match.team_a_id} id={`team-a-${match.id}`} /><Label htmlFor={`team-a-${match.id}`}>{match.TeamA.team_name}</Label></div>
-                        <div className="flex items-center space-x-2"><RadioGroupItem value={match.team_b_id} id={`team-b-${match.id}`} /><Label htmlFor={`team-b-${match.id}`}>{match.TeamB.team_name}</Label></div>
-                        <div className="flex items-center space-x-2"><RadioGroupItem value="draw" id={`draw-${match.id}`} /><Label htmlFor={`draw-${match.id}`}>Match Draw</Label></div>
+                        <div className="flex items-center space-x-2"><RadioGroupItem value={initialMatch.team_a_id} id={`team-a-${initialMatch.id}`} /><Label htmlFor={`team-a-${initialMatch.id}`}>{initialMatch.TeamA.team_name}</Label></div>
+                        <div className="flex items-center space-x-2"><RadioGroupItem value={initialMatch.team_b_id} id={`team-b-${initialMatch.id}`} /><Label htmlFor={`team-b-${initialMatch.id}`}>{initialMatch.TeamB.team_name}</Label></div>
+                        <div className="flex items-center space-x-2"><RadioGroupItem value="draw" id={`draw-${initialMatch.id}`} /><Label htmlFor={`draw-${initialMatch.id}`}>Match Draw</Label></div>
                     </RadioGroup></div>
                     <DialogFooter><DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose><Button onClick={handleEndMatch} className="bg-red-600" disabled={!winnerId}>Confirm & End</Button></DialogFooter>
                 </DialogContent>
@@ -349,7 +361,7 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                         </RadioGroup>
                         <div className="space-y-2"><Label htmlFor="extra-runs">Runs from extra</Label><Input id="extra-runs" type="number" min={0} value={extraRuns} onChange={e => setExtraRuns(parseInt(e.target.value) || 0)} className="bg-slate-800 border-slate-700"/></div>
                     </div>
-                    <DialogFooter><DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose><Button onClick={() => handleBallPlayed({ extras: extraRuns, extra_type: extraType })} className="bg-blue-600">Log Extra</Button></DialogFooter>
+                    <DialogFooter><DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose><Button onClick={() => handleBallPlayed({ extras: extraRuns, extra_type: extraType, runs: extraRuns })} className="bg-blue-600">Log Extra</Button></DialogFooter>
                 </DialogContent>
             </Dialog>
 
