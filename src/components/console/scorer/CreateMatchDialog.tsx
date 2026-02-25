@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from '@/components/ui/dialog';
@@ -34,7 +35,14 @@ export function CreateMatchDialog({ onMatchCreated }: { onMatchCreated: () => vo
     
     const form = useForm<z.infer<typeof matchFormSchema>>({
         resolver: zodResolver(matchFormSchema),
-        defaultValues: { venue: 'Main Ground', referee_name: '' },
+        defaultValues: {
+            sport_id: '',
+            team_a_id: '',
+            team_b_id: '',
+            start_time: '',
+            venue: 'Main Ground',
+            referee_name: '',
+        },
     });
 
     const selectedSportId = form.watch('sport_id');
@@ -50,7 +58,14 @@ export function CreateMatchDialog({ onMatchCreated }: { onMatchCreated: () => vo
                 .finally(() => setIsLoadingSports(false));
             
             setTeams([]);
-            form.reset({ venue: 'Main Ground', referee_name: '' });
+            form.reset({
+                sport_id: '',
+                team_a_id: '',
+                team_b_id: '',
+                start_time: '',
+                venue: 'Main Ground',
+                referee_name: '',
+            });
         }
     }, [isModalOpen, toast, form]);
 
