@@ -18,24 +18,21 @@ export const getSocket = (): Socket => {
   }
   if (!socketInstance) {
     socketInstance = io(SOCKET_URL, {
-      // 🚀 SUCCESS CONFIG: Start with polling, then upgrade to WebSocket.
-      // This is critical for passing through cloud firewalls/proxies.
-      transports: ["polling", "websocket"],
-      
-      // ⏱️ RESILIENCE: High timeouts for Render "Cold Starts"
-      timeout: 60000,
-      reconnection: true,
-      reconnectionAttempts: 10,
-      reconnectionDelay: 2000,
-      
-      // ✅ CRITICAL FIX: Explicitly set the path to match the backend server.
+      // Force WebSocket-only transport to bypass HTTP polling issues.
+      transports: ["websocket"],
       path: "/socket.io",
+      
+      // Resilience settings
+      reconnection: true,
+      reconnectionAttempts: 5,
+      timeout: 10000, 
       
       autoConnect: true,
     });
+    
     // Diagnostic logs
     socketInstance.on("connect", () =>
-      console.log("🔌 Connected to Backend:", socketInstance?.id),
+      console.log("🔌 Connected to Backend via WebSocket:", socketInstance?.id),
     );
     socketInstance.on("connect_error", (err) =>
       console.error("❌ Socket Connection Error:", err.message),
