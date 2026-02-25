@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { getSports, getSportsHeadTeams, createMatch, type ApiSport, type SportsHeadTeam } from '@/lib/api';
+import { getSports, getTeamsBySport, createMatch, type ApiSport, type ApiTeam } from '@/lib/api';
 import { Loader2, PlusCircle } from 'lucide-react';
 
 const matchFormSchema = z.object({
@@ -28,8 +28,9 @@ export function CreateMatchDialog({ onMatchCreated }: { onMatchCreated: () => vo
     const { toast } = useToast();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [sports, setSports] = useState<ApiSport[]>([]);
-    const [teams, setTeams] = useState<SportsHeadTeam[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
+    const [teams, setTeams] = useState<ApiTeam[]>([]);
+    const [isLoadingSports, setIsLoadingSports] = useState(false);
+    const [isLoadingTeams, setIsLoadingTeams] = useState(false);
     
     const form = useForm<z.infer<typeof matchFormSchema>>({
         resolver: zodResolver(matchFormSchema),
@@ -40,20 +41,35 @@ export function CreateMatchDialog({ onMatchCreated }: { onMatchCreated: () => vo
 
     useEffect(() => {
         if (isModalOpen) {
-            setIsLoading(true);
-            Promise.all([getSports(), getSportsHeadTeams()])
-                .then(([sportsData, teamsData]) => {
-                    setSports(sportsData);
-                    setTeams(teamsData);
-                })
+            setIsLoadingSports(true);
+            getSports()
+                .then(setSports)
                 .catch(() => {
-                    toast({ variant: 'destructive', title: 'Error', description: 'Could not load sports or teams.' });
+                    toast({ variant: 'destructive', title: 'Error', description: 'Could not load sports.' });
                 })
-                .finally(() => setIsLoading(false));
+                .finally(() => setIsLoadingSports(false));
+            
+            setTeams([]);
+            form.reset({ venue: 'Main Ground', referee_name: '' });
         }
-    }, [isModalOpen, toast]);
-    
-    const filteredTeams = teams.filter(team => team.Sport?.id === parseInt(selectedSportId, 10));
+    }, [isModalOpen, toast, form]);
+
+    useEffect(() => {
+        if (selectedSportId) {
+            setIsLoadingTeams(true);
+            form.setValue('team_a_id', '');
+            form.setValue('team_b_id', '');
+            getTeamsBySport(selectedSportId)
+                .then(setTeams)
+                .catch(() => {
+                    toast({ variant: 'destructive', title: 'Error', description: 'Could not load teams for the selected sport.' });
+                    setTeams([]);
+                })
+                .finally(() => setIsLoadingTeams(false));
+        } else {
+            setTeams([]);
+        }
+    }, [selectedSportId, form, toast]);
 
     const onSubmit = async (values: z.infer<typeof matchFormSchema>) => {
         try {
@@ -82,10 +98,49 @@ export function CreateMatchDialog({ onMatchCreated }: { onMatchCreated: () => vo
                 </DialogHeader>
                  <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-                         <FormField control={form.control} name="sport_id" render={({ field }) => (<FormItem><FormLabel>Sport</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger disabled={isLoading}><SelectValue placeholder="Select a sport" /></SelectTrigger></FormControl><SelectContent>{sports.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                         <FormField control={form.control} name="sport_id" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Sport</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger disabled={isLoadingSports}>
+                                            <SelectValue placeholder="Select a sport" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>{sports.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}</SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                         )} />
                         <div className="grid grid-cols-2 gap-4">
-                            <FormField control={form.control} name="team_a_id" render={({ field }) => (<FormItem><FormLabel>Team A</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!selectedSportId}><FormControl><SelectTrigger><SelectValue placeholder="Select Team A" /></SelectTrigger></FormControl><SelectContent>{filteredTeams.map(t => <SelectItem key={t.id} value={t.id}>{t.team_name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                             <FormField control={form.control} name="team_b_id" render={({ field }) => (<FormItem><FormLabel>Team B</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!selectedSportId}><FormControl><SelectTrigger><SelectValue placeholder="Select Team B" /></SelectTrigger></FormControl><SelectContent>{filteredTeams.map(t => <SelectItem key={t.id} value={t.id}>{t.team_name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="team_a_id" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Team A</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value} disabled={!selectedSportId || isLoadingTeams}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={isLoadingTeams ? "Loading..." : "Select Team A"} />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>{teams.map(t => <SelectItem key={t.id} value={t.id}>{t.team_name}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                             <FormField control={form.control} name="team_b_id" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Team B</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value} disabled={!selectedSportId || isLoadingTeams}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={isLoadingTeams ? "Loading..." : "Select Team B"} />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>{teams.map(t => <SelectItem key={t.id} value={t.id}>{t.team_name}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                             )} />
                         </div>
                         <FormField control={form.control} name="venue" render={({ field }) => (<FormItem><FormLabel>Venue</FormLabel><FormControl><Input placeholder="e.g. Main Ground" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="referee_name" render={({ field }) => (<FormItem><FormLabel>Referee Name (Optional)</FormLabel><FormControl><Input placeholder="Enter referee name" {...field} /></FormControl><FormMessage /></FormItem>)} />
