@@ -32,7 +32,6 @@ export const getSocket = (): Socket => {
       path: "/socket.io",
       
       autoConnect: true,
-      withCredentials: true,
     });
     // Diagnostic logs
     socketInstance.on("connect", () =>
