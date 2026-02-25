@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useMatchSocket } from '@/hooks/useMatchSocket';
+import { useMatchSocket } from '@/hooks/useMatchSync';
 
 const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
 
@@ -202,7 +202,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                 striker_id: modalStrikerId,
                 non_striker_id: modalNonStrikerId,
                 bowler_id: modalBowlerId,
-                batting_team_id: modalBattingTeamId
+                batting_team_id: modalBattingTeamId,
             }, 
             {
                 headers: { Authorization: `Bearer ${token}` }
@@ -235,6 +235,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
     };
     
     const calculatePlayerStats = useCallback((playerId: string | null) => {
+        if (!events || events.length === 0) return { runs: 0, balls: 0, fours: 0, sixes: 0 };
         return events.reduce((acc, event) => {
             if (playerId && event.striker_id === playerId) {
                 if (!event.extra_type || event.extra_type === 'noball') acc.balls++;
@@ -249,6 +250,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
     }, [events]);
     
     const calculateBowlerStats = useCallback((playerId: string | null) => {
+        if (!events || events.length === 0) return { balls: 0, runs: 0, wickets: 0, overs: '0.0' };
         const stats = events.reduce((acc, event) => {
             if (playerId && event.bowler_id === playerId) {
                 if (!event.extra_type || event.extra_type === 'legbye' || event.extra_type === 'bye') {
@@ -266,6 +268,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
     }, [events]);
 
     const currentOverEvents = useMemo(() => {
+        if (!events || events.length === 0) return [];
         const teamScore = score[batting_team_id!] || { overs: 0.0 };
         const currentOver = Math.floor(teamScore.overs || 0);
         return events.filter(e => e.batting_team_id === batting_team_id && Math.floor(e.over_number) === currentOver).sort((a,b) => a.ball_number - b.ball_number);
