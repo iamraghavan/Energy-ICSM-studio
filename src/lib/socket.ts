@@ -28,8 +28,6 @@ export const getSocket = (): Socket => {
       reconnectionAttempts: 10,
       reconnectionDelay: 2000,
       
-      // 🔐 MATCH BACKEND: Use the exact same path
-      path: "/socket.io",
       autoConnect: true,
       withCredentials: true,
     });
