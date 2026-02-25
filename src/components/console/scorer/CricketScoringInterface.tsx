@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -242,13 +243,13 @@ export function CricketScoringInterface({ match, onBack }: { match: ApiMatch, on
                         <div className="space-y-2">
                             <h3 className="font-bold text-lg sm:text-xl truncate">{match.TeamA.team_name}</h3>
                             <p className="text-3xl sm:text-4xl font-bold font-mono">{teamAScore.runs}/{teamAScore.wickets}</p>
-                            <p className="text-xs sm:text-sm text-muted-foreground">({teamAScore.overs.toFixed(1)} Overs)</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground">({(teamAScore.overs || 0).toFixed(1)} Overs)</p>
                         </div>
                         <div className="text-2xl sm:text-4xl font-bold text-muted-foreground">VS</div>
                         <div className="space-y-2">
                             <h3 className="font-bold text-lg sm:text-xl truncate">{match.TeamB.team_name}</h3>
                             <p className="text-3xl sm:text-4xl font-bold font-mono">{teamBScore.runs}/{teamBScore.wickets}</p>
-                            <p className="text-xs sm:text-sm text-muted-foreground">({teamBScore.overs.toFixed(1)} Overs)</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground">({(teamBScore.overs || 0).toFixed(1)} Overs)</p>
                         </div>
                     </div>
 
