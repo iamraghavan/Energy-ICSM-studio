@@ -413,7 +413,7 @@ export const getLiveMatches = async (): Promise<ApiMatch[]> => {
 }
 
 export const getMatchById = async (matchId: string): Promise<ApiMatch> => {
-    const response = await api.get(`/scorer/matches/${matchId}`);
+    const response = await api.get(`/matches/${matchId}`);
     return response.data;
 };
 
@@ -448,10 +448,8 @@ export const postMatchEvent = async (matchId: string, eventData: any) => {
 }
 
 export const endMatch = async (matchId: string, winnerId: string | null, scoreDetails?: any) => {
-    const response = await api.put(`/scorer/matches/${matchId}/score`, {
-        status: 'completed',
+    const response = await api.post(`/scorer/matches/${matchId}/end`, {
         winner_id: winnerId,
-        score_details: scoreDetails,
     });
     return response.data;
 };
@@ -461,8 +459,8 @@ export const getLineup = async (matchId: string) => {
     return response.data;
 }
 
-export const manageLineup = async (matchId: string, lineupData: any) => {
-    const response = await api.post(`/scorer/matches/${matchId}/lineup`, lineupData);
+export const manageLineup = async (matchId: string, lineupData: {player_id: string, is_substitute: boolean, action: 'add' | 'remove'}[]) => {
+    const response = await api.post(`/scorer/matches/${matchId}/lineup`, { players: lineupData });
     return response.data;
 }
 
@@ -752,11 +750,31 @@ export type ApiMatch = {
     venue: string;
     status: 'scheduled' | 'live' | 'completed';
     score_details: any;
+    match_state?: any;
+    match_events?: any[];
     referee_name?: string;
     Sport: ApiSport;
     TeamA: ApiTeam;
     TeamB: ApiTeam;
-    match_events?: any[];
 };
 
+// New scorer functions from guide
+export const getScorerMatches = async (): Promise<ApiMatch[]> => {
+    const response = await api.get('/scorer/matches');
+    return response.data;
+}
 
+export const getMatchEvents = async (matchId: string): Promise<any[]> => {
+    const response = await api.get(`/matches/${matchId}/events`);
+    return response.data;
+}
+
+export const saveLineup = async (matchId: string, lineup: {player_id: string, is_substitute: boolean}[]) => {
+    const response = await api.post(`/scorer/matches/${matchId}/lineup`, { players: lineup });
+    return response.data;
+}
+
+export const saveToss = async (matchId: string, tossData: {winner_id: string, decision: 'bat' | 'field', details: string}) => {
+    const response = await api.post(`/scorer/matches/${matchId}/toss`, tossData);
+    return response.data;
+}

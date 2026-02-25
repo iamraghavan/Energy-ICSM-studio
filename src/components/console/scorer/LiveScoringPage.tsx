@@ -67,7 +67,7 @@ export function LiveScoringPage({ matchId }: { matchId: string }) {
     const isCricket = match.Sport.name === 'Cricket';
 
     return (
-        <div className="container py-8">
+        <div>
             {isCricket ? (
                 <CricketScoringInterface match={match} onBack={handleBack} />
             ) : (

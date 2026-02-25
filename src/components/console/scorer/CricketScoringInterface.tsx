@@ -5,7 +5,7 @@ import axios from 'axios';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getScorerTeamDetails, type ApiMatch, type FullSportsHeadTeam, type StudentTeamMember } from "@/lib/api";
-import { ArrowLeft, PlusCircle, Shield, Disc, Trophy, Replace, User, MoreHorizontal } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Shield, Disc, Trophy, Replace, User, MoreHorizontal, RotateCcw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -17,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMatchSocket } from '@/hooks/useMatchSync';
+import { EndMatchDialog } from './EndMatchDialog';
 
 const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
 
@@ -88,11 +89,11 @@ const ThisOverBall = ({ event }: { event: any }) => {
 
 
 export function CricketScoringInterface({ match: initialMatch, onBack }: { match: ApiMatch, onBack: () => void }) {
-    const { score: liveScore, matchState, isConnected, submitAction } = useMatchSocket(initialMatch.id);
+    const { score: liveScore, matchState, isConnected, submitAction, events: liveEvents } = useMatchSocket(initialMatch.id, initialMatch);
     
     const [score, setScore] = useState(initialMatch.score_details || {});
     const [activePlayers, setActivePlayers] = useState(initialMatch.match_state || {});
-    const [events, setEvents] = useState<any[]>([]);
+    const [events, setEvents] = useState<any[]>(initialMatch.match_events || []);
 
     const [teamARoster, setTeamARoster] = useState<StudentTeamMember[]>([]);
     const [teamBRoster, setTeamBRoster] = useState<StudentTeamMember[]>([]);
@@ -116,7 +117,6 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
     const [runsOnWicket, setRunsOnWicket] = useState<number>(0);
 
     const [isEndMatchDialogOpen, setIsEndMatchDialogOpen] = useState(false);
-    const [winnerId, setWinnerId] = useState<string | null>(null);
 
     const { toast } = useToast();
     
@@ -127,19 +127,21 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
     useEffect(() => {
         if (matchState) setActivePlayers(matchState);
     }, [matchState]);
+
+     useEffect(() => {
+        if (liveEvents) setEvents(liveEvents);
+    }, [liveEvents]);
     
      useEffect(() => {
         const fetchRosterData = async () => {
             setRostersLoading(true);
             try {
-                const [teamAData, teamBData, matchEvents] = await Promise.all([
+                const [teamAData, teamBData] = await Promise.all([
                     getScorerTeamDetails(initialMatch.team_a_id),
                     getScorerTeamDetails(initialMatch.team_b_id),
-                    axios.get(`${API_BASE_URL}/scorer/matches/${initialMatch.id}/events`).then(res => res.data)
                 ]);
                 setTeamARoster(teamAData.members || []);
                 setTeamBRoster(teamBData.members || []);
-                setEvents(matchEvents || []);
                 
                 const currentState = initialMatch.match_state || {};
                 setActivePlayers(currentState);
@@ -162,7 +164,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
     const battingTeam = useMemo(() => batting_team_id === initialMatch.team_a_id ? initialMatch.TeamA : initialMatch.TeamB, [batting_team_id, initialMatch]);
     const bowlingTeam = useMemo(() => bowlingTeamId === initialMatch.team_a_id ? initialMatch.TeamA : initialMatch.TeamB, [bowlingTeamId, initialMatch]);
     const battingTeamRoster = useMemo(() => batting_team_id === initialMatch.team_a_id ? teamARoster : teamBRoster, [batting_team_id, teamARoster, teamBRoster, initialMatch.team_a_id]);
-    const bowlingTeamRoster = useMemo(() => bowlingTeamId === initialMatch.team_a_id ? teamBRoster : teamARoster, [bowlingTeamId, teamARoster, teamBRoster, initialMatch.team_a_id]);
+    const bowlingTeamRoster = useMemo(() => bowlingTeamId === initialMatch.team_a_id ? teamARoster : teamBRoster, [bowlingTeamId, teamARoster, teamBRoster, initialMatch.team_a_id]);
 
     useEffect(() => {
         if(wicketType === 'bowled' || wicketType === 'lbw' || wicketType === 'stumped' || wicketType === 'hit_wicket') setPlayerOutId(striker_id);
@@ -194,15 +196,15 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
         handleBallPlayed({ is_wicket: true, wicket_type: wicketType, player_out_id: playerOutId, fielder_id: fielderId || null, runs: runsOnWicket });
     }
 
-    const handleSaveSelection = async () => {
+    const handleSaveSelection = async (battingId = modalBattingTeamId, striker = modalStrikerId, nonStriker = modalNonStrikerId, bowler = modalBowlerId) => {
         try {
             const token = localStorage.getItem('jwt_token');
             await axios.post(`${API_BASE_URL}/scorer/matches/${initialMatch.id}/state`, 
             {
-                striker_id: modalStrikerId,
-                non_striker_id: modalNonStrikerId,
-                bowler_id: modalBowlerId,
-                batting_team_id: modalBattingTeamId,
+                striker_id: striker,
+                non_striker_id: nonStriker,
+                bowler_id: bowler,
+                batting_team_id: battingId,
             }, 
             {
                 headers: { Authorization: `Bearer ${token}` }
@@ -210,29 +212,31 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
             toast({ title: 'Players selection saved!' });
             setActivePlayers({
                  ...activePlayers,
-                 striker_id: modalStrikerId,
-                 non_striker_id: modalNonStrikerId,
-                 bowler_id: modalBowlerId,
-                 batting_team_id: modalBattingTeamId
+                 striker_id: striker,
+                 non_striker_id: nonStriker,
+                 bowler_id: bowler,
+                 batting_team_id: battingId
             })
             setIsPlayerSelectOpen(false);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Could not save player selection.' });
         }
     }
-
-    const handleEndMatch = async () => {
-        if (!winnerId) return toast({ variant: 'destructive', title: 'Error', description: 'Please select a winner.' });
-        const payload = { status: "completed", winner_id: winnerId === 'draw' ? null : winnerId };
+    
+    const handleRotateStriker = () => {
+        if (!striker_id || !non_striker_id) return;
+        handleSaveSelection(batting_team_id, non_striker_id, striker_id, bowler_id);
+        toast({ title: "Strikers Rotated" });
+    }
+    
+    const handleUndo = async () => {
         try {
-            await submitAction("update_match_status", payload);
-            toast({ title: 'Match Ended!' });
-            setIsEndMatchDialogOpen(false);
-            onBack();
+            await submitAction('undo_event', {});
+            toast({title: 'Last Action Undone'});
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: String(error) });
+            toast({variant: 'destructive', title: 'Undo Failed', description: String(error)});
         }
-    };
+    }
     
     const calculatePlayerStats = useCallback((playerId: string | null) => {
         if (!events || events.length === 0) return { runs: 0, balls: 0, fours: 0, sixes: 0 };
@@ -320,7 +324,10 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                     {nonStriker && <BatsmanCard player={nonStriker} stats={nonStrikerStats} onStrike={false} />}
                 </div>
                  {bowler && <BowlerCard player={bowler} stats={bowlerStats} />}
-                 <Button variant="outline" className="w-full bg-slate-800 border-slate-700" onClick={() => setIsPlayerSelectOpen(true)}>Change Players</Button>
+                 <div className="grid grid-cols-2 gap-2">
+                    <Button variant="outline" className="w-full bg-slate-800 border-slate-700" onClick={() => setIsPlayerSelectOpen(true)}>Change Players</Button>
+                    <Button variant="outline" className="w-full bg-slate-800 border-slate-700" onClick={handleRotateStriker}><RotateCcw className="mr-2"/> Rotate Striker</Button>
+                 </div>
 
 
                 {/* Scoring Pad */}
@@ -334,9 +341,10 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                         <Button className="h-20 text-2xl font-bold bg-blue-600 col-span-1" onClick={() => handleBallPlayed({ runs: 6 })}>6</Button>
                         <Button className="h-20 text-xl font-bold bg-red-600" onClick={() => setIsWicketModalOpen(true)}>OUT</Button>
                     </div>
-                     <div className="grid grid-cols-2 gap-2">
+                     <div className="grid grid-cols-3 gap-2">
                          <Button className="h-14 text-lg font-bold bg-orange-600" onClick={() => handleBallPlayed({ extras: 1, extra_type: 'wide' })}>WD</Button>
                          <Button className="h-14 text-lg font-bold bg-purple-600" onClick={() => handleBallPlayed({ extras: 1, extra_type: 'noball' })}>NB</Button>
+                         <Button variant="secondary" className="h-14" onClick={handleUndo}><RotateCcw className="mr-2"/>Undo</Button>
                     </div>
                      <Button className="w-full h-14 bg-slate-800" onClick={() => setIsExtraModalOpen(true)}>
                         <MoreHorizontal /> More Extras
@@ -349,24 +357,20 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                     <DialogHeader><DialogTitle>Select Players</DialogTitle></DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-1.5"><Label>Batting Team</Label><Select onValueChange={setModalBattingTeamId} value={modalBattingTeamId!}><SelectTrigger className="bg-slate-800 border-slate-700"><SelectValue /></SelectTrigger><SelectContent><SelectItem value={initialMatch.team_a_id}>{initialMatch.TeamA.team_name}</SelectItem><SelectItem value={initialMatch.team_b_id}>{initialMatch.TeamB.team_name}</SelectItem></SelectContent></Select></div>
-                        <div className="space-y-1.5"><Label>Striker</Label><Select onValueChange={setModalStrikerId} value={modalStrikerId!}><SelectTrigger className="bg-slate-800 border-slate-700"><SelectValue /></SelectTrigger><SelectContent>{(modalBattingTeamId === initialMatch.team_a_id ? teamARoster : teamBRoster).map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.Student?.name || p.name}</SelectItem>)}</SelectContent></Select></div>
-                        <div className="space-y-1.5"><Label>Non-Striker</Label><Select onValueChange={setModalNonStrikerId} value={modalNonStrikerId!}><SelectTrigger className="bg-slate-800 border-slate-700"><SelectValue /></SelectTrigger><SelectContent>{(modalBattingTeamId === initialMatch.team_a_id ? teamARoster : teamBRoster).map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.Student?.name || p.name}</SelectItem>)}</SelectContent></Select></div>
-                        <div className="space-y-1.5"><Label>Bowler</Label><Select onValueChange={setModalBowlerId} value={modalBowlerId!}><SelectTrigger className="bg-slate-800 border-slate-700"><SelectValue /></SelectTrigger><SelectContent>{(modalBattingTeamId === initialMatch.team_a_id ? teamBRoster : teamARoster).map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.Student?.name || p.name}</SelectItem>)}</SelectContent></Select></div>
+                        <div className="space-y-1.5"><Label>Striker</Label><Select onValueChange={setModalStrikerId} value={modalStrikerId ?? undefined}><SelectTrigger className="bg-slate-800 border-slate-700"><SelectValue /></SelectTrigger><SelectContent>{(modalBattingTeamId === initialMatch.team_a_id ? teamARoster : teamBRoster).map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.Student?.name || p.name}</SelectItem>)}</SelectContent></Select></div>
+                        <div className="space-y-1.5"><Label>Non-Striker</Label><Select onValueChange={setModalNonStrikerId} value={modalNonStrikerId ?? undefined}><SelectTrigger className="bg-slate-800 border-slate-700"><SelectValue /></SelectTrigger><SelectContent>{(modalBattingTeamId === initialMatch.team_a_id ? teamARoster : teamBRoster).map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.Student?.name || p.name}</SelectItem>)}</SelectContent></Select></div>
+                        <div className="space-y-1.5"><Label>Bowler</Label><Select onValueChange={setModalBowlerId} value={modalBowlerId ?? undefined}><SelectTrigger className="bg-slate-800 border-slate-700"><SelectValue /></SelectTrigger><SelectContent>{(bowlingTeamId === initialMatch.team_a_id ? teamARoster : teamBRoster).map(p => <SelectItem key={p.student_id} value={p.student_id}>{p.Student?.name || p.name}</SelectItem>)}</SelectContent></Select></div>
                     </div>
-                    <DialogFooter><Button onClick={handleSaveSelection} className="bg-blue-600">Save Selection</Button></DialogFooter>
+                    <DialogFooter><Button onClick={() => handleSaveSelection()} className="bg-blue-600">Save Selection</Button></DialogFooter>
                 </DialogContent>
             </Dialog>
 
-             <Dialog open={isEndMatchDialogOpen} onOpenChange={setIsEndMatchDialogOpen}>
-                <DialogContent className="bg-slate-900 border-slate-700 text-white"><DialogHeader><DialogTitle>End Match</DialogTitle></DialogHeader>
-                    <div className="py-4"><RadioGroup onValueChange={setWinnerId} className="space-y-2">
-                        <div className="flex items-center space-x-2"><RadioGroupItem value={initialMatch.team_a_id} id={`team-a-${initialMatch.id}`} /><Label htmlFor={`team-a-${initialMatch.id}`}>{initialMatch.TeamA.team_name}</Label></div>
-                        <div className="flex items-center space-x-2"><RadioGroupItem value={initialMatch.team_b_id} id={`team-b-${initialMatch.id}`} /><Label htmlFor={`team-b-${initialMatch.id}`}>{initialMatch.TeamB.team_name}</Label></div>
-                        <div className="flex items-center space-x-2"><RadioGroupItem value="draw" id={`draw-${initialMatch.id}`} /><Label htmlFor={`draw-${initialMatch.id}`}>Match Draw</Label></div>
-                    </RadioGroup></div>
-                    <DialogFooter><DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose><Button onClick={handleEndMatch} className="bg-red-600" disabled={!winnerId}>Confirm & End</Button></DialogFooter>
-                </DialogContent>
-            </Dialog>
+             <EndMatchDialog 
+                isOpen={isEndMatchDialogOpen}
+                onClose={() => setIsEndMatchDialogOpen(false)}
+                match={initialMatch}
+                onEndMatch={onBack}
+            />
             
             <Dialog open={isExtraModalOpen} onOpenChange={setIsExtraModalOpen}>
                 <DialogContent className="bg-slate-900 border-slate-700 text-white"><DialogHeader><DialogTitle>Log Extra</DialogTitle></DialogHeader>
