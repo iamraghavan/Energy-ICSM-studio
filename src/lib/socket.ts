@@ -1,12 +1,9 @@
 
 "use client";
 import { io, Socket } from "socket.io-client";
-
 const SOCKET_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "https://energy-sports-meet-backend.onrender.com/";
-
 let socketInstance: Socket | null = null;
-
 export const getSocket = (): Socket => {
   // 1. SSR Guard: Ensure we only run on the browser
   if (typeof window === "undefined") {

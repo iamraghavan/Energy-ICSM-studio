@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useMatchSocket } from '@/hooks/useMatchSync';
+import { useMatchSocket } from '@/hooks/useMatchSocket';
 
 const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
 
@@ -162,7 +162,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
     const battingTeam = useMemo(() => batting_team_id === initialMatch.team_a_id ? initialMatch.TeamA : initialMatch.TeamB, [batting_team_id, initialMatch]);
     const bowlingTeam = useMemo(() => bowlingTeamId === initialMatch.team_a_id ? initialMatch.TeamA : initialMatch.TeamB, [bowlingTeamId, initialMatch]);
     const battingTeamRoster = useMemo(() => batting_team_id === initialMatch.team_a_id ? teamARoster : teamBRoster, [batting_team_id, teamARoster, teamBRoster, initialMatch.team_a_id]);
-    const bowlingTeamRoster = useMemo(() => bowlingTeamId === initialMatch.team_a_id ? teamARoster : teamBRoster, [bowlingTeamId, teamARoster, teamBRoster, initialMatch.team_a_id]);
+    const bowlingTeamRoster = useMemo(() => bowlingTeamId === initialMatch.team_a_id ? teamBRoster : teamARoster, [bowlingTeamId, teamARoster, teamBRoster, initialMatch.team_a_id]);
 
     useEffect(() => {
         if(wicketType === 'bowled' || wicketType === 'lbw' || wicketType === 'stumped' || wicketType === 'hit_wicket') setPlayerOutId(striker_id);
@@ -201,7 +201,8 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
             {
                 striker_id: modalStrikerId,
                 non_striker_id: modalNonStrikerId,
-                bowler_id: modalBowlerId
+                bowler_id: modalBowlerId,
+                batting_team_id: modalBattingTeamId
             }, 
             {
                 headers: { Authorization: `Bearer ${token}` }
@@ -211,7 +212,8 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                  ...activePlayers,
                  striker_id: modalStrikerId,
                  non_striker_id: modalNonStrikerId,
-                 bowler_id: modalBowlerId
+                 bowler_id: modalBowlerId,
+                 batting_team_id: modalBattingTeamId
             })
             setIsPlayerSelectOpen(false);
         } catch (error) {
