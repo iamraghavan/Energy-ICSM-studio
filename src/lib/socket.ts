@@ -18,8 +18,14 @@ export const getSocket = (): Socket => {
   }
 
   if (!socketInstance) {
+    const token = localStorage.getItem('jwt_token') || localStorage.getItem('student_token');
+    
     socketInstance = io(SOCKET_URL, {
-      transports: ["polling", "websocket"],
+      // Prioritizing 'websocket' over 'polling' fixes most 'xhr poll error' issues on cloud proxies
+      transports: ["websocket", "polling"],
+      auth: {
+        token: token
+      },
       timeout: 60000,
       reconnectionAttempts: 10,
       reconnectionDelay: 2000,
@@ -40,5 +46,12 @@ export const getSocket = (): Socket => {
         console.warn("⚠️ WebSocket Disconnected:", reason);
     });
   }
+
+  // Update token if it has changed since initialization
+  const currentToken = localStorage.getItem('jwt_token') || localStorage.getItem('student_token');
+  if (socketInstance.auth && typeof socketInstance.auth === 'object') {
+      (socketInstance.auth as any).token = currentToken;
+  }
+
   return socketInstance;
 };

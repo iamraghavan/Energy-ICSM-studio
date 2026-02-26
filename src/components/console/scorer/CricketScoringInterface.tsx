@@ -79,11 +79,17 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                     getScorerTeamDetails(initialMatch.team_b_id),
                 ]);
                 
-                const aMembers = Array.isArray(teamA) ? teamA : (teamA.members || teamA.Members || []);
-                const bMembers = Array.isArray(teamB) ? teamB : (teamB.members || teamB.Members || []);
-                
-                setTeamARoster(aMembers);
-                setTeamBRoster(bMembers);
+                // Robustly extract members from various possible formats
+                const extractMembers = (data: any): StudentTeamMember[] => {
+                    if (Array.isArray(data)) return data;
+                    if (data?.members && Array.isArray(data.members)) return data.members;
+                    if (data?.Members && Array.isArray(data.Members)) return data.Members;
+                    if (data?.data?.members && Array.isArray(data.data.members)) return data.data.members;
+                    return [];
+                };
+
+                setTeamARoster(extractMembers(teamA));
+                setTeamBRoster(extractMembers(teamB));
             } catch (error) {
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch team rosters.' });
             } finally {
@@ -93,7 +99,6 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
         fetchRosters();
     }, [initialMatch.team_a_id, initialMatch.team_b_id, toast]);
 
-    // Initialize modal state when dialog opens
     useEffect(() => {
         if (isPlayerSelectOpen) {
             setModalStrikerId(state.striker_id || null);
