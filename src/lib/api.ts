@@ -390,7 +390,12 @@ export const endMatch = async (matchId: string, winnerId: string | null, mvpId?:
     return response.data;
 };
 
-// ... other existing API functions ...
+export const getLiveMatches = async (): Promise<ApiMatch[]> => {
+    const response = await api.get('/matches/live');
+    const data = response.data;
+    return Array.isArray(data) ? data : (data?.data || []);
+};
+
 export const getAdminAnalytics = async () => {
     const response = await api.get('/admin/analytics');
     return response.data;
