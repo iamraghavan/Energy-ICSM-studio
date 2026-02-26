@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import { Card } from "@/components/ui/card";
@@ -67,7 +68,6 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
 
     const { toast } = useToast();
     
-    // Priority: Firebase Data > Initial REST Data
     const score = matchData?.score_details || initialMatch.score_details || {};
     const state = matchData?.match_state || initialMatch.match_state || {};
     const batsmenStats = matchData?.current_batsmen_stats || {};
@@ -84,8 +84,11 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                     getScorerTeamDetails(initialMatch.team_a_id),
                     getScorerTeamDetails(initialMatch.team_b_id),
                 ]);
-                setTeamARoster(teamA.members || []);
-                setTeamBRoster(teamB.members || []);
+                // Handle different potential response structures
+                const rosterA = Array.isArray(teamA) ? teamA : teamA.members || teamA.Members || [];
+                const rosterB = Array.isArray(teamB) ? teamB : teamB.members || teamB.Members || [];
+                setTeamARoster(rosterA);
+                setTeamBRoster(rosterB);
             } catch (error) {
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch team rosters.' });
             } finally {
@@ -145,15 +148,15 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
         setIsProcessingCommand(true);
         try {
             await updateMatchState(initialMatch.id, {
-                striker_id: state.non_striker_id,
-                non_striker_id: state.striker_id,
+                striker_id: String(state.non_striker_id),
+                non_striker_id: String(state.striker_id),
                 bowler_id: state.bowler_id,
                 batting_team_id: battingTeamId,
                 current_innings: state.current_innings || 1
             });
             toast({ title: 'Strikers Swapped' });
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Rotation Failed' });
+            toast({ variant: 'destructive', title: 'Rotation Failed', description: error.response?.data?.message || 'Check connection.' });
         } finally {
             setIsProcessingCommand(false);
         }
@@ -173,9 +176,9 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                 wicket_type: isWicket ? 'bowled' : null,
                 extras: 0,
                 extra_type: null,
-                striker_id: state.striker_id,
-                non_striker_id: state.non_striker_id,
-                bowler_id: state.bowler_id,
+                striker_id: String(state.striker_id),
+                non_striker_id: String(state.non_striker_id),
+                bowler_id: String(state.bowler_id),
                 batting_team_id: battingTeamId
             });
         } catch (error) {

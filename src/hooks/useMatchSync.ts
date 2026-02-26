@@ -1,7 +1,8 @@
+
 "use client";
 import { useEffect, useState } from 'react';
 import { ref, onValue } from 'firebase/database';
-import { database } from '@/lib/firebase';
+import { getRtDatabase } from '@/lib/firebase';
 
 /**
  * Hook to sync match data from Firebase Realtime Database.
@@ -15,12 +16,23 @@ export const useMatchSync = (matchId: string) => {
   useEffect(() => {
     if (!matchId) return;
     
+    const db = getRtDatabase();
+    if (!db) {
+        setIsLoading(false);
+        return;
+    }
+
     // Path: sports/matches/UUID
-    const matchRef = ref(database, `sports/matches/${matchId}`);
+    const matchRef = ref(db, `sports/matches/${matchId}`);
     
     const unsubscribe = onValue(matchRef, (snapshot) => {
       if (snapshot.exists()) {
-        setMatchData(snapshot.val());
+        const data = snapshot.val();
+        // Ensure match_events is always an array for safe mapping
+        if (data && data.match_events && !Array.isArray(data.match_events)) {
+            data.match_events = Object.values(data.match_events);
+        }
+        setMatchData(data);
       }
       setIsLoading(false);
     }, (err) => {

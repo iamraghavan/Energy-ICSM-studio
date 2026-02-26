@@ -1,5 +1,6 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getDatabase } from "firebase/database";
+
+import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
+import { getDatabase, Database } from "firebase/database";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -12,8 +13,22 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-// Initialize Firebase
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-const database = getDatabase(app);
+// Lazy initialization to avoid build-time crashes during NextJS prerendering
+let app: FirebaseApp | undefined;
+let database: Database | undefined;
 
-export { database };
+const getRtDatabase = (): Database | null => {
+    if (typeof window === 'undefined') return null;
+    
+    if (!app) {
+        app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    }
+    
+    if (!database) {
+        database = getDatabase(app);
+    }
+    
+    return database;
+};
+
+export { getRtDatabase };

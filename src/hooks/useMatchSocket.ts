@@ -1,6 +1,6 @@
+
 /**
- * useMatchSocket removed.
- * Replaced by useMatchSync hook using Firebase Realtime Database.
+ * WebSocket hook removed in favor of useMatchSync.
  */
 export const useMatchSocket = () => {
   return {};

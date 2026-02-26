@@ -1,7 +1,5 @@
+
 /**
- * WebSocket implementation removed. 
- * Replaced by Firebase Realtime Database for live state sync.
+ * WebSocket implementation removed in favor of Firebase RTDB.
  */
-export const getSocket = () => {
-  return null;
-};
+export const getSocket = () => null;
