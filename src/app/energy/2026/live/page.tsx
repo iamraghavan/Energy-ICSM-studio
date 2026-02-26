@@ -63,7 +63,10 @@ function TimelineEvent({ event }: { event: any }) {
 // --- Player Stat Row for Live View ---
 function PlayerStatRow({ name, primary, secondary, highlight = false }: { name: string, primary: string | number, secondary?: string, highlight?: boolean }) {
     return (
-        <div className={cn("flex items-center justify-between p-3 rounded-xl transition-all duration-300", highlight ? "bg-primary/10 border-primary shadow-sm" : "bg-muted/30 border-transparent border")}>
+        <div className={cn(
+            "flex items-center justify-between p-3 rounded-xl transition-all duration-300", 
+            highlight ? "bg-primary/10 border-primary shadow-sm" : "bg-muted/30 border-transparent border"
+        )}>
             <div className="flex items-center gap-2 overflow-hidden">
                 <div className={cn("h-2 w-2 rounded-full shrink-0", highlight ? "bg-primary animate-pulse" : "bg-muted-foreground/30")} />
                 <span className="font-bold text-xs uppercase tracking-tight truncate">{name || 'Unknown'}</span>
@@ -83,7 +86,6 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
     if (!isOpen || !initialMatch) return null;
 
     // Merge logic: Combine initial relational data (REST) with real-time updates (Firebase)
-    // We prioritize REST for Team/Sport metadata and Firebase for dynamic scores
     const match = matchData ? { ...initialMatch, ...matchData } : initialMatch;
     
     const TeamA = initialMatch.TeamA;
@@ -102,7 +104,6 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
     const teamAScore = teamAScoreData.runs ?? teamAScoreData.score ?? 0;
     const teamBScore = teamBScoreData.runs ?? teamBScoreData.score ?? 0;
     
-    // Process events from Firebase (normalizing objects to arrays if needed)
     const rawEvents = match.match_events || [];
     const eventsArray = Array.isArray(rawEvents) ? rawEvents : Object.values(rawEvents);
     const sortedEvents = eventsArray.sort((a: any, b: any) => 
@@ -183,7 +184,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                                         )) : (
                                             <div className="col-span-2 text-center py-6 border border-dashed rounded-2xl bg-muted/20">
                                                 <Users className="h-6 w-6 mx-auto mb-2 opacity-20" />
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Batsmen details pending...</p>
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Lineup pending...</p>
                                             </div>
                                         )}
                                     </div>
@@ -201,7 +202,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                                     )) : (
                                         <div className="text-center py-6 border border-dashed rounded-2xl bg-muted/20">
                                             <Users className="h-6 w-6 mx-auto mb-2 opacity-20" />
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Bowler details pending...</p>
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Bowler pending...</p>
                                         </div>
                                     )}
                                 </div>
@@ -229,7 +230,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                     <div className="flex items-center gap-2">
                         <div className={cn("h-2 w-2 rounded-full", isSyncing ? "bg-amber-500 animate-pulse" : "bg-green-500")} />
                         <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-                            {isSyncing ? "Connecting Firebase..." : "Real-time Ready"}
+                            {isSyncing ? "Syncing RTDB..." : "Real-time Bridged"}
                         </span>
                     </div>
                     <button onClick={onClose} className="text-[10px] font-black uppercase text-primary hover:underline">Close Match Center</button>
@@ -282,7 +283,6 @@ export default function LivePage() {
     const [liveMatches, setLiveMatches] = useState<ApiMatch[]>([]);
     const [selectedMatch, setSelectedMatch] = useState<ApiMatch | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const { toast } = useToast();
 
     useEffect(() => {
         const fetchLiveMatches = async () => {
@@ -296,7 +296,7 @@ export default function LivePage() {
             }
         };
         fetchLiveMatches();
-        const interval = setInterval(fetchLiveMatches, 30000); // Background refresh every 30s
+        const interval = setInterval(fetchLiveMatches, 30000); 
         return () => clearInterval(interval);
     }, []);
 
