@@ -56,7 +56,7 @@ export function StandardScoringInterface({ match, onBack }: { match: ApiMatch, o
                              <Button size="sm" variant="destructive" onClick={() => setIsEndMatchOpen(true)}>End Match</Button>
                         </div>
                     </div>
-                </header>
+                </CardHeader>
                 <CardContent className="space-y-8 pt-6">
                     <div className="grid grid-cols-[1fr,auto,1fr] items-center gap-8">
                         <div className="text-center space-y-4">
@@ -64,8 +64,8 @@ export function StandardScoringInterface({ match, onBack }: { match: ApiMatch, o
                             <h3 className="font-bold text-xl">{match.TeamA.team_name}</h3>
                             <p className="text-7xl font-black font-mono">{teamAScore}</p>
                             <div className='flex gap-2 justify-center'>
-                                <Button size="lg" className="h-16 w-24 text-2xl" onClick={() => handleScoreEvent(match.team_a_id, 1)}>+1</Button>
-                                <Button size="lg" variant="secondary" className="h-16 w-16" onClick={() => handleScoreEvent(match.team_a_id, -1)}>-1</Button>
+                                <Button size="lg" className="h-16 w-24 text-2xl" onClick={() => handleScoreEvent(match.team_a_id, 1)}>+</Button>
+                                <Button size="lg" variant="secondary" className="h-16 w-16" onClick={() => handleScoreEvent(match.team_a_id, -1)}>-</Button>
                             </div>
                         </div>
 
@@ -76,8 +76,8 @@ export function StandardScoringInterface({ match, onBack }: { match: ApiMatch, o
                             <h3 className="font-bold text-xl">{match.TeamB.team_name}</h3>
                             <p className="text-7xl font-black font-mono">{teamBScore}</p>
                              <div className='flex gap-2 justify-center'>
-                                <Button size="lg" className="h-16 w-24 text-2xl" onClick={() => handleScoreEvent(match.team_b_id, 1)}>+1</Button>
-                                <Button size="lg" variant="secondary" className="h-16 w-16" onClick={() => handleScoreEvent(match.team_b_id, -1)}>-1</Button>
+                                <Button size="lg" className="h-16 w-24 text-2xl" onClick={() => handleScoreEvent(match.team_b_id, 1)}>+</Button>
+                                <Button size="lg" variant="secondary" className="h-16 w-16" onClick={() => handleScoreEvent(match.team_b_id, -1)}>-</Button>
                             </div>
                         </div>
                     </div>
