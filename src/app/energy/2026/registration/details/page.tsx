@@ -251,4 +251,4 @@ export default function PublicRegistrationDetailsPage() {
         </Suspense>
     );
 }
-// 01
+// 02
