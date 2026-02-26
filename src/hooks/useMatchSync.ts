@@ -7,18 +7,32 @@ import type { ApiMatch } from "@/lib/api";
 export const useMatchSocket = (matchId: string, initialMatchData: ApiMatch | null) => {
   const [score, setScore] = useState<any>(initialMatchData?.score_details || null);
   const [matchState, setMatchState] = useState<any>(initialMatchData?.match_state || null);
-  const [events, setEvents] = useState<any[]>(initialMatchData?.match_events || []);
+  const [events, setEvents] = useState<any[]>(Array.isArray(initialMatchData?.match_events) ? initialMatchData.match_events : []);
   const [matchStatus, setMatchStatus] = useState<string>(initialMatchData?.status || 'scheduled');
   const [isConnected, setIsConnected] = useState(false);
   const socket = getSocket();
   
   const processNewEvents = useCallback((newEventData: any | any[]) => {
+    if (!newEventData) return;
+
     setEvents(prev => {
+        const currentEvents = Array.isArray(prev) ? prev : [];
         const newEvents = Array.isArray(newEventData) ? newEventData : [newEventData];
-        const eventIds = new Set(prev.map(e => e.id));
-        const trulyNewEvents = newEvents.filter(e => e && !eventIds.has(e.id));
-        if (trulyNewEvents.length === 0) return prev;
-        return [...trulyNewEvents, ...prev].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        
+        // Filter valid events with IDs
+        const validNewEvents = newEvents.filter(e => e && typeof e === 'object' && e.id);
+        if (validNewEvents.length === 0) return currentEvents;
+
+        const eventIds = new Set(currentEvents.map(e => e.id));
+        const trulyNewEvents = validNewEvents.filter(e => !eventIds.has(e.id));
+        
+        if (trulyNewEvents.length === 0) return currentEvents;
+        
+        return [...trulyNewEvents, ...currentEvents].sort((a,b) => {
+            const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+            const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+            return timeB - timeA;
+        });
     });
   }, []);
 
@@ -56,10 +70,8 @@ export const useMatchSocket = (matchId: string, initialMatchData: ApiMatch | nul
 
     const handleEventUndone = (data: any) => {
        if (data.matchId === matchId) {
-           setScore(data.score);
-           // Refetch events for simplicity after undo
-           // Or more advanced: find and remove event from local state
-           setEvents(prev => prev.filter(e => e.id !== data.undone_event_id));
+           if (data.score) setScore(data.score);
+           setEvents(prev => Array.isArray(prev) ? prev.filter(e => e.id !== data.undone_event_id) : []);
        }
     };
 
