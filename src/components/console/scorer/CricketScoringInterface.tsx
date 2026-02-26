@@ -16,21 +16,21 @@ import { EndMatchDialog } from './EndMatchDialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const BatsmanCard = ({ player, onStrike, stats }: { player: any, onStrike: boolean, stats: any }) => {
-    const name = player?.name || player?.Student?.name || 'Waiting...';
+    const name = player?.name || player?.Student?.name || stats?.name || 'Waiting...';
     return (
         <Card className={cn("border-slate-700 text-white p-4 transition-all duration-300", onStrike ? 'bg-blue-600 ring-4 ring-blue-400 shadow-2xl scale-105 z-10' : 'bg-slate-800 opacity-80')}>
             <h4 className="font-black text-[10px] uppercase tracking-tighter truncate mb-2">{name}{onStrike && ' *'}</h4>
             <div className="flex items-baseline gap-1">
-                <p className="text-3xl font-black font-mono">{stats?.runs || 0}</p>
-                <p className="text-white/60 text-[10px] font-bold uppercase">({stats?.balls || 0})</p>
+                <p className="text-3xl font-black font-mono">{stats?.runs ?? 0}</p>
+                <p className="text-white/60 text-[10px] font-bold uppercase">({stats?.balls ?? 0})</p>
             </div>
-            <p className="text-[8px] text-white/40 uppercase font-bold mt-1">4s: {stats?.fours || 0} | 6s: {stats?.sixes || 0}</p>
+            <p className="text-[8px] text-white/40 uppercase font-bold mt-1">4s: {stats?.fours ?? 0} | 6s: {stats?.sixes ?? 0}</p>
         </Card>
     )
 }
 
 const BowlerCard = ({ player, stats }: { player: any, stats: any }) => {
-    const name = player?.name || player?.Student?.name || 'Select Bowler';
+    const name = player?.name || player?.Student?.name || stats?.name || 'Select Bowler';
     return (
         <Card className="bg-slate-900 border-slate-700 text-white p-4 mt-2">
              <div className="flex justify-between items-center">
@@ -42,7 +42,7 @@ const BowlerCard = ({ player, stats }: { player: any, stats: any }) => {
                     </div>
                 </div>
                  <div className="text-right">
-                    <p className="text-xl font-black font-mono tracking-tighter">{stats?.wickets || 0}/{stats?.runs_conceded || 0}</p>
+                    <p className="text-xl font-black font-mono tracking-tighter">{stats?.wickets ?? 0}/{stats?.runs_conceded ?? 0}</p>
                     <p className="text-[9px] text-slate-400 uppercase font-black tracking-widest">{(stats?.overs || 0.0).toFixed(1)} Ov</p>
                  </div>
             </div>
@@ -51,6 +51,7 @@ const BowlerCard = ({ player, stats }: { player: any, stats: any }) => {
 }
 
 export function CricketScoringInterface({ match: initialMatch, onBack }: { match: ApiMatch, onBack: () => void }) {
+    // SYNC: Establish real-time connection to Firebase match node
     const { matchData, isLoading: isSyncing } = useMatchSync(initialMatch.id);
     
     const [teamARoster, setTeamARoster] = useState<StudentTeamMember[]>([]);
@@ -67,6 +68,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
 
     const { toast } = useToast();
     
+    // Priority: Use matchData (Firebase) if available, fallback to initialMatch (REST)
     const score = matchData?.score_details || initialMatch.score_details || {};
     const state = matchData?.match_state || initialMatch.match_state || {};
     const batsmenStats = matchData?.current_batsmen_stats || {};
@@ -83,8 +85,9 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                     getScorerTeamDetails(initialMatch.team_a_id),
                     getScorerTeamDetails(initialMatch.team_b_id),
                 ]);
-                const rosterA = Array.isArray(teamA) ? teamA : teamA.members || teamA.Members || [];
-                const rosterB = Array.isArray(teamB) ? teamB : teamB.members || teamB.Members || [];
+                // Handling potentially nested structure from common API
+                const rosterA = Array.isArray(teamA) ? teamA : (teamA.members || teamA.Members || []);
+                const rosterB = Array.isArray(teamB) ? teamB : (teamB.members || teamB.Members || []);
                 setTeamARoster(rosterA);
                 setTeamBRoster(rosterB);
             } catch (error) {
@@ -96,6 +99,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
         fetchRosters();
     }, [initialMatch.team_a_id, initialMatch.team_b_id, toast]);
 
+    // Update modal selections when state changes or modal opens
     useEffect(() => {
         if (isPlayerSelectOpen) {
             setModalStrikerId(state.striker_id ? String(state.striker_id) : null);
@@ -107,13 +111,15 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
     const battingRoster = battingTeamId === String(initialMatch.team_a_id) ? teamARoster : teamBRoster;
     const bowlingRoster = bowlingTeamId === String(initialMatch.team_a_id) ? teamARoster : teamBRoster;
 
-    const striker = battingRoster.find(p => String(p.student_id || p.id) === String(state.striker_id)) || batsmenStats[state.striker_id];
-    const nonStriker = battingRoster.find(p => String(p.student_id || p.id) === String(state.non_striker_id)) || batsmenStats[state.non_striker_id];
-    const currentBowler = bowlingRoster.find(p => String(p.student_id || p.id) === String(state.bowler_id)) || bowlerStats[state.bowler_id];
+    // Get current players based on the synced IDs
+    const striker = battingRoster.find(p => String(p.student_id || p.id) === String(state.striker_id));
+    const nonStriker = battingRoster.find(p => String(p.student_id || p.id) === String(state.non_striker_id));
+    const currentBowler = bowlingRoster.find(p => String(p.student_id || p.id) === String(state.bowler_id));
 
-    const currentStrikerStats = batsmenStats[state.striker_id] || { runs: 0, balls: 0 };
-    const currentNonStrikerStats = batsmenStats[state.non_striker_id] || { runs: 0, balls: 0 };
-    const currentBowlerStats = bowlerStats[state.bowler_id] || { runs: 0, wickets: 0, overs: 0 };
+    // Get current stats for players from the synced stats node
+    const currentStrikerStats = batsmenStats[String(state.striker_id)] || { runs: 0, balls: 0, fours: 0, sixes: 0 };
+    const currentNonStrikerStats = batsmenStats[String(state.non_striker_id)] || { runs: 0, balls: 0, fours: 0, sixes: 0 };
+    const currentBowlerStats = bowlerStats[String(state.bowler_id)] || { runs_conceded: 0, wickets: 0, overs: 0 };
 
     const handleSavePlayers = async () => {
         if (!modalStrikerId || !modalNonStrikerId || !modalBowlerId) {
@@ -145,6 +151,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
         }
         setIsProcessingCommand(true);
         try {
+            // Commands: Striker -> Non-striker and vice versa
             await updateMatchState(initialMatch.id, {
                 striker_id: String(state.non_striker_id),
                 non_striker_id: String(state.striker_id),
@@ -170,7 +177,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
         try {
             const extras = extraType ? 1 : 0;
             await submitCricketBall(initialMatch.id, {
-                runs: extraType === 'wide' ? 0 : runs,
+                runs: (extraType === 'wide' || extraType === 'no_ball') ? 0 : runs, // Runs are usually extra + run for NB, but wide is just extra
                 is_wicket: isWicket,
                 wicket_type: isWicket ? 'bowled' : null,
                 extras: extras,
@@ -180,6 +187,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                 bowler_id: String(state.bowler_id),
                 batting_team_id: battingTeamId
             });
+            // We do NOT update state here. We wait for Firebase to push the update to us.
         } catch (error) {
             toast({ variant: 'destructive', title: 'Scoring Error', description: 'Could not record ball.' });
         } finally {
@@ -203,6 +211,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
 
     const teamScore = score[battingTeamId] || { runs: 0, wickets: 0, overs: 0 };
     const currentOvers = teamScore.overs || 0.0;
+    // Check if over ended (balls are 6)
     const isOverEnd = currentOvers > 0 && Math.round((currentOvers % 1) * 10) === 0;
 
     return (
@@ -210,7 +219,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
             <header className="p-4 flex items-center justify-between border-b border-slate-800 bg-slate-900/50 sticky top-0 z-50">
                 <Button variant="ghost" size="icon" onClick={onBack}><ArrowLeft className="w-5 h-5"/></Button>
                 <div className="text-center">
-                    <h1 className="font-black text-[10px] tracking-[0.2em] uppercase text-blue-400">Cricket Scorer Hybrid</h1>
+                    <h1 className="font-black text-[10px] tracking-[0.2em] uppercase text-blue-400">Cricket Scorer Pro</h1>
                     <div className="flex items-center gap-1.5 justify-center mt-0.5">
                         <div className={cn("w-1.5 h-1.5 rounded-full", isSyncing ? "bg-amber-500 animate-pulse" : "bg-green-500")} />
                         <span className="text-[9px] uppercase font-black text-slate-500 tracking-widest">{isSyncing ? 'Syncing...' : 'Real-time'}</span>
@@ -228,11 +237,11 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                     </div>
                     <div>
                         <div className="flex items-baseline justify-center gap-1">
-                            <p className="text-7xl font-black tracking-tighter">{teamScore.runs || 0}</p>
-                            <p className="text-3xl font-black text-slate-600">/{teamScore.wickets || 0}</p>
+                            <p className="text-7xl font-black tracking-tighter">{teamScore.runs ?? 0}</p>
+                            <p className="text-3xl font-black text-slate-600">/{teamScore.wickets ?? 0}</p>
                         </div>
                         <Badge variant="secondary" className="bg-blue-500/10 text-blue-400 border-blue-500/20 font-black tracking-widest mt-4 px-4 py-1 text-xs">
-                            {currentOvers.toFixed(1)} OVERS
+                            {(teamScore.overs ?? 0).toFixed(1)} OVERS
                         </Badge>
                     </div>
                 </Card>
@@ -255,11 +264,11 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                 <div className="space-y-4 pt-4">
                     <div className="grid grid-cols-4 gap-2">
                         {[0, 1, 2, 3].map(r => (
-                            <Button key={r} className="h-14 text-2xl font-black bg-slate-800" disabled={isProcessingCommand} onClick={() => handleBall(r)}>{r}</Button>
+                            <Button key={r} className="h-14 text-2xl font-black bg-slate-800 hover:bg-slate-700" disabled={isProcessingCommand} onClick={() => handleBall(r)}>{r}</Button>
                         ))}
-                        <Button className="h-14 text-2xl font-black bg-emerald-600" disabled={isProcessingCommand} onClick={() => handleBall(4)}>4</Button>
-                        <Button className="h-14 text-2xl font-black bg-blue-600" disabled={isProcessingCommand} onClick={() => handleBall(6)}>6</Button>
-                        <Button className="h-14 text-2xl font-black bg-red-600" disabled={isProcessingCommand} onClick={() => handleBall(0, true)}>W</Button>
+                        <Button className="h-14 text-2xl font-black bg-emerald-600 hover:bg-emerald-700" disabled={isProcessingCommand} onClick={() => handleBall(4)}>4</Button>
+                        <Button className="h-14 text-2xl font-black bg-blue-600 hover:bg-blue-700" disabled={isProcessingCommand} onClick={() => handleBall(6)}>6</Button>
+                        <Button className="h-14 text-2xl font-black bg-red-600 hover:bg-red-700" disabled={isProcessingCommand} onClick={() => handleBall(0, true)}>W</Button>
                         <Button variant="outline" className="h-14 bg-slate-900 border-slate-700 font-black text-xs uppercase" disabled={isProcessingCommand} onClick={handleUndo}><RotateCcw className="w-4 h-4 mr-2"/>Undo</Button>
                     </div>
 
@@ -270,11 +279,11 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 pt-2">
-                    <Button variant="secondary" className="h-14 bg-slate-800 font-black uppercase text-xs tracking-widest" onClick={() => setIsPlayerSelectOpen(true)} disabled={isProcessingCommand}>
+                    <Button variant="secondary" className="h-14 bg-slate-800 font-black uppercase text-xs tracking-widest hover:bg-slate-700" onClick={() => setIsPlayerSelectOpen(true)} disabled={isProcessingCommand}>
                         {isProcessingCommand ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
                         Change Bowler
                     </Button>
-                    <Button variant="secondary" className="h-14 bg-slate-800 font-black uppercase text-xs tracking-widest" onClick={handleRotateStriker} disabled={isProcessingCommand}>
+                    <Button variant="secondary" className="h-14 bg-slate-800 font-black uppercase text-xs tracking-widest hover:bg-slate-700" onClick={handleRotateStriker} disabled={isProcessingCommand}>
                         {isProcessingCommand ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <RotateCw className="w-4 h-4 mr-2"/>}
                         Strike Swap
                     </Button>
@@ -282,10 +291,10 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
             </main>
 
             <Dialog open={isPlayerSelectOpen} onOpenChange={setIsPlayerSelectOpen}>
-                <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-[95vw] sm:max-w-md rounded-3xl overflow-hidden p-0">
+                <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-[95vw] sm:max-w-md rounded-3xl overflow-hidden p-0 shadow-2xl">
                     <DialogHeader className="p-6 bg-slate-800/50">
                         <DialogTitle className="text-xl font-black uppercase tracking-tighter">Lineup Management</DialogTitle>
-                        <DialogDescription className="text-slate-400 text-xs font-bold uppercase tracking-widest">Select active strikers and current bowler</DialogDescription>
+                        <DialogDescription className="text-slate-400 text-xs font-bold uppercase tracking-widest">Set striker, non-striker, and bowler</DialogDescription>
                     </DialogHeader>
                     <div className="p-6 space-y-6">
                         <div className="space-y-4">
@@ -337,7 +346,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                         </div>
                     </div>
                     <DialogFooter className="p-6">
-                        <Button onClick={handleSavePlayers} disabled={isProcessingCommand} className="w-full h-14 bg-blue-600 font-black uppercase">
+                        <Button onClick={handleSavePlayers} disabled={isProcessingCommand} className="w-full h-14 bg-blue-600 hover:bg-blue-700 font-black uppercase text-lg">
                             {isProcessingCommand ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : null}
                             Update Lineup
                         </Button>

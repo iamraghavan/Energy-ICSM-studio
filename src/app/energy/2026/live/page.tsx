@@ -63,12 +63,12 @@ function TimelineEvent({ event }: { event: any }) {
 // --- Player Stat Row for Live View ---
 function PlayerStatRow({ name, primary, secondary, highlight = false }: { name: string, primary: string | number, secondary?: string, highlight?: boolean }) {
     return (
-        <div className={cn("flex items-center justify-between p-3 rounded-xl", highlight ? "bg-primary/5 border border-primary/10" : "bg-muted/30")}>
-            <div className="flex items-center gap-2">
-                <div className={cn("h-2 w-2 rounded-full", highlight ? "bg-primary animate-pulse" : "bg-muted-foreground/30")} />
-                <span className="font-bold text-xs uppercase tracking-tight truncate max-w-[120px]">{name}</span>
+        <div className={cn("flex items-center justify-between p-3 rounded-xl transition-all duration-300", highlight ? "bg-primary/10 border-primary shadow-sm" : "bg-muted/30 border-transparent border")}>
+            <div className="flex items-center gap-2 overflow-hidden">
+                <div className={cn("h-2 w-2 rounded-full shrink-0", highlight ? "bg-primary animate-pulse" : "bg-muted-foreground/30")} />
+                <span className="font-bold text-xs uppercase tracking-tight truncate">{name || 'Unknown'}</span>
             </div>
-            <div className="flex items-baseline gap-1">
+            <div className="flex items-baseline gap-1 shrink-0">
                 <span className="font-black text-sm font-mono">{primary}</span>
                 {secondary && <span className="text-[10px] text-muted-foreground font-bold">{secondary}</span>}
             </div>
@@ -83,27 +83,31 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
     if (!isOpen || !initialMatch) return null;
 
     // Merge logic: Combine initial relational data (REST) with real-time updates (Firebase)
+    // We prioritize REST for Team/Sport metadata and Firebase for dynamic scores
     const match = matchData ? { ...initialMatch, ...matchData } : initialMatch;
     
-    // Defensive extraction to prevent "undefined" reading property errors
-    const TeamA = match?.TeamA || initialMatch?.TeamA;
-    const TeamB = match?.TeamB || initialMatch?.TeamB;
-    const Sport = match?.Sport || initialMatch?.Sport;
-    const status = match?.status || 'live';
+    const TeamA = initialMatch.TeamA;
+    const TeamB = initialMatch.TeamB;
+    const Sport = initialMatch.Sport;
+    const status = match.status || initialMatch.status;
 
     if (!Sport || !TeamA || !TeamB) return null;
 
     const isCricket = Sport.name === 'Cricket';
     
     const scoreDetails = match.score_details || {};
-    const teamAScoreData = scoreDetails[match.team_a_id] || { runs: 0, score: 0, wickets: 0, overs: 0 };
-    const teamBScoreData = scoreDetails[match.team_b_id] || { runs: 0, score: 0, wickets: 0, overs: 0 };
+    const teamAScoreData = scoreDetails[initialMatch.team_a_id] || { runs: 0, score: 0, wickets: 0, overs: 0 };
+    const teamBScoreData = scoreDetails[initialMatch.team_b_id] || { runs: 0, score: 0, wickets: 0, overs: 0 };
 
     const teamAScore = teamAScoreData.runs ?? teamAScoreData.score ?? 0;
     const teamBScore = teamBScoreData.runs ?? teamBScoreData.score ?? 0;
     
-    const events = (Array.isArray(match.match_events) ? match.match_events : Object.values(match.match_events || {}))
-        .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    // Process events from Firebase (normalizing objects to arrays if needed)
+    const rawEvents = match.match_events || [];
+    const eventsArray = Array.isArray(rawEvents) ? rawEvents : Object.values(rawEvents);
+    const sortedEvents = eventsArray.sort((a: any, b: any) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
 
     const batsmenStats = match.current_batsmen_stats || {};
     const bowlerStats = match.current_bowler_stats || {};
@@ -123,7 +127,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                         <div>
                             <h3 className="text-white font-bold text-sm uppercase tracking-widest leading-none">{Sport.name}</h3>
                             <div className="flex items-center gap-1.5 text-white/60 text-[10px] mt-1 font-bold uppercase">
-                                <MapPin className="h-3 w-3" /> {match.venue}
+                                <MapPin className="h-3 w-3" /> {match.venue || initialMatch.venue}
                             </div>
                         </div>
                     </div>
@@ -165,33 +169,41 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                         
                         {isCricket && (
                             <TabsContent value="stats" className="mt-6 space-y-6">
-                                <div className="space-y-2">
+                                <div className="space-y-3">
                                     <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Current Batsmen</p>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        {Object.entries(batsmenStats).map(([id, stats]: [string, any]) => (
+                                        {Object.keys(batsmenStats).length > 0 ? Object.entries(batsmenStats).map(([id, stats]: [string, any]) => (
                                             <PlayerStatRow 
                                                 key={id} 
                                                 name={stats.name} 
-                                                primary={stats.runs} 
-                                                secondary={`(${stats.balls})`} 
-                                                highlight={id === state.striker_id}
+                                                primary={stats.runs ?? 0} 
+                                                secondary={`(${stats.balls ?? 0})`} 
+                                                highlight={id === String(state.striker_id)}
                                             />
-                                        ))}
-                                        {Object.keys(batsmenStats).length === 0 && <p className="text-xs text-muted-foreground italic p-4 text-center col-span-2 border border-dashed rounded-xl">Batsmen details pending...</p>}
+                                        )) : (
+                                            <div className="col-span-2 text-center py-6 border border-dashed rounded-2xl bg-muted/20">
+                                                <Users className="h-6 w-6 mx-auto mb-2 opacity-20" />
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Batsmen details pending...</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
-                                <div className="space-y-2">
+                                <div className="space-y-3">
                                     <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Current Bowler</p>
-                                    {Object.entries(bowlerStats).map(([id, stats]: [string, any]) => (
+                                    {Object.keys(bowlerStats).length > 0 ? Object.entries(bowlerStats).map(([id, stats]: [string, any]) => (
                                         <PlayerStatRow 
                                             key={id} 
                                             name={stats.name} 
-                                            primary={`${stats.wickets}/${stats.runs_conceded}`} 
+                                            primary={`${stats.wickets ?? 0}/${stats.runs_conceded ?? 0}`} 
                                             secondary={`(${(stats.overs || 0.0).toFixed(1)} Ov)`} 
-                                            highlight={id === state.bowler_id}
+                                            highlight={id === String(state.bowler_id)}
                                         />
-                                    ))}
-                                    {Object.keys(bowlerStats).length === 0 && <p className="text-xs text-muted-foreground italic p-4 text-center border border-dashed rounded-xl">Bowler details pending...</p>}
+                                    )) : (
+                                        <div className="text-center py-6 border border-dashed rounded-2xl bg-muted/20">
+                                            <Users className="h-6 w-6 mx-auto mb-2 opacity-20" />
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Bowler details pending...</p>
+                                        </div>
+                                    )}
                                 </div>
                             </TabsContent>
                         )}
@@ -199,8 +211,8 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                         <TabsContent value="timeline" className="mt-6">
                             <ScrollArea className="h-64 pr-4">
                                 <div className="space-y-1">
-                                    {events.length > 0 ? (
-                                        events.map((event: any, i: number) => <TimelineEvent key={event.id || `${event.timestamp}-${i}`} event={event} />)
+                                    {sortedEvents.length > 0 ? (
+                                        sortedEvents.map((event: any, i: number) => <TimelineEvent key={event.id || `${event.timestamp}-${i}`} event={event} />)
                                     ) : (
                                         <div className="flex flex-col items-center justify-center py-12 text-muted-foreground space-y-3">
                                             <Activity className="h-8 w-8 opacity-20" />
@@ -217,7 +229,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                     <div className="flex items-center gap-2">
                         <div className={cn("h-2 w-2 rounded-full", isSyncing ? "bg-amber-500 animate-pulse" : "bg-green-500")} />
                         <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-                            {isSyncing ? "Syncing Firebase..." : "Real-time Ready"}
+                            {isSyncing ? "Connecting Firebase..." : "Real-time Ready"}
                         </span>
                     </div>
                     <button onClick={onClose} className="text-[10px] font-black uppercase text-primary hover:underline">Close Match Center</button>
@@ -234,21 +246,25 @@ function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => v
     const scoreB = score_details?.[match.team_b_id];
 
     return (
-        <Card onClick={onSelect} className="cursor-pointer overflow-hidden border-2 transition-all duration-300 hover:shadow-2xl bg-card/50 backdrop-blur-sm group">
+        <Card onClick={onSelect} className="cursor-pointer overflow-hidden border-2 transition-all duration-300 hover:shadow-2xl bg-card/50 backdrop-blur-sm group hover:-translate-y-1">
             <div className="p-5">
                 <div className="flex justify-between items-center mb-6">
                     <span className="font-bold text-xs uppercase tracking-widest text-primary">{Sport?.name}</span>
-                    <Badge variant="outline" className="text-[10px]"><MapPin className="h-3 w-3 mr-1" /> {venue}</Badge>
+                    <Badge variant="outline" className="text-[10px] bg-background"><MapPin className="h-3 w-3 mr-1" /> {venue}</Badge>
                 </div>
                 <div className="grid grid-cols-[1fr,auto,1fr] gap-4 items-center mb-4">
                     <div className="text-center">
                         <p className="font-black text-[11px] uppercase leading-tight min-h-[2.5rem] flex items-center justify-center">{TeamA?.team_name}</p>
-                        <div className="text-2xl font-black font-mono">{isCricket ? `${scoreA?.runs ?? 0}/${scoreA?.wickets ?? 0}` : (scoreA?.score ?? 0)}</div>
+                        <div className="text-2xl font-black font-mono">
+                            {isCricket ? `${scoreA?.runs ?? 0}/${scoreA?.wickets ?? 0}` : (scoreA?.score ?? 0)}
+                        </div>
                     </div>
-                    <div className="text-[9px] font-black text-muted-foreground uppercase">VS</div>
+                    <div className="text-[9px] font-black text-muted-foreground uppercase opacity-40">VS</div>
                     <div className="text-center">
                         <p className="font-black text-[11px] uppercase leading-tight min-h-[2.5rem] flex items-center justify-center">{TeamB?.team_name}</p>
-                        <div className="text-2xl font-black font-mono">{isCricket ? `${scoreB?.runs ?? 0}/${scoreB?.wickets ?? 0}` : (scoreB?.score ?? 0)}</div>
+                        <div className="text-2xl font-black font-mono">
+                            {isCricket ? `${scoreB?.runs ?? 0}/${scoreB?.wickets ?? 0}` : (scoreB?.score ?? 0)}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -280,7 +296,7 @@ export default function LivePage() {
             }
         };
         fetchLiveMatches();
-        const interval = setInterval(fetchLiveMatches, 30000); 
+        const interval = setInterval(fetchLiveMatches, 30000); // Background refresh every 30s
         return () => clearInterval(interval);
     }, []);
 
@@ -294,7 +310,7 @@ export default function LivePage() {
             <div className="min-h-[400px]">
                 {isLoading ? (
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-64 w-full rounded-2xl" />)}
+                        {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-64 w-full rounded-3xl" />)}
                     </div>
                 ) : liveMatches.length > 0 ? (
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -303,7 +319,7 @@ export default function LivePage() {
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center py-24 text-muted-foreground border-2 border-dashed rounded-3xl bg-muted/20">
+                    <div className="text-center py-24 text-muted-foreground border-2 border-dashed rounded-[3rem] bg-muted/20">
                         <Activity className="h-16 w-16 mx-auto mb-6 opacity-40" />
                         <h3 className="text-2xl font-black uppercase tracking-tighter text-foreground mb-2">No Active Battles</h3>
                         <p className="max-w-xs mx-auto text-sm">Check back soon for the latest tournament action!</p>
