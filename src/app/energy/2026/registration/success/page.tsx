@@ -14,7 +14,7 @@ import { ShareButton } from '@/components/shared/share-button';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
-const API_BASE_URL = 'https://dumbbkxrdr.ap-south-1.awsapprunner.com/api/v1';
+const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
 
 function InfoDetail({ icon: Icon, label, value, isMono = false, children }: { icon?: React.ElementType, label: string, value?: string | null, isMono?: boolean, children?: React.ReactNode }) {
     if (!value && !children) return null;
