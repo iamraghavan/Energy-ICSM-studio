@@ -1,15 +1,44 @@
 
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { getSocket } from "@/lib/socket";
 import type { ApiMatch } from "@/lib/api";
 
 export const useMatchSocket = (matchId: string, initialMatchData: ApiMatch | null = null) => {
   const [score, setScore] = useState<any>(initialMatchData?.score_details || null);
   const [matchState, setMatchState] = useState<any>(initialMatchData?.match_state || null);
-  const [events, setEvents] = useState<any[]>(initialMatchData?.match_events || []);
+  const [events, setEvents] = useState<any[]>(Array.isArray(initialMatchData?.match_events) ? initialMatchData.match_events : []);
+  const [matchStatus, setMatchStatus] = useState<string>(initialMatchData?.status || 'scheduled');
   const [isConnected, setIsConnected] = useState(false);
   const socket = getSocket();
+
+  // Helper to process and merge incoming events without duplicates
+  const processNewEvents = useCallback((newEventData: any | any[]) => {
+    if (!newEventData) return;
+
+    setEvents(prev => {
+        const currentEvents = Array.isArray(prev) ? prev : [];
+        const incoming = Array.isArray(newEventData) ? newEventData : [newEventData];
+        
+        // Filter out nulls/invalid objects
+        const validNewEvents = incoming.filter(e => e && typeof e === 'object');
+        if (validNewEvents.length === 0) return currentEvents;
+
+        // Use a composite key for deduplication if 'id' is missing
+        const eventKeys = new Set(currentEvents.map(e => e.id || `${e.timestamp}-${e.event_type}`));
+        const trulyNewEvents = validNewEvents.filter(e => !eventKeys.has(e.id || `${e.timestamp}-${e.event_type}`));
+        
+        if (trulyNewEvents.length === 0) return currentEvents;
+        
+        // Prepend new events and sort by timestamp descending
+        const merged = [...trulyNewEvents, ...currentEvents];
+        return merged.sort((a,b) => {
+            const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+            const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+            return timeB - timeA;
+        });
+    });
+  }, []);
 
   useEffect(() => {
     if (!matchId) return;
@@ -24,18 +53,15 @@ export const useMatchSocket = (matchId: string, initialMatchData: ApiMatch | nul
     const onScoreUpdate = (data: any) => {
       if (data.matchId === matchId) {
         setScore(data.score || data.scoreDetails);
-        if (data.event) {
-            setEvents(prev => [data.event, ...prev]);
-        }
+        if (data.event) processNewEvents(data.event);
       }
     };
 
     const onCricketUpdate = (data: any) => {
       if (data.matchId === matchId) {
         setScore(data.score || data.scoreDetails);
-        if (data.last_ball) {
-            setEvents(prev => [data.last_ball, ...prev]);
-        }
+        if (data.last_ball) processNewEvents(data.last_ball);
+        if (data.state) setMatchState(data.state);
       }
     };
 
@@ -46,8 +72,12 @@ export const useMatchSocket = (matchId: string, initialMatchData: ApiMatch | nul
     const onEventUndone = (data: any) => {
         if (data.matchId === matchId) {
             setScore(data.score);
-            setEvents(prev => prev.filter(e => e.id !== data.undone_event_id));
+            setEvents(prev => Array.isArray(prev) ? prev.filter(e => e.id !== data.undone_event_id) : []);
         }
+    };
+
+    const onStatusUpdate = (data: any) => {
+        if (data.matchId === matchId) setMatchStatus(data.status);
     };
 
     if (socket.connected) onConnect();
@@ -58,6 +88,7 @@ export const useMatchSocket = (matchId: string, initialMatchData: ApiMatch | nul
     socket.on("score_updated", onScoreUpdate);
     socket.on("match_state_updated", onStateUpdate);
     socket.on("event_undone", onEventUndone);
+    socket.on('match_status_change', onStatusUpdate);
 
     return () => {
       socket.emit("leave_match", matchId);
@@ -67,8 +98,9 @@ export const useMatchSocket = (matchId: string, initialMatchData: ApiMatch | nul
       socket.off("score_updated", onScoreUpdate);
       socket.off("match_state_updated", onStateUpdate);
       socket.off("event_undone", onEventUndone);
+      socket.off('match_status_change', onStatusUpdate);
     };
-  }, [matchId, socket]);
+  }, [matchId, socket, processNewEvents]);
 
   const submitAction = (eventName: string, payload: any): Promise<any> => {
     return new Promise((resolve, reject) => {
@@ -80,5 +112,5 @@ export const useMatchSocket = (matchId: string, initialMatchData: ApiMatch | nul
     });
   };
 
-  return { score, matchState, isConnected, submitAction, events };
+  return { score, matchState, isConnected, submitAction, events, matchStatus };
 };

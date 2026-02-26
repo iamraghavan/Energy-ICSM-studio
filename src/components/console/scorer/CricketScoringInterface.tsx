@@ -1,6 +1,6 @@
 
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getScorerTeamDetails, updateMatchState, type ApiMatch, type StudentTeamMember } from "@/lib/api";
@@ -15,12 +15,12 @@ import { useMatchSocket } from '@/hooks/useMatchSocket';
 import { EndMatchDialog } from './EndMatchDialog';
 
 const BatsmanCard = ({ player, onStrike, stats }: { player: StudentTeamMember | undefined, onStrike: boolean, stats: any }) => {
-    const name = player?.Student?.name || player?.name || 'Unknown Batsman';
+    const name = player?.name || player?.Student?.name || 'Waiting...';
     return (
         <Card className={cn("border-slate-700 text-white p-4 transition-all duration-300", onStrike ? 'bg-blue-600 ring-4 ring-blue-400 shadow-2xl scale-105 z-10' : 'bg-slate-800 opacity-80')}>
-            <h4 className="font-black text-xs uppercase tracking-tighter truncate mb-2">{name}{onStrike && ' *'}</h4>
+            <h4 className="font-black text-[10px] uppercase tracking-tighter truncate mb-2">{name}{onStrike && ' *'}</h4>
             <div className="flex items-baseline gap-1">
-                <p className="text-4xl font-black font-mono">{stats?.runs || 0}</p>
+                <p className="text-3xl font-black font-mono">{stats?.runs || 0}</p>
                 <p className="text-white/60 text-[10px] font-bold uppercase">({stats?.balls || 0})</p>
             </div>
         </Card>
@@ -28,20 +28,20 @@ const BatsmanCard = ({ player, onStrike, stats }: { player: StudentTeamMember | 
 }
 
 const BowlerCard = ({ player, stats }: { player: StudentTeamMember | undefined, stats: any }) => {
-    const name = player?.Student?.name || player?.name || 'Unknown Bowler';
+    const name = player?.name || player?.Student?.name || 'Select Bowler';
     return (
         <Card className="bg-slate-900 border-slate-700 text-white p-4 mt-2">
              <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
                     <div className="h-8 w-8 rounded-full bg-blue-500/20 flex items-center justify-center"><User className="w-4 h-4 text-blue-400"/></div>
                     <div>
-                        <p className="font-black text-xs uppercase tracking-tight">{name}</p>
-                        <p className="text-[9px] text-slate-500 uppercase font-bold">Current Bowler</p>
+                        <p className="font-black text-[10px] uppercase tracking-tight">{name}</p>
+                        <p className="text-[8px] text-slate-500 uppercase font-bold">Current Bowler</p>
                     </div>
                 </div>
                  <div className="text-right">
-                    <p className="text-2xl font-black font-mono tracking-tighter">{stats?.wickets || 0}/{stats?.runs || 0}</p>
-                    <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">{(stats?.overs || 0.0).toFixed(1)} Ov</p>
+                    <p className="text-xl font-black font-mono tracking-tighter">{stats?.wickets || 0}/{stats?.runs || 0}</p>
+                    <p className="text-[9px] text-slate-400 uppercase font-black tracking-widest">{(stats?.overs || 0.0).toFixed(1)} Ov</p>
                  </div>
             </div>
         </Card>
@@ -78,8 +78,8 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                     getScorerTeamDetails(initialMatch.team_a_id),
                     getScorerTeamDetails(initialMatch.team_b_id),
                 ]);
-                setTeamARoster(teamA.members);
-                setTeamBRoster(teamB.members);
+                setTeamARoster(teamA.members || []);
+                setTeamBRoster(teamB.members || []);
             } catch (error) {
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch team rosters.' });
             } finally {
@@ -103,9 +103,9 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
     const battingRoster = battingTeamId === initialMatch.team_a_id ? teamARoster : teamBRoster;
     const bowlingRoster = bowlingTeamId === initialMatch.team_a_id ? teamARoster : teamBRoster;
 
-    const striker = battingRoster.find(p => p.student_id === state.striker_id);
-    const nonStriker = battingRoster.find(p => p.student_id === state.non_striker_id);
-    const bowler = bowlingRoster.find(p => p.student_id === state.bowler_id);
+    const striker = battingRoster.find(p => p.student_id === state.striker_id || p.id === state.striker_id);
+    const nonStriker = battingRoster.find(p => p.student_id === state.non_striker_id || p.id === state.non_striker_id);
+    const bowler = bowlingRoster.find(p => p.student_id === state.bowler_id || p.id === state.bowler_id);
 
     const strikerStats = state.batsmen_stats?.[state.striker_id] || { runs: 0, balls: 0 };
     const nonStrikerStats = state.batsmen_stats?.[state.non_striker_id] || { runs: 0, balls: 0 };
@@ -121,12 +121,14 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                 striker_id: modalStrikerId,
                 non_striker_id: modalNonStrikerId,
                 bowler_id: modalBowlerId,
-                batting_team_id: battingTeamId
+                batting_team_id: battingTeamId,
+                current_innings: state.current_innings || 1
             });
             toast({ title: 'Lineup Updated' });
             setIsPlayerSelectOpen(false);
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Error', description: error.response?.data?.message || String(error) });
+            const msg = error.response?.status === 502 ? "Server Timeout. Retrying..." : error.response?.data?.message || String(error);
+            toast({ variant: 'destructive', title: 'Error Updating Lineup', description: msg });
         }
     };
 
@@ -137,17 +139,18 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                 striker_id: state.non_striker_id,
                 non_striker_id: state.striker_id,
                 bowler_id: state.bowler_id,
-                batting_team_id: battingTeamId
+                batting_team_id: battingTeamId,
+                current_innings: state.current_innings || 1
             });
             toast({ title: 'Strikers Swapped' });
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Rotation Failed', description: String(error) });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Rotation Failed', description: error.response?.status === 502 ? "Server busy. Try again." : String(error) });
         }
     };
 
     const handleBall = async (runs: number, isWicket: boolean = false) => {
         if (!state.striker_id || !state.bowler_id) {
-            toast({ variant: 'destructive', title: 'Selection Required', description: 'Select players first.' });
+            toast({ variant: 'destructive', title: 'Lineup Required', description: 'Please set the striker and bowler first.' });
             setIsPlayerSelectOpen(true);
             return;
         }
@@ -156,6 +159,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                 runs,
                 is_wicket: isWicket,
                 striker_id: state.striker_id,
+                non_striker_id: state.non_striker_id,
                 bowler_id: state.bowler_id,
                 batting_team_id: battingTeamId
             });
@@ -185,7 +189,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                     <h1 className="font-black text-[10px] tracking-[0.2em] uppercase text-blue-400">Cricket Scorer Pro</h1>
                     <div className="flex items-center gap-1.5 justify-center mt-0.5">
                         <div className={cn("w-1.5 h-1.5 rounded-full", isConnected ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-red-500")} />
-                        <span className="text-[9px] uppercase font-black text-slate-500 tracking-widest">{isConnected ? 'Sync Online' : 'Sync Offline'}</span>
+                        <span className="text-[9px] uppercase font-black text-slate-500 tracking-widest">{isConnected ? 'Live Sync' : 'Offline Mode'}</span>
                     </div>
                 </div>
                 <Button variant="destructive" size="sm" className="font-black uppercase text-[10px]" onClick={() => setIsEndMatchDialogOpen(true)}>End</Button>
@@ -201,8 +205,8 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                     </div>
                     <div className="text-center">
                         <div className="flex items-baseline justify-center gap-1">
-                            <p className="text-8xl font-black tracking-tighter">{teamScore.runs || 0}</p>
-                            <p className="text-4xl font-black text-slate-600">/{teamScore.wickets || 0}</p>
+                            <p className="text-7xl font-black tracking-tighter">{teamScore.runs || 0}</p>
+                            <p className="text-3xl font-black text-slate-600">/{teamScore.wickets || 0}</p>
                         </div>
                         <Badge variant="secondary" className="bg-blue-500/10 text-blue-400 border-blue-500/20 font-black tracking-widest mt-4 px-4 py-1 text-xs">
                             {(teamScore.overs || 0.0).toFixed(1)} OVERS
@@ -228,8 +232,8 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 pt-2">
-                    <Button variant="secondary" className="h-14 bg-slate-800 font-black uppercase text-xs tracking-widest" onClick={() => setIsPlayerSelectOpen(true)}>Change Lineup</Button>
-                    <Button variant="secondary" className="h-14 bg-slate-800 font-black uppercase text-xs tracking-widest" onClick={handleRotateStriker}><RotateCw className="w-4 h-4 mr-2"/> Rotate Strike</Button>
+                    <Button variant="secondary" className="h-14 bg-slate-800 font-black uppercase text-xs tracking-widest" onClick={() => setIsPlayerSelectOpen(true)}>Manage Lineup</Button>
+                    <Button variant="secondary" className="h-14 bg-slate-800 font-black uppercase text-xs tracking-widest" onClick={handleRotateStriker}><RotateCw className="w-4 h-4 mr-2"/> Strike Swap</Button>
                 </div>
             </main>
 
@@ -247,8 +251,8 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                                     <SelectTrigger className="bg-slate-800 border-slate-700 h-14 rounded-2xl font-bold"><SelectValue placeholder="Select Striker" /></SelectTrigger>
                                     <SelectContent className="bg-slate-800 border-slate-700 text-white">
                                         {battingRoster.map(p => (
-                                            <SelectItem key={p.student_id} value={p.student_id} className="font-bold uppercase text-xs">
-                                                {p.Student?.name || p.name}
+                                            <SelectItem key={p.student_id || p.id} value={p.student_id || p.id} className="font-bold uppercase text-xs">
+                                                {p.name || p.Student?.name}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
@@ -260,8 +264,8 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                                     <SelectTrigger className="bg-slate-800 border-slate-700 h-14 rounded-2xl font-bold"><SelectValue placeholder="Select Non-Striker" /></SelectTrigger>
                                     <SelectContent className="bg-slate-800 border-slate-700 text-white">
                                         {battingRoster.map(p => (
-                                            <SelectItem key={p.student_id} value={p.student_id} className="font-bold uppercase text-xs">
-                                                {p.Student?.name || p.name}
+                                            <SelectItem key={p.student_id || p.id} value={p.student_id || p.id} className="font-bold uppercase text-xs">
+                                                {p.name || p.Student?.name}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
@@ -273,8 +277,8 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                                     <SelectTrigger className="bg-slate-800 border-slate-700 h-14 rounded-2xl font-bold"><SelectValue placeholder="Select Bowler" /></SelectTrigger>
                                     <SelectContent className="bg-slate-800 border-slate-700 text-white">
                                         {bowlingRoster.map(p => (
-                                            <SelectItem key={p.student_id} value={p.student_id} className="font-bold uppercase text-xs">
-                                                {p.Student?.name || p.name}
+                                            <SelectItem key={p.student_id || p.id} value={p.student_id || p.id} className="font-bold uppercase text-xs">
+                                                {p.name || p.Student?.name}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
@@ -283,7 +287,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                         </div>
                     </div>
                     <DialogFooter className="p-6 bg-slate-800/20">
-                        <Button onClick={handleSavePlayers} className="w-full h-14 bg-blue-600 hover:bg-blue-500 rounded-2xl text-md font-black uppercase tracking-widest shadow-lg active:scale-95 transition-transform">Update Lineup</Button>
+                        <Button onClick={handleSavePlayers} className="w-full h-14 bg-blue-600 hover:bg-blue-500 rounded-2xl text-md font-black uppercase tracking-widest shadow-lg active:scale-95 transition-transform">Update Match State</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
