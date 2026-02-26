@@ -67,7 +67,6 @@ const BowlerCard = ({ player, stats }: { player: any, stats: any }) => {
 }
 
 export function CricketScoringInterface({ match: initialMatch, onBack }: { match: ApiMatch, onBack: () => void }) {
-    // SYNC: Establish real-time connection to Firebase match node
     const { matchData, isLoading: isSyncing } = useMatchSync(initialMatch.id);
     
     const [teamARoster, setTeamARoster] = useState<StudentTeamMember[]>([]);
@@ -84,7 +83,6 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
 
     const { toast } = useToast();
     
-    // Priority: Use matchData (Firebase) if available, fallback to initialMatch (REST)
     const score = matchData?.score_details || initialMatch.score_details || {};
     const state = matchData?.match_state || initialMatch.match_state || {};
     const batsmenStats = matchData?.current_batsmen_stats || {};
@@ -187,9 +185,8 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
         setIsProcessingCommand(true);
         try {
             const extras = extraType ? 1 : 0;
-            // Formulas: 
-            // - Wides don't count as balls faced or bowled.
-            // - No-balls count as balls faced but not balls bowled (usually).
+            // Guide Payload Requirement:
+            // { batting_team_id, striker_id, non_striker_id, bowler_id, runs, extras, extra_type, is_wicket, wicket_type }
             await submitCricketBall(initialMatch.id, {
                 runs: runs,
                 is_wicket: isWicket,
@@ -304,7 +301,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                         Lineup/Bowler
                     </Button>
                     <Button variant="secondary" className="h-14 bg-slate-800 font-black uppercase text-xs tracking-widest hover:bg-slate-700 border-slate-700 border" onClick={handleRotateStriker} disabled={isProcessingCommand}>
-                        {isProcessingCommand ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <RotateCw className="w-4 h-4 mr-2"/>}
+                        {isProcessingCommand ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <RotateCcw className="w-4 h-4 mr-2"/>}
                         Swap Strike
                     </Button>
                 </div>

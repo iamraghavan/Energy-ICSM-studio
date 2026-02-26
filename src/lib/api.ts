@@ -524,6 +524,8 @@ export const updateMatchState = async (matchId: string, state: any) => {
 // --- Command (REST) Methods for Scorer Hybrid Architecture ---
 
 export const submitCricketBall = async (matchId: string, ballData: any) => {
+    // Ultimate Implementation Guide Payload: 
+    // { batting_team_id, striker_id, non_striker_id, bowler_id, runs, extras, extra_type, is_wicket, wicket_type }
     const response = await api.post(`/scorer/matches/${matchId}/score/cricket`, ballData);
     return response.data;
 };
