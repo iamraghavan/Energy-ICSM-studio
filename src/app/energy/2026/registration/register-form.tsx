@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
@@ -467,9 +466,9 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
         try {
             const result = await registerStudent(formData);
             
-            // Access registration_id and code from result.data based on API spec
-            const registrationId = result.data?.registration_id;
-            const registrationCode = result.data?.registration_code;
+            // Access registration_id and code from result.data or result based on potential formats
+            const registrationId = result.data?.registration_id || result.registration_id;
+            const registrationCode = result.data?.registration_code || result.registration_code;
 
             if (!registrationId) {
                 console.error("No registration ID returned:", result);

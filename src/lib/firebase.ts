@@ -1,4 +1,3 @@
-
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getDatabase, Database } from "firebase/database";
 
@@ -40,11 +39,11 @@ const getRtDatabase = (): Database | null => {
         }
     }
     
-    if (!database) {
+    if (!database && app) {
         database = getDatabase(app);
     }
     
-    return database;
+    return database || null;
 };
 
 export { getRtDatabase };
