@@ -286,7 +286,7 @@ const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000, // 10 seconds timeout for better resilience
+  timeout: 30000, // Increased to 30s to handle slow server spin-ups
 });
 
 api.interceptors.request.use((config) => {
@@ -354,7 +354,6 @@ export const getScorerMatches = async (): Promise<ApiMatch[]> => {
 }
 
 export const getMatchById = async (matchId: string): Promise<ApiMatch> => {
-    // Standard matches endpoint is more robust than scorer-specific one for full details
     const response = await api.get(`/scorer/matches/${matchId}`);
     return response.data;
 };
@@ -367,7 +366,6 @@ export const createMatch = async (matchData: any) => {
 export const getScorerTeamDetails = async (teamId: string): Promise<FullSportsHeadTeam> => {
     const response = await api.get(`/scorer/teams/${teamId}`);
     const data = response.data.data || response.data;
-    // Normalize members/Members field
     if (data.Members && !data.members) {
         data.members = data.Members;
     }

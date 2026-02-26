@@ -1,6 +1,6 @@
 
 'use client';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getScorerTeamDetails, updateMatchState, type ApiMatch, type StudentTeamMember } from "@/lib/api";
@@ -54,6 +54,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
     const [teamARoster, setTeamARoster] = useState<StudentTeamMember[]>([]);
     const [teamBRoster, setTeamBRoster] = useState<StudentTeamMember[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isUpdatingState, setIsUpdatingState] = useState(false);
 
     const [isPlayerSelectOpen, setIsPlayerSelectOpen] = useState(false);
     const [isEndMatchDialogOpen, setIsEndMatchDialogOpen] = useState(false);
@@ -116,6 +117,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
             toast({ variant: 'destructive', title: 'Selection Missing', description: 'Please select all players.' });
             return;
         }
+        setIsUpdatingState(true);
         try {
             await updateMatchState(initialMatch.id, {
                 striker_id: modalStrikerId,
@@ -127,13 +129,20 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
             toast({ title: 'Lineup Updated' });
             setIsPlayerSelectOpen(false);
         } catch (error: any) {
-            const msg = error.response?.status === 502 ? "Server Timeout. Retrying..." : error.response?.data?.message || String(error);
-            toast({ variant: 'destructive', title: 'Error Updating Lineup', description: msg });
+            const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout');
+            const msg = isTimeout 
+                ? "Server is slow to respond. Please try again in a few seconds." 
+                : error.response?.data?.message || "Could not update lineup. Check your connection.";
+            
+            toast({ variant: 'destructive', title: 'Update Failed', description: msg });
+        } finally {
+            setIsUpdatingState(false);
         }
     };
 
     const handleRotateStriker = async () => {
         if (!state.striker_id || !state.non_striker_id) return;
+        setIsUpdatingState(true);
         try {
             await updateMatchState(initialMatch.id, {
                 striker_id: state.non_striker_id,
@@ -144,7 +153,14 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
             });
             toast({ title: 'Strikers Swapped' });
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Rotation Failed', description: error.response?.status === 502 ? "Server busy. Try again." : String(error) });
+            const isTimeout = error.code === 'ECONNABORTED';
+            toast({ 
+                variant: 'destructive', 
+                title: 'Rotation Failed', 
+                description: isTimeout ? "Server is busy. Trying again..." : "Failed to rotate strikers." 
+            });
+        } finally {
+            setIsUpdatingState(false);
         }
     };
 
@@ -232,8 +248,14 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 pt-2">
-                    <Button variant="secondary" className="h-14 bg-slate-800 font-black uppercase text-xs tracking-widest" onClick={() => setIsPlayerSelectOpen(true)}>Manage Lineup</Button>
-                    <Button variant="secondary" className="h-14 bg-slate-800 font-black uppercase text-xs tracking-widest" onClick={handleRotateStriker}><RotateCw className="w-4 h-4 mr-2"/> Strike Swap</Button>
+                    <Button variant="secondary" className="h-14 bg-slate-800 font-black uppercase text-xs tracking-widest" onClick={() => setIsPlayerSelectOpen(true)} disabled={isUpdatingState}>
+                        {isUpdatingState ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
+                        Manage Lineup
+                    </Button>
+                    <Button variant="secondary" className="h-14 bg-slate-800 font-black uppercase text-xs tracking-widest" onClick={handleRotateStriker} disabled={isUpdatingState}>
+                        {isUpdatingState ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <RotateCw className="w-4 h-4 mr-2"/>}
+                        Strike Swap
+                    </Button>
                 </div>
             </main>
 
@@ -287,7 +309,10 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                         </div>
                     </div>
                     <DialogFooter className="p-6 bg-slate-800/20">
-                        <Button onClick={handleSavePlayers} className="w-full h-14 bg-blue-600 hover:bg-blue-500 rounded-2xl text-md font-black uppercase tracking-widest shadow-lg active:scale-95 transition-transform">Update Match State</Button>
+                        <Button onClick={handleSavePlayers} disabled={isUpdatingState} className="w-full h-14 bg-blue-600 hover:bg-blue-500 rounded-2xl text-md font-black uppercase tracking-widest shadow-lg active:scale-95 transition-transform">
+                            {isUpdatingState ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : null}
+                            Update Match State
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
