@@ -1,10 +1,9 @@
 
 'use client';
 import { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getScorerTeamDetails, type ApiMatch, type StudentTeamMember } from "@/lib/api";
+import { getScorerTeamDetails, updateMatchState, type ApiMatch, type StudentTeamMember } from "@/lib/api";
 import { ArrowLeft, User, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
@@ -12,10 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { useMatchSocket } from '@/hooks/useMatchSocket';
+import { useMatchSocket } from '@/hooks/useMatchSync';
 import { EndMatchDialog } from './EndMatchDialog';
-
-const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
 
 const BatsmanCard = ({ player, onStrike }: { player: StudentTeamMember | undefined, onStrike: boolean }) => {
     if (!player) return <Card className="bg-slate-800/50 border-slate-700 p-4 min-h-[100px] flex items-center justify-center"><p className="text-slate-400 text-sm">Select Batsman</p></Card>;
@@ -48,7 +45,7 @@ const BowlerCard = ({ player }: { player: StudentTeamMember | undefined }) => {
 }
 
 export function CricketScoringInterface({ match: initialMatch, onBack }: { match: ApiMatch, onBack: () => void }) {
-    const { score: liveScore, matchState, isConnected, submitAction } = useMatchSocket(initialMatch.id);
+    const { score: liveScore, matchState, isConnected, submitAction } = useMatchSocket(initialMatch.id, initialMatch);
     
     const [teamARoster, setTeamARoster] = useState<StudentTeamMember[]>([]);
     const [teamBRoster, setTeamBRoster] = useState<StudentTeamMember[]>([]);
@@ -89,7 +86,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
             }
         };
         fetchRosters();
-    }, [initialMatch.team_a_id, initialMatch.team_b_id, toast]);
+    }, [initialMatch.team_a_id, initialMatch.team_b_id, toast, state.striker_id, state.non_striker_id, state.bowler_id]);
 
     const battingTeamId = state.batting_team_id || initialMatch.team_a_id;
     const battingTeam = battingTeamId === initialMatch.team_a_id ? initialMatch.TeamA : initialMatch.TeamB;
@@ -108,7 +105,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
             return;
         }
         try {
-            await axios.post(`${API_BASE_URL}/scorer/matches/${initialMatch.id}/state`, {
+            await updateMatchState(initialMatch.id, {
                 striker_id: modalStrikerId,
                 non_striker_id: modalNonStrikerId,
                 bowler_id: modalBowlerId,
@@ -124,7 +121,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
     const handleRotateStriker = async () => {
         if (!state.striker_id || !state.non_striker_id) return;
         try {
-            await axios.post(`${API_BASE_URL}/scorer/matches/${initialMatch.id}/state`, {
+            await updateMatchState(initialMatch.id, {
                 striker_id: state.non_striker_id,
                 non_striker_id: state.striker_id,
                 bowler_id: state.bowler_id,
@@ -228,6 +225,10 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                     <DialogHeader><DialogTitle className="text-xl font-bold">Select Active Players</DialogTitle></DialogHeader>
                     <div className="space-y-5 py-4">
                         <div className="space-y-2">
+                            <Label className="text-slate-400 text-xs uppercase font-bold tracking-wider">Batting Team</Label>
+                            <Badge variant="outline" className="text-blue-400 border-blue-400/30">{battingTeam.team_name}</Badge>
+                        </div>
+                        <div className="space-y-2">
                             <Label className="text-slate-400 text-xs uppercase font-bold tracking-wider">On Strike (Batsman 1)</Label>
                             <Select onValueChange={setModalStrikerId} value={modalStrikerId || undefined}>
                                 <SelectTrigger className="bg-slate-800 border-slate-700 h-12 rounded-xl"><SelectValue placeholder="Select Striker" /></SelectTrigger>
@@ -246,7 +247,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <Label className="text-slate-400 text-xs uppercase font-bold tracking-wider">Current Bowler</Label>
+                            <Label className="text-slate-400 text-xs uppercase font-bold tracking-wider">Current Bowler ({bowlingTeam.team_name})</Label>
                             <Select onValueChange={setModalBowlerId} value={modalBowlerId || undefined}>
                                 <SelectTrigger className="bg-slate-800 border-slate-700 h-12 rounded-xl"><SelectValue placeholder="Select Bowler" /></SelectTrigger>
                                 <SelectContent className="bg-slate-800 border-slate-700 text-white">

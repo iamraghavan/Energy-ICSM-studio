@@ -503,3 +503,8 @@ export const getPassHTML = async (registrationId: string): Promise<string> => {
     });
     return response.data;
 };
+
+export const updateMatchState = async (matchId: string, state: any) => {
+    const response = await api.post(`/scorer/matches/${matchId}/state`, state);
+    return response.data;
+};
