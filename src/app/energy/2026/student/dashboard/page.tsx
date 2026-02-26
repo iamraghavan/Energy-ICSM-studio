@@ -21,7 +21,7 @@ import type { StudentDashboardOverview } from '@/lib/api';
 function RegistrationDetailsCard({ registration }: { registration: StudentDashboardOverview['registration'] }) {
     if (!registration) return null;
 
-    const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
+    const API_BASE_URL = 'https://energy-sports-meet-backend.vercel.app/api/v1';
     const ticketUrl = `${API_BASE_URL}/register/${registration.id}/ticket`;
 
     return (
