@@ -5,7 +5,7 @@ import { getLiveMatches, type ApiMatch } from "@/lib/api";
 import { getSocket } from "@/lib/socket";
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Clapperboard, MapPin, Trophy, Goal, Square, Replace, Info, Radio, Shield, Clock, ArrowRight } from 'lucide-react';
+import { Clapperboard, MapPin, Trophy, Goal, Square, Replace, Info, Radio, Shield, Clock, ArrowRight, Activity } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// --- Timeline Event Component (from existing code, seems fine) ---
+// --- Timeline Event Component ---
 function TimelineEvent({ event, match }: { event: any, match: ApiMatch }) {
     const getEventDetails = (e: any) => {
         switch(e.event_type) {
@@ -155,11 +155,11 @@ function MatchDetailsDialog({ match: initialMatch, isOpen, onClose }: { match: A
 
                 <div className="grid grid-cols-2 gap-4 items-center text-center my-4">
                      <div>
-                        <Avatar className="h-16 w-16 mx-auto border-2 border-primary"><AvatarFallback>{TeamA.team_name.slice(0,2)}</AvatarFallback></Avatar>
+                        <div className="h-16 w-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center border-2 border-primary text-primary font-bold text-xl">{TeamA.team_name.slice(0,2)}</div>
                         <p className="font-semibold mt-2">{TeamA.team_name}</p>
                     </div>
                      <div>
-                        <Avatar className="h-16 w-16 mx-auto border-2 border-primary"><AvatarFallback>{TeamB.team_name.slice(0,2)}</AvatarFallback></Avatar>
+                        <div className="h-16 w-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center border-2 border-primary text-primary font-bold text-xl">{TeamB.team_name.slice(0,2)}</div>
                         <p className="font-semibold mt-2">{TeamB.team_name}</p>
                     </div>
                 </div>
@@ -206,93 +206,104 @@ function MatchDetailsDialog({ match: initialMatch, isOpen, onClose }: { match: A
 
 // New LiveMatchCard component
 function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => void }) {
-    const { TeamA, TeamB, Sport, status, venue, start_time, score_details } = match;
+    const { TeamA, TeamB, Sport, status, venue, score_details } = match;
+    const isCricket = Sport.name === 'Cricket';
 
-    const teamAScore = score_details?.[match.team_a_id]?.score ?? score_details?.[match.team_a_id]?.runs ?? 0;
-    const teamBScore = score_details?.[match.team_b_id]?.score ?? score_details?.[match.team_b_id]?.runs ?? 0;
+    const getScore = (teamId: string) => score_details?.[teamId];
     
-    const teamAScoreDisplay = `${teamAScore}${score_details?.[match.team_a_id]?.wickets !== undefined ? `/${score_details[match.team_a_id].wickets}` : ''}`;
-    const teamBScoreDisplay = `${teamBScore}${score_details?.[match.team_b_id]?.wickets !== undefined ? `/${score_details[match.team_b_id].wickets}` : ''}`;
+    const scoreA = getScore(match.team_a_id);
+    const scoreB = getScore(match.team_b_id);
 
+    const renderCricketScore = (score: any) => {
+        const runs = score?.runs ?? 0;
+        const wickets = score?.wickets ?? 0;
+        const overs = score?.overs ?? 0;
+        return (
+            <div className="flex flex-col items-center">
+                <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-black font-mono">{runs}</span>
+                    <span className="text-xl text-muted-foreground font-bold">/{wickets}</span>
+                </div>
+                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">({overs.toFixed(1)} Ov)</span>
+            </div>
+        );
+    };
 
-    const getTeamAcronym = (name: string) => {
-        if (!name) return '';
-        const words = name.split(' ').filter(w => w.length > 0 && w.toUpperCase() === w);
-        if (words.length > 0) return words.join('');
-        return name.split(' ').map(n => n[0]).join('').substring(0, 3).toUpperCase();
+    const renderStandardScore = (score: any) => {
+        const val = score?.score ?? score?.runs ?? 0;
+        return (
+            <div className="text-4xl font-black font-mono">{val}</div>
+        );
     };
 
     return (
         <motion.div
             layout
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            whileHover={{ y: -4, transition: { duration: 0.2 } }}
         >
-        <Card 
-            onClick={onSelect} 
-            className="cursor-pointer group overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-card"
-        >
-            <div className="p-4">
-                <div className="flex justify-between items-center text-xs text-muted-foreground mb-3">
-                    <span className="font-semibold uppercase tracking-wider flex items-center gap-2">
-                        <Trophy className="h-3 w-3" />
-                        {Sport.name}
-                    </span>
-                    <span className="flex items-center gap-2">
-                        <MapPin className="h-3 w-3" />
-                        {venue}
-                    </span>
+            <Card 
+                onClick={onSelect} 
+                className="cursor-pointer overflow-hidden border-2 transition-all duration-300 hover:shadow-2xl bg-card/50 backdrop-blur-sm group"
+            >
+                <div className="p-5">
+                    <div className="flex justify-between items-center mb-6">
+                        <div className="flex items-center gap-2">
+                            <div className="bg-primary/10 p-1.5 rounded-md">
+                                <Trophy className="h-4 w-4 text-primary" />
+                            </div>
+                            <span className="font-bold text-xs uppercase tracking-widest text-primary">{Sport.name}</span>
+                        </div>
+                        <Badge variant="outline" className="text-[10px] gap-1 px-2 border-muted-foreground/20">
+                            <MapPin className="h-3 w-3" /> {venue}
+                        </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-[1fr,auto,1fr] gap-4 items-center">
+                        {/* Team A */}
+                        <div className="space-y-3 text-center">
+                            <p className="font-black text-sm uppercase leading-tight min-h-[2.5rem] flex items-center justify-center px-2">{TeamA.team_name}</p>
+                            {isCricket ? renderCricketScore(scoreA) : renderStandardScore(scoreA)}
+                        </div>
+
+                        {/* Divider */}
+                        <div className="flex flex-col items-center gap-1">
+                            <div className="h-12 w-[1px] bg-border" />
+                            <span className="text-[10px] font-black text-muted-foreground uppercase">VS</span>
+                            <div className="h-12 w-[1px] bg-border" />
+                        </div>
+
+                        {/* Team B */}
+                        <div className="space-y-3 text-center">
+                            <p className="font-black text-sm uppercase leading-tight min-h-[2.5rem] flex items-center justify-center px-2">{TeamB.team_name}</p>
+                            {isCricket ? renderCricketScore(scoreB) : renderStandardScore(scoreB)}
+                        </div>
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-[1fr,auto,1fr] items-start gap-2 text-center">
-                    <div className="flex flex-col items-center gap-2">
-                         <Avatar className="h-12 w-12 border-2 border-muted">
-                            <AvatarFallback>{getTeamAcronym(TeamA.team_name)}</AvatarFallback>
-                        </Avatar>
-                        <p className="font-semibold text-sm leading-tight h-10 flex items-center justify-center">{TeamA.team_name}</p>
+                <div className="px-5 py-3 border-t bg-muted/30 flex justify-between items-center group-hover:bg-primary/[0.03] transition-colors">
+                    <div className="flex items-center gap-2">
+                        {status === 'live' ? (
+                            <div className="flex items-center gap-1.5 text-destructive font-black text-[10px] tracking-widest">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive"></span>
+                                </span>
+                                LIVE
+                            </div>
+                        ) : (
+                            <div className="text-muted-foreground font-black text-[10px] tracking-widest uppercase flex items-center gap-1">
+                                <Clock className="h-3 w-3" /> {status}
+                            </div>
+                        )}
                     </div>
-                    <div className="text-muted-foreground font-bold text-2xl pt-8">VS</div>
-                    <div className="flex flex-col items-center gap-2">
-                        <Avatar className="h-12 w-12 border-2 border-muted">
-                            <AvatarFallback>{getTeamAcronym(TeamB.team_name)}</AvatarFallback>
-                        </Avatar>
-                        <p className="font-semibold text-sm leading-tight h-10 flex items-center justify-center">{TeamB.team_name}</p>
+                    
+                    <div className="flex items-center gap-1 text-[10px] font-black uppercase text-muted-foreground group-hover:text-primary transition-colors">
+                        View Match Center <ArrowRight className="h-3 w-3" />
                     </div>
                 </div>
-
-                <div className="grid grid-cols-[1fr,auto,1fr] items-center gap-2 text-center mt-2">
-                     <p className="font-bold text-4xl font-mono justify-self-center">{teamAScoreDisplay}</p>
-                     <div></div>
-                     <p className="font-bold text-4xl font-mono justify-self-center">{teamBScoreDisplay}</p>
-                </div>
-            </div>
-
-            <div className="px-4 py-2 text-xs font-semibold flex justify-between items-center bg-muted/50 border-t">
-                 {status === 'live' ? (
-                    <div className="flex items-center gap-1.5 text-destructive font-bold">
-                        <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive"></span>
-                        </span>
-                        <span>LIVE</span>
-                    </div>
-                ) : status === 'completed' ? (
-                    <div className="text-muted-foreground font-bold">
-                        <span>FINAL</span>
-                    </div>
-                ) : (
-                     <div className="text-blue-600 flex items-center gap-2 font-bold">
-                        <Clock className="h-3 w-3" />
-                        <span>{format(new Date(start_time), 'h:mm a')}</span>
-                    </div>
-                )}
-                <div className="text-muted-foreground hover:text-primary transition-colors">
-                   <span className="flex items-center gap-1">View Details <ArrowRight className="h-3 w-3" /></span>
-                </div>
-            </div>
-        </Card>
+            </Card>
         </motion.div>
     );
 }
@@ -343,21 +354,25 @@ export default function LivePage() {
 
     return (
         <>
-            <div className="container py-8 md:py-12 space-y-8">
-                 <div className="text-center">
-                    <h1 className="text-4xl font-bold font-headline text-primary">Live Scoreboard</h1>
-                    <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
-                        Real-time scores and updates from ongoing matches. Click on a match card to view the detailed timeline and events.
+            <div className="container py-8 md:py-16 space-y-12">
+                 <div className="text-center space-y-4 max-w-3xl mx-auto">
+                    <Badge className="px-4 py-1 text-xs font-bold uppercase tracking-widest bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">
+                        <Radio className="h-3 w-3 mr-2 animate-pulse" /> Live Now
+                    </Badge>
+                    <h1 className="text-5xl md:text-6xl font-black font-headline tracking-tighter text-primary uppercase italic">Match Center</h1>
+                    <p className="text-lg text-muted-foreground">
+                        Get real-time scores, detailed timelines, and instant updates from all ongoing Energy 2026 matches.
                     </p>
                 </div>
-                <div>
+
+                <div className="min-h-[400px]">
                     {isLoading ? (
-                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-60 w-full" />)}
+                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-64 w-full rounded-2xl" />)}
                         </div>
                     ) : liveMatches.length > 0 ? (
                          <AnimatePresence>
-                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                                 {liveMatches.map((match) => (
                                     <LiveMatchCard 
                                         key={match.id} 
@@ -368,11 +383,15 @@ export default function LivePage() {
                             </div>
                         </AnimatePresence>
                     ) : (
-                         <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg">
-                            <Clapperboard className="h-12 w-12 mx-auto mb-4" />
-                            <p className="font-medium">No matches are currently live.</p>
-                            <p className="text-sm">Check back soon for real-time updates!</p>
-                        </div>
+                         <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="text-center py-24 text-muted-foreground border-2 border-dashed rounded-3xl bg-muted/20"
+                        >
+                            <Activity className="h-16 w-16 mx-auto mb-6 text-muted-foreground/40" />
+                            <h3 className="text-2xl font-black uppercase tracking-tighter text-foreground mb-2">No Active Battles</h3>
+                            <p className="max-w-xs mx-auto text-sm">Matches will appear here as soon as they go live. Stay tuned for the action!</p>
+                        </motion.div>
                     )}
                 </div>
             </div>
