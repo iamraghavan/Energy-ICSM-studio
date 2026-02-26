@@ -144,67 +144,125 @@ function MatchDetailsDialog({ match: initialMatch, isOpen, onClose }: { match: A
         return 'Match scheduled';
     }
 
-
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-2xl">
-                 <DialogHeader>
-                    <DialogTitle className="font-headline text-2xl">{TeamA.team_name} vs {TeamB.team_name}</DialogTitle>
-                    <DialogDescription>{Sport.name} - {match.venue}</DialogDescription>
-                 </DialogHeader>
-
-                <div className="grid grid-cols-2 gap-4 items-center text-center my-4">
-                     <div>
-                        <div className="h-16 w-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center border-2 border-primary text-primary font-bold text-xl">{TeamA.team_name.slice(0,2)}</div>
-                        <p className="font-semibold mt-2">{TeamA.team_name}</p>
-                    </div>
-                     <div>
-                        <div className="h-16 w-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center border-2 border-primary text-primary font-bold text-xl">{TeamB.team_name.slice(0,2)}</div>
-                        <p className="font-semibold mt-2">{TeamB.team_name}</p>
-                    </div>
-                </div>
-
-                <div className="flex items-center justify-around bg-muted p-4 rounded-lg">
-                    <div className="text-4xl font-bold font-mono">{teamAScoreDisplay}</div>
-                    <div className="text-center">
-                        <Badge variant="destructive" className="animate-pulse">LIVE</Badge>
-                         <p className="text-xs text-muted-foreground mt-1">{getResultText()}</p>
-                    </div>
-                    <div className="text-4xl font-bold font-mono">{teamBScoreDisplay}</div>
-                </div>
-
-                {isCricket && (
-                    <div className="flex justify-between items-center text-sm text-muted-foreground px-4">
-                        <span>({teamAScoreDetails?.overs?.toFixed(1) || '0.0'} ov)</span>
-                        <span>({teamBScoreDetails?.overs?.toFixed(1) || '0.0'} ov)</span>
-                    </div>
-                )}
-
-                <Tabs defaultValue="timeline" className="flex-1 flex flex-col min-h-0">
-                    <TabsList className="w-full">
-                        <TabsTrigger value="timeline" className="flex-1">Live Timeline</TabsTrigger>
-                        <TabsTrigger value="scorecard" className="flex-1" disabled>Scorecard</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="timeline" className="mt-4">
-                        <ScrollArea className="h-64 pr-4">
-                            <div className="space-y-4">
-                                <AnimatePresence initial={false}>
-                                {events.length > 0 ? (
-                                    events.map((event, i) => <TimelineEvent key={event.id || `${event.timestamp}-${i}`} event={event} match={match} />)
-                                ) : (
-                                    <p className="text-muted-foreground text-center py-8 text-sm">No match events logged yet...</p>
-                                )}
-                                </AnimatePresence>
+            <DialogContent className="max-w-[95vw] sm:max-w-2xl p-0 overflow-hidden border-none shadow-2xl rounded-3xl">
+                {/* Header / Info Bar */}
+                <div className="bg-primary px-6 py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-white/10 p-2 rounded-xl">
+                            <Trophy className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                            <h3 className="text-white font-bold text-sm uppercase tracking-widest leading-none">{Sport.name}</h3>
+                            <div className="flex items-center gap-1.5 text-white/60 text-[10px] mt-1 font-bold uppercase">
+                                <MapPin className="h-3 w-3" /> {match.venue}
                             </div>
-                        </ScrollArea>
-                    </TabsContent>
-                </Tabs>
+                        </div>
+                    </div>
+                    {status === 'live' ? (
+                        <Badge variant="destructive" className="animate-pulse px-3 py-1 font-black text-[10px] tracking-widest">
+                            LIVE
+                        </Badge>
+                    ) : (
+                        <Badge variant="outline" className="text-white border-white/20 px-3 py-1 font-black text-[10px] tracking-widest uppercase">
+                            {status}
+                        </Badge>
+                    )}
+                </div>
+
+                {/* Scoreboard Area */}
+                <div className="bg-muted/30 p-6 sm:p-10 border-b">
+                    <div className="flex flex-col gap-8">
+                        <div className="grid grid-cols-[1fr,auto,1fr] items-center gap-4 sm:gap-8">
+                            {/* Team A */}
+                            <div className="text-center space-y-4">
+                                <p className="font-black text-xs sm:text-sm uppercase tracking-tight text-balance leading-tight min-h-[2.5rem] flex items-center justify-center">
+                                    {TeamA.team_name}
+                                </p>
+                                <div className="space-y-1">
+                                    <p className="text-4xl sm:text-6xl font-black font-mono tracking-tighter">
+                                        {teamAScore}
+                                        {isCricket && <span className="text-2xl sm:text-3xl text-muted-foreground">/{teamAScoreDetails?.wickets ?? 0}</span>}
+                                    </p>
+                                    {isCricket && (
+                                        <p className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                                            ({teamAScoreDetails?.overs?.toFixed(1) ?? '0.0'} Ov)
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Divider */}
+                            <div className="flex flex-col items-center gap-2">
+                                <div className="h-12 w-[2px] bg-border" />
+                                <span className="text-[10px] font-black text-muted-foreground uppercase bg-background px-2 py-1 rounded-full border">VS</span>
+                                <div className="h-12 w-[2px] bg-border" />
+                            </div>
+
+                            {/* Team B */}
+                            <div className="text-center space-y-4">
+                                <p className="font-black text-xs sm:text-sm uppercase tracking-tight text-balance leading-tight min-h-[2.5rem] flex items-center justify-center">
+                                    {TeamB.team_name}
+                                </p>
+                                <div className="space-y-1">
+                                    <p className="text-4xl sm:text-6xl font-black font-mono tracking-tighter">
+                                        {teamBScore}
+                                        {isCricket && <span className="text-2xl sm:text-3xl text-muted-foreground">/{teamBScoreDetails?.wickets ?? 0}</span>}
+                                    </p>
+                                    {isCricket && (
+                                        <p className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                                            ({teamBScoreDetails?.overs?.toFixed(1) ?? '0.0'} Ov)
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Status / Commentary Bar */}
+                        <div className="bg-background rounded-2xl border-2 p-3 text-center">
+                            <p className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-primary italic">
+                                {getResultText()}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Event Feed */}
+                <div className="p-6">
+                    <Tabs defaultValue="timeline" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 rounded-2xl h-12">
+                            <TabsTrigger value="timeline" className="rounded-xl font-bold text-xs uppercase tracking-widest data-[state=active]:shadow-lg">
+                                Live Feed
+                            </TabsTrigger>
+                            <TabsTrigger value="scorecard" disabled className="rounded-xl font-bold text-xs uppercase tracking-widest">
+                                Scorecard
+                            </TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="timeline" className="mt-6">
+                            <ScrollArea className="h-64 pr-4">
+                                <div className="space-y-6">
+                                    <AnimatePresence initial={false}>
+                                    {events.length > 0 ? (
+                                        events.map((event, i) => <TimelineEvent key={event.id || `${event.timestamp}-${i}`} event={event} match={match} />)
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground space-y-3">
+                                            <Activity className="h-8 w-8 opacity-20" />
+                                            <p className="text-[10px] font-black uppercase tracking-widest">Waiting for match action...</p>
+                                        </div>
+                                    )}
+                                    </AnimatePresence>
+                                </div>
+                            </ScrollArea>
+                        </TabsContent>
+                    </Tabs>
+                </div>
             </DialogContent>
         </Dialog>
     );
 }
 
-// New LiveMatchCard component
+// LiveMatchCard component
 function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => void }) {
     const { TeamA, TeamB, Sport, status, venue, score_details } = match;
     const isCricket = Sport.name === 'Cricket';
@@ -354,7 +412,7 @@ export default function LivePage() {
 
     return (
         <>
-            <div className="container py-8 md:py-16 space-y-12">
+            <div className="container py-8 md:py-16 space-y-12 text-foreground">
                  <div className="text-center space-y-4 max-w-3xl mx-auto">
                     <Badge className="px-4 py-1 text-xs font-bold uppercase tracking-widest bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">
                         <Radio className="h-3 w-3 mr-2 animate-pulse" /> Live Now
