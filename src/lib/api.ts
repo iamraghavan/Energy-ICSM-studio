@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import type { College } from './types';
 
@@ -518,6 +517,33 @@ export const getPassHTML = async (registrationId: string): Promise<string> => {
 
 export const updateMatchState = async (matchId: string, state: any) => {
     const response = await api.post(`/scorer/matches/${matchId}/state`, state);
+    return response.data;
+};
+
+// --- Command (REST) Methods for Scorer Hybrid Architecture ---
+
+export const submitCricketBall = async (matchId: string, ballData: any) => {
+    const response = await api.post(`/scorer/matches/${matchId}/score/cricket`, ballData);
+    return response.data;
+};
+
+export const submitStandardScore = async (matchId: string, scoreData: any) => {
+    const response = await api.post(`/scorer/matches/${matchId}/score/standard`, scoreData);
+    return response.data;
+};
+
+export const submitTossResult = async (matchId: string, tossData: any) => {
+    const response = await api.post(`/scorer/matches/${matchId}/toss`, tossData);
+    return response.data;
+};
+
+export const startMatch = async (matchId: string) => {
+    const response = await api.post(`/scorer/matches/${matchId}/start`);
+    return response.data;
+};
+
+export const undoLastBall = async (matchId: string) => {
+    const response = await api.post(`/scorer/matches/${matchId}/undo`);
     return response.data;
 };
 

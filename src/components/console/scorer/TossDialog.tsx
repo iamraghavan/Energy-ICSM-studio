@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState } from 'react';
@@ -9,9 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { type ApiMatch } from '@/lib/api';
+import { submitTossResult, startMatch, type ApiMatch } from '@/lib/api';
 import { Loader2 } from 'lucide-react';
-import { getSocket } from '@/lib/socket';
 
 interface TossDialogProps {
     isOpen: boolean;
@@ -32,48 +29,26 @@ export function TossDialog({ isOpen, onClose, match, onTossDecided }: TossDialog
             return;
         }
         setIsSubmitting(true);
-        const socket = getSocket();
 
         const winnerName = tossWinnerId === match.team_a_id ? match.TeamA.team_name : match.TeamB.team_name;
         const details = `${winnerName} won the toss and elected to ${decision}.`;
 
-        const tossPromise = new Promise<void>((resolve, reject) => {
-            socket.emit('update_toss', {
-                matchId: match.id,
+        try {
+            // Commands: Toss REST -> Start REST
+            await submitTossResult(match.id, {
                 winner_id: tossWinnerId,
                 decision,
                 details,
-            }, (ack: { status: string; message?: string }) => {
-                if (ack && ack.status === 'ok') {
-                    resolve();
-                } else {
-                    reject(new Error(ack?.message || 'Failed to update toss.'));
-                }
             });
-        });
 
-        const startMatchPromise = new Promise<void>((resolve, reject) => {
-            socket.emit('update_match_status', {
-                matchId: match.id,
-                status: 'live',
-            }, (ack: { status: string; message?: string }) => {
-                if (ack && ack.status === 'ok') {
-                    resolve();
-                } else {
-                    reject(new Error(ack?.message || 'Failed to start match.'));
-                }
-            });
-        });
-
-        try {
-            await Promise.all([tossPromise, startMatchPromise]);
+            await startMatch(match.id);
             
-            toast({ title: 'Match is Live!', description: 'The match has been started successfully.' });
+            toast({ title: 'Match is Live!', description: 'Results recorded and match started.' });
             onTossDecided();
             onClose();
 
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Error', description: error.message || 'Could not start the match.' });
+            toast({ variant: 'destructive', title: 'Error', description: error.response?.data?.message || 'Could not start match.' });
         } finally {
             setIsSubmitting(false);
         }
@@ -85,7 +60,7 @@ export function TossDialog({ isOpen, onClose, match, onTossDecided }: TossDialog
                 <DialogHeader>
                     <DialogTitle>Toss & Start Match</DialogTitle>
                     <DialogDescription>
-                        Record the toss result to begin the match. This will set the match status to "Live".
+                        Record the toss result to begin the match. The state will sync to Firebase automatically.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="py-4 space-y-4">
@@ -108,11 +83,11 @@ export function TossDialog({ isOpen, onClose, match, onTossDecided }: TossDialog
                             <RadioGroup onValueChange={(value) => setDecision(value as 'bat' | 'field')} value={decision ?? undefined}>
                                 <div className="flex items-center space-x-2">
                                     <RadioGroupItem value="bat" id="decision-bat" />
-                                    <Label htmlFor="decision-bat">Bat</Label>
+                                    <Label htmlFor="decision-bat">Bat First</Label>
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <RadioGroupItem value="field" id="decision-field" />
-                                    <Label htmlFor="decision-field">Field</Label>
+                                    <Label htmlFor="decision-field">Bowl First</Label>
                                 </div>
                             </RadioGroup>
                         </div>

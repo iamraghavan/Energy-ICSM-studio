@@ -1,9 +1,9 @@
-
 'use client';
 import { useState, useEffect } from 'react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getScorerTeamDetails, updateMatchState, type ApiMatch, type StudentTeamMember } from "@/lib/api";
+import { getScorerTeamDetails, updateMatchState, submitCricketBall, undoLastBall, type ApiMatch, type StudentTeamMember } from "@/lib/api";
+import { useMatchSync } from "@/hooks/useMatchSync";
 import { ArrowLeft, User, Loader2, RotateCw, RotateCcw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
@@ -11,10 +11,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { useMatchSocket } from '@/hooks/useMatchSocket';
 import { EndMatchDialog } from './EndMatchDialog';
 
-const BatsmanCard = ({ player, onStrike, stats }: { player: StudentTeamMember | undefined, onStrike: boolean, stats: any }) => {
+const BatsmanCard = ({ player, onStrike, stats }: { player: any, onStrike: boolean, stats: any }) => {
     const name = player?.name || player?.Student?.name || 'Waiting...';
     return (
         <Card className={cn("border-slate-700 text-white p-4 transition-all duration-300", onStrike ? 'bg-blue-600 ring-4 ring-blue-400 shadow-2xl scale-105 z-10' : 'bg-slate-800 opacity-80')}>
@@ -23,11 +22,14 @@ const BatsmanCard = ({ player, onStrike, stats }: { player: StudentTeamMember | 
                 <p className="text-3xl font-black font-mono">{stats?.runs || 0}</p>
                 <p className="text-white/60 text-[10px] font-bold uppercase">({stats?.balls || 0})</p>
             </div>
+            {stats?.fours !== undefined && (
+                <p className="text-[8px] text-white/40 uppercase font-bold mt-1">4s: {stats.fours} | 6s: {stats.sixes}</p>
+            )}
         </Card>
     )
 }
 
-const BowlerCard = ({ player, stats }: { player: StudentTeamMember | undefined, stats: any }) => {
+const BowlerCard = ({ player, stats }: { player: any, stats: any }) => {
     const name = player?.name || player?.Student?.name || 'Select Bowler';
     return (
         <Card className="bg-slate-900 border-slate-700 text-white p-4 mt-2">
@@ -40,7 +42,7 @@ const BowlerCard = ({ player, stats }: { player: StudentTeamMember | undefined, 
                     </div>
                 </div>
                  <div className="text-right">
-                    <p className="text-xl font-black font-mono tracking-tighter">{stats?.wickets || 0}/{stats?.runs || 0}</p>
+                    <p className="text-xl font-black font-mono tracking-tighter">{stats?.wickets || 0}/{stats?.runs_conceded || stats?.runs || 0}</p>
                     <p className="text-[9px] text-slate-400 uppercase font-black tracking-widest">{(stats?.overs || 0.0).toFixed(1)} Ov</p>
                  </div>
             </div>
@@ -49,12 +51,12 @@ const BowlerCard = ({ player, stats }: { player: StudentTeamMember | undefined, 
 }
 
 export function CricketScoringInterface({ match: initialMatch, onBack }: { match: ApiMatch, onBack: () => void }) {
-    const { score: liveScore, matchState, isConnected, submitAction } = useMatchSocket(initialMatch.id, initialMatch);
+    const { matchData, isLoading: isSyncing } = useMatchSync(initialMatch.id);
     
     const [teamARoster, setTeamARoster] = useState<StudentTeamMember[]>([]);
     const [teamBRoster, setTeamBRoster] = useState<StudentTeamMember[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isUpdatingState, setIsUpdatingState] = useState(false);
+    const [isLoadingInitial, setIsLoadingInitial] = useState(true);
+    const [isProcessingCommand, setIsProcessingCommand] = useState(false);
 
     const [isPlayerSelectOpen, setIsPlayerSelectOpen] = useState(false);
     const [isEndMatchDialogOpen, setIsEndMatchDialogOpen] = useState(false);
@@ -65,15 +67,18 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
 
     const { toast } = useToast();
     
-    const score = liveScore || initialMatch.score_details || {};
-    const state = matchState || initialMatch.match_state || {};
+    // Priority: Firebase Data > Initial REST Data
+    const score = matchData?.score_details || initialMatch.score_details || {};
+    const state = matchData?.match_state || initialMatch.match_state || {};
+    const batsmenStats = matchData?.current_batsmen_stats || {};
+    const bowlerStats = matchData?.current_bowler_stats || {};
     
     const battingTeamId = String(state.batting_team_id || initialMatch.team_a_id);
     const bowlingTeamId = battingTeamId === String(initialMatch.team_a_id) ? String(initialMatch.team_b_id) : String(initialMatch.team_a_id);
 
     useEffect(() => {
         const fetchRosters = async () => {
-            setIsLoading(true);
+            setIsLoadingInitial(true);
             try {
                 const [teamA, teamB] = await Promise.all([
                     getScorerTeamDetails(initialMatch.team_a_id),
@@ -84,7 +89,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
             } catch (error) {
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch team rosters.' });
             } finally {
-                setIsLoading(false);
+                setIsLoadingInitial(false);
             }
         };
         fetchRosters();
@@ -101,20 +106,20 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
     const battingRoster = battingTeamId === String(initialMatch.team_a_id) ? teamARoster : teamBRoster;
     const bowlingRoster = bowlingTeamId === String(initialMatch.team_a_id) ? teamARoster : teamBRoster;
 
-    const striker = battingRoster.find(p => String(p.student_id || p.id) === String(state.striker_id));
-    const nonStriker = battingRoster.find(p => String(p.student_id || p.id) === String(state.non_striker_id));
-    const bowler = bowlingRoster.find(p => String(p.student_id || p.id) === String(state.bowler_id));
+    const striker = battingRoster.find(p => String(p.student_id || p.id) === String(state.striker_id)) || batsmenStats[state.striker_id];
+    const nonStriker = battingRoster.find(p => String(p.student_id || p.id) === String(state.non_striker_id)) || batsmenStats[state.non_striker_id];
+    const currentBowler = bowlingRoster.find(p => String(p.student_id || p.id) === String(state.bowler_id)) || bowlerStats[state.bowler_id];
 
-    const strikerStats = state.batsmen_stats?.[state.striker_id] || { runs: 0, balls: 0 };
-    const nonStrikerStats = state.batsmen_stats?.[state.non_striker_id] || { runs: 0, balls: 0 };
-    const bowlerStats = state.bowlers_stats?.[state.bowler_id] || { runs: 0, wickets: 0, overs: 0 };
+    const currentStrikerStats = batsmenStats[state.striker_id] || { runs: 0, balls: 0 };
+    const currentNonStrikerStats = batsmenStats[state.non_striker_id] || { runs: 0, balls: 0 };
+    const currentBowlerStats = bowlerStats[state.bowler_id] || { runs: 0, wickets: 0, overs: 0 };
 
     const handleSavePlayers = async () => {
         if (!modalStrikerId || !modalNonStrikerId || !modalBowlerId) {
             toast({ variant: 'destructive', title: 'Selection Missing', description: 'Please select all players.' });
             return;
         }
-        setIsUpdatingState(true);
+        setIsProcessingCommand(true);
         try {
             await updateMatchState(initialMatch.id, {
                 striker_id: modalStrikerId,
@@ -126,9 +131,9 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
             toast({ title: 'Lineup Updated' });
             setIsPlayerSelectOpen(false);
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Update Failed', description: error.response?.data?.message || 'Could not update lineup.' });
+            toast({ variant: 'destructive', title: 'Update Failed', description: error.response?.data?.message || 'Server error.' });
         } finally {
-            setIsUpdatingState(false);
+            setIsProcessingCommand(false);
         }
     };
 
@@ -137,7 +142,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
             toast({ variant: 'destructive', title: 'Rotation Error', description: 'Players must be selected first.' });
             return;
         }
-        setIsUpdatingState(true);
+        setIsProcessingCommand(true);
         try {
             await updateMatchState(initialMatch.id, {
                 striker_id: state.non_striker_id,
@@ -150,7 +155,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Rotation Failed' });
         } finally {
-            setIsUpdatingState(false);
+            setIsProcessingCommand(false);
         }
     };
 
@@ -160,8 +165,9 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
             setIsPlayerSelectOpen(true);
             return;
         }
+        setIsProcessingCommand(true);
         try {
-            await submitAction('submit_cricket_ball', {
+            await submitCricketBall(initialMatch.id, {
                 runs,
                 is_wicket: isWicket,
                 wicket_type: isWicket ? 'bowled' : null,
@@ -173,20 +179,25 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                 batting_team_id: battingTeamId
             });
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Sync Error', description: String(error) });
+            toast({ variant: 'destructive', title: 'Scoring Error', description: 'Could not record ball.' });
+        } finally {
+            setIsProcessingCommand(false);
         }
     };
 
     const handleUndo = async () => {
+        setIsProcessingCommand(true);
         try {
-            await submitAction('undo_event', {});
-            toast({ title: 'Action Undone' });
+            await undoLastBall(initialMatch.id);
+            toast({ title: 'Ball Undone' });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Undo Failed' });
+        } finally {
+            setIsProcessingCommand(false);
         }
     };
 
-    if (isLoading) return <div className="h-screen flex flex-col items-center justify-center bg-slate-950 text-white space-y-4"><Loader2 className="animate-spin h-12 w-12 text-blue-500" /><p className="font-black uppercase tracking-widest text-xs">Initializing Scorer Console</p></div>
+    if (isLoadingInitial) return <div className="h-screen flex flex-col items-center justify-center bg-slate-950 text-white space-y-4"><Loader2 className="animate-spin h-12 w-12 text-blue-500" /><p className="font-black uppercase tracking-widest text-xs">Loading Console...</p></div>
 
     const teamScore = score[battingTeamId] || { runs: 0, wickets: 0, overs: 0 };
 
@@ -195,10 +206,10 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
             <header className="p-4 flex items-center justify-between border-b border-slate-800 bg-slate-900/50 sticky top-0 z-50">
                 <Button variant="ghost" size="icon" onClick={onBack}><ArrowLeft className="w-5 h-5"/></Button>
                 <div className="text-center">
-                    <h1 className="font-black text-[10px] tracking-[0.2em] uppercase text-blue-400">Cricket Scorer Pro</h1>
+                    <h1 className="font-black text-[10px] tracking-[0.2em] uppercase text-blue-400">Cricket Scorer Hybrid</h1>
                     <div className="flex items-center gap-1.5 justify-center mt-0.5">
-                        <div className={cn("w-1.5 h-1.5 rounded-full", isConnected ? "bg-green-500" : "bg-red-500")} />
-                        <span className="text-[9px] uppercase font-black text-slate-500 tracking-widest">{isConnected ? 'Live Sync' : 'Offline Mode'}</span>
+                        <div className={cn("w-1.5 h-1.5 rounded-full", isSyncing ? "bg-amber-500 animate-pulse" : "bg-green-500")} />
+                        <span className="text-[9px] uppercase font-black text-slate-500 tracking-widest">{isSyncing ? 'Syncing...' : 'Real-time'}</span>
                     </div>
                 </div>
                 <Button variant="destructive" size="sm" className="font-black uppercase text-[10px]" onClick={() => setIsEndMatchDialogOpen(true)}>End</Button>
@@ -223,29 +234,29 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                 </Card>
 
                 <div className="grid grid-cols-2 gap-3">
-                    <BatsmanCard player={striker} onStrike={true} stats={strikerStats} />
-                    <BatsmanCard player={nonStriker} onStrike={false} stats={nonStrikerStats} />
+                    <BatsmanCard player={striker} onStrike={true} stats={currentStrikerStats} />
+                    <BatsmanCard player={nonStriker} onStrike={false} stats={currentNonStrikerStats} />
                 </div>
                 
-                <BowlerCard player={bowler} stats={bowlerStats} />
+                <BowlerCard player={currentBowler} stats={currentBowlerStats} />
 
                 <div className="grid grid-cols-4 gap-2 pt-4">
                     {[0, 1, 2, 3].map(r => (
-                        <Button key={r} className="h-16 text-2xl font-black bg-slate-800" onClick={() => handleBall(r)}>{r}</Button>
+                        <Button key={r} className="h-16 text-2xl font-black bg-slate-800" disabled={isProcessingCommand} onClick={() => handleBall(r)}>{r}</Button>
                     ))}
-                    <Button className="h-16 text-2xl font-black bg-emerald-600" onClick={() => handleBall(4)}>4</Button>
-                    <Button className="h-16 text-2xl font-black bg-blue-600" onClick={() => handleBall(6)}>6</Button>
-                    <Button className="h-16 text-2xl font-black bg-red-600" onClick={() => handleBall(0, true)}>W</Button>
-                    <Button variant="outline" className="h-16 bg-slate-900 border-slate-700 font-black text-xs uppercase" onClick={handleUndo}><RotateCcw className="w-4 h-4 mr-2"/>Undo</Button>
+                    <Button className="h-16 text-2xl font-black bg-emerald-600" disabled={isProcessingCommand} onClick={() => handleBall(4)}>4</Button>
+                    <Button className="h-16 text-2xl font-black bg-blue-600" disabled={isProcessingCommand} onClick={() => handleBall(6)}>6</Button>
+                    <Button className="h-16 text-2xl font-black bg-red-600" disabled={isProcessingCommand} onClick={() => handleBall(0, true)}>W</Button>
+                    <Button variant="outline" className="h-16 bg-slate-900 border-slate-700 font-black text-xs uppercase" disabled={isProcessingCommand} onClick={handleUndo}><RotateCcw className="w-4 h-4 mr-2"/>Undo</Button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 pt-2">
-                    <Button variant="secondary" className="h-14 bg-slate-800 font-black uppercase text-xs tracking-widest" onClick={() => setIsPlayerSelectOpen(true)} disabled={isUpdatingState}>
-                        {isUpdatingState ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
-                        Manage Lineup
+                    <Button variant="secondary" className="h-14 bg-slate-800 font-black uppercase text-xs tracking-widest" onClick={() => setIsPlayerSelectOpen(true)} disabled={isProcessingCommand}>
+                        {isProcessingCommand ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
+                        Lineup
                     </Button>
-                    <Button variant="secondary" className="h-14 bg-slate-800 font-black uppercase text-xs tracking-widest" onClick={handleRotateStriker} disabled={isUpdatingState}>
-                        {isUpdatingState ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <RotateCw className="w-4 h-4 mr-2"/>}
+                    <Button variant="secondary" className="h-14 bg-slate-800 font-black uppercase text-xs tracking-widest" onClick={handleRotateStriker} disabled={isProcessingCommand}>
+                        {isProcessingCommand ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <RotateCw className="w-4 h-4 mr-2"/>}
                         Strike Swap
                     </Button>
                 </div>
@@ -307,8 +318,8 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                         </div>
                     </div>
                     <DialogFooter className="p-6">
-                        <Button onClick={handleSavePlayers} disabled={isUpdatingState} className="w-full h-14 bg-blue-600 font-black uppercase">
-                            {isUpdatingState ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : null}
+                        <Button onClick={handleSavePlayers} disabled={isProcessingCommand} className="w-full h-14 bg-blue-600 font-black uppercase">
+                            {isProcessingCommand ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : null}
                             Update Lineup
                         </Button>
                     </DialogFooter>
