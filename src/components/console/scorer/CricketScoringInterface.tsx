@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { useMatchSocket } from '@/hooks/useMatchSync';
+import { useMatchSocket } from '@/hooks/useMatchSocket';
 import { EndMatchDialog } from './EndMatchDialog';
 
 const BatsmanCard = ({ player, onStrike, stats }: { player: StudentTeamMember | undefined, onStrike: boolean, stats: any }) => {
@@ -78,18 +78,8 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                     getScorerTeamDetails(initialMatch.team_a_id),
                     getScorerTeamDetails(initialMatch.team_b_id),
                 ]);
-                
-                // Robustly extract members from various possible formats
-                const extractMembers = (data: any): StudentTeamMember[] => {
-                    if (Array.isArray(data)) return data;
-                    if (data?.members && Array.isArray(data.members)) return data.members;
-                    if (data?.Members && Array.isArray(data.Members)) return data.Members;
-                    if (data?.data?.members && Array.isArray(data.data.members)) return data.data.members;
-                    return [];
-                };
-
-                setTeamARoster(extractMembers(teamA));
-                setTeamBRoster(extractMembers(teamB));
+                setTeamARoster(teamA.members);
+                setTeamBRoster(teamB.members);
             } catch (error) {
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch team rosters.' });
             } finally {

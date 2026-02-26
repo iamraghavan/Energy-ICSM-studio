@@ -56,7 +56,7 @@ export function StandardScoringInterface({ match, onBack }: { match: ApiMatch, o
                              <Button size="sm" variant="destructive" onClick={() => setIsEndMatchOpen(true)}>End Match</Button>
                         </div>
                     </div>
-                </CardHeader>
+                </header>
                 <CardContent className="space-y-8 pt-6">
                     <div className="grid grid-cols-[1fr,auto,1fr] items-center gap-8">
                         <div className="text-center space-y-4">

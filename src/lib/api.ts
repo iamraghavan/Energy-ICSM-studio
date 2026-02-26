@@ -353,7 +353,7 @@ export const getScorerMatches = async (): Promise<ApiMatch[]> => {
 }
 
 export const getMatchById = async (matchId: string): Promise<ApiMatch> => {
-    const response = await api.get(`/matches/${matchId}`);
+    const response = await api.get(`/scorer/matches/${matchId}`);
     return response.data;
 };
 

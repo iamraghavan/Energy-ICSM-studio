@@ -21,14 +21,10 @@ export const getSocket = (): Socket => {
     const token = localStorage.getItem('jwt_token') || localStorage.getItem('student_token');
     
     socketInstance = io(SOCKET_URL, {
-      // Prioritizing 'websocket' over 'polling' fixes most 'xhr poll error' issues on cloud proxies
-      transports: ["websocket", "polling"],
+      transports: ["websocket"],
       auth: {
         token: token
       },
-      timeout: 60000,
-      reconnectionAttempts: 10,
-      reconnectionDelay: 2000,
       path: "/socket.io",
       autoConnect: true,
       withCredentials: true,
@@ -45,12 +41,6 @@ export const getSocket = (): Socket => {
     socketInstance.on("disconnect", (reason) => {
         console.warn("⚠️ WebSocket Disconnected:", reason);
     });
-  }
-
-  // Update token if it has changed since initialization
-  const currentToken = localStorage.getItem('jwt_token') || localStorage.getItem('student_token');
-  if (socketInstance.auth && typeof socketInstance.auth === 'object') {
-      (socketInstance.auth as any).token = currentToken;
   }
 
   return socketInstance;
