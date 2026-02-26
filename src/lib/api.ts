@@ -524,3 +524,139 @@ export const updateMatchState = async (matchId: string, state: any) => {
     const response = await api.post(`/scorer/matches/${matchId}/state`, state);
     return response.data;
 };
+
+// --- Student Portal Functions ---
+
+export const registerStudent = async (formData: FormData) => {
+    const response = await api.post('/register', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
+};
+
+export const requestStudentOtp = async (identifier: string) => {
+    const response = await api.post('/auth/student/request-otp', { identifier });
+    return response.data;
+};
+
+export const verifyStudentOtp = async (identifier: string, otp: string) => {
+    const response = await api.post('/auth/student/verify-otp', { identifier, otp });
+    return response.data;
+};
+
+export const getStudentDashboardOverview = async (): Promise<StudentDashboardOverview> => {
+    const response = await api.get('/student/dashboard/overview');
+    return response.data;
+};
+
+export const createStudentTeam = async (sportId: number, teamName: string) => {
+    const response = await api.post('/student/teams', { sport_id: sportId, team_name: teamName });
+    return response.data;
+};
+
+export const getStudentTeamDetails = async (teamId: string): Promise<FullTeamDetails> => {
+    const response = await api.get(`/student/teams/${teamId}`);
+    return response.data;
+};
+
+export const updateTeamName = async (teamId: string, teamName: string) => {
+    const response = await api.put(`/student/teams/${teamId}`, { team_name: teamName });
+    return response.data;
+};
+
+export const deleteTeam = async (teamId: string) => {
+    const response = await api.delete(`/student/teams/${teamId}`);
+    return response.data;
+};
+
+export const deleteTeamMember = async (memberId: string) => {
+    const response = await api.delete(`/student/members/${memberId}`);
+    return response.data;
+};
+
+export const bulkAddTeamMembers = async (teamId: string, members: any[]) => {
+    const response = await api.post(`/student/teams/${teamId}/members/bulk`, { members });
+    return response.data;
+};
+
+export const updateTeamMember = async (memberId: string, data: any) => {
+    const response = await api.put(`/student/members/${memberId}`, data);
+    return response.data;
+};
+
+// --- Sports Head Functions ---
+
+export const getSportsHeadStats = async () => {
+    const response = await api.get('/sports-head/stats');
+    return response.data;
+};
+
+export const getSportsHeadAnalytics = async () => {
+    const response = await api.get('/sports-head/analytics');
+    return response.data;
+};
+
+export const getSportsHeadMatches = async (status?: string): Promise<ApiMatch[]> => {
+    const response = await api.get('/sports-head/matches', { params: { status } });
+    return response.data;
+};
+
+export const scheduleMatch = async (matchData: any) => {
+    const response = await api.post('/sports-head/matches', matchData);
+    return response.data;
+};
+
+export const getSportsHeadTeams = async (): Promise<SportsHeadTeam[]> => {
+    const response = await api.get('/sports-head/teams');
+    return response.data;
+};
+
+export const getSportsHeadRegistrations = async (): Promise<SportsHeadRegistration[]> => {
+    const response = await api.get('/sports-head/registrations');
+    return response.data;
+};
+
+export const createSportsHeadTeam = async (teamData: any) => {
+    const response = await api.post('/sports-head/teams', teamData);
+    return response.data;
+};
+
+export const getSportsHeadTeamDetails = async (teamId: string): Promise<FullSportsHeadTeam> => {
+    const response = await api.get(`/sports-head/teams/${teamId}`);
+    return response.data;
+};
+
+export const removePlayerFromTeam = async (teamId: string, studentId: string) => {
+    const response = await api.delete(`/sports-head/teams/${teamId}/members/${studentId}`);
+    return response.data;
+};
+
+export const updateSportsHeadTeam = async (teamId: string, teamData: any) => {
+    const response = await api.put(`/sports-head/teams/${teamId}`, teamData);
+    return response.data;
+};
+
+export const deleteSportsHeadTeam = async (teamId: string) => {
+    const response = await api.delete(`/sports-head/teams/${teamId}`);
+    return response.data;
+};
+
+export const sportsHeadBulkAddPlayers = async (teamId: string, players: any[]) => {
+    const response = await api.post(`/sports-head/teams/${teamId}/members/bulk`, { players });
+    return response.data;
+};
+
+export const updateSportsHeadTeamMember = async (teamId: string, studentId: string, data: any) => {
+    const response = await api.put(`/sports-head/teams/${teamId}/members/${studentId}`, data);
+    return response.data;
+};
+
+export const getSportsHeadStudents = async (): Promise<SportStudent[]> => {
+    const response = await api.get('/sports-head/students');
+    return response.data;
+};
+
+export const bulkAddPlayersToTeam = async (teamId: string, registrationIds: string[]) => {
+    const response = await api.post(`/sports-head/teams/${teamId}/members`, { registrationIds });
+    return response.data;
+};
