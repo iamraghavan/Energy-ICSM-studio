@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getDatabase, Database } from "firebase/database";
 
+// Configuration from provided environment variables
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -14,24 +15,18 @@ const firebaseConfig = {
 
 /**
  * Lazy initialization for Firebase services.
- * IMPORTANT: Ensure RTDB Rules in Firebase Console are set to allow public reads:
- * {
- *   "rules": {
- *     "sports": {
- *       ".read": true,
- *       ".write": false
- *     }
- *   }
- * }
+ * Specifically handles the client-side RTDB connection.
  */
 let app: FirebaseApp | undefined;
 let database: Database | undefined;
 
 const getRtDatabase = (): Database | null => {
+    // Prevent initialization on the server during SSR/Prerendering
     if (typeof window === 'undefined') return null;
     
     if (!app) {
         try {
+            // Avoid re-initialization if app already exists
             app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
         } catch (error) {
             console.error("Firebase Initialization Error:", error);

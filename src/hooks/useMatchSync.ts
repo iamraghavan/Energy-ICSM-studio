@@ -1,4 +1,3 @@
-
 "use client";
 import { useEffect, useState } from 'react';
 import { ref, onValue } from 'firebase/database';
@@ -6,7 +5,7 @@ import { getRtDatabase } from '@/lib/firebase';
 
 /**
  * Hook to sync match data from Firebase Realtime Database.
- * Follows the spec for sports/matches/:matchId node.
+ * Establishes a direct connection to the match node.
  */
 export const useMatchSync = (matchId: string) => {
   const [matchData, setMatchData] = useState<any>(null);
@@ -28,11 +27,24 @@ export const useMatchSync = (matchId: string) => {
     const unsubscribe = onValue(matchRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
-        // Ensure match_events is always an array for safe mapping
-        if (data && data.match_events && !Array.isArray(data.match_events)) {
-            data.match_events = Object.values(data.match_events);
+        
+        // Defensive data normalization
+        if (data) {
+            // Convert match_events object to sorted array if necessary
+            if (data.match_events && !Array.isArray(data.match_events)) {
+                data.match_events = Object.values(data.match_events);
+            }
+            
+            // Ensure mandatory objects exist to prevent crashes
+            data.score_details = data.score_details || {};
+            data.match_state = data.match_state || {};
+            data.current_batsmen_stats = data.current_batsmen_stats || {};
+            data.current_bowler_stats = data.current_bowler_stats || {};
         }
+        
         setMatchData(data);
+      } else {
+        setMatchData(null);
       }
       setIsLoading(false);
     }, (err) => {

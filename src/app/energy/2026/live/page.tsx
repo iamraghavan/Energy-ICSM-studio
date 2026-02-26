@@ -5,7 +5,7 @@ import { getLiveMatches, type ApiMatch } from "@/lib/api";
 import { useMatchSync } from "@/hooks/useMatchSync";
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Trophy, Goal, Square, Replace, Info, Radio, MapPin, Clock, ArrowRight, Activity } from 'lucide-react';
+import { Trophy, Goal, Square, Replace, Info, MapPin, Clock, ArrowRight, Activity, Users } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { cn } from '@/lib/utils';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -15,7 +15,7 @@ import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // --- Timeline Event Component ---
-function TimelineEvent({ event, match }: { event: any, match: ApiMatch }) {
+function TimelineEvent({ event }: { event: any }) {
     const getEventDetails = (e: any) => {
         switch(e.event_type) {
             case 'goal':
@@ -45,7 +45,7 @@ function TimelineEvent({ event, match }: { event: any, match: ApiMatch }) {
             layout
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="flex items-start gap-3 py-2 border-b border-border/50 last:border-0"
+            className="flex items-start gap-3 py-3 border-b border-border/50 last:border-0"
         >
             <div className="text-[10px] font-mono text-muted-foreground pt-1.5 w-12 shrink-0">{time}</div>
             <div className={cn("flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center", color)}>
@@ -53,22 +53,38 @@ function TimelineEvent({ event, match }: { event: any, match: ApiMatch }) {
             </div>
             <div className="flex-grow">
                 <p className="text-sm font-bold leading-tight">{title}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{commentary}</p>
+                {commentary && <p className="text-xs text-muted-foreground mt-0.5">{commentary}</p>}
             </div>
         </motion.div>
     );
 };
 
+// --- Player Stat Row for Live View ---
+function PlayerStatRow({ name, primary, secondary, highlight = false }: { name: string, primary: string | number, secondary?: string, highlight?: boolean }) {
+    return (
+        <div className={cn("flex items-center justify-between p-3 rounded-xl", highlight ? "bg-primary/5 border border-primary/10" : "bg-muted/30")}>
+            <div className="flex items-center gap-2">
+                <div className={cn("h-2 w-2 rounded-full", highlight ? "bg-primary animate-pulse" : "bg-muted-foreground/30")} />
+                <span className="font-bold text-xs uppercase tracking-tight truncate max-w-[120px]">{name}</span>
+            </div>
+            <div className="flex items-baseline gap-1">
+                <span className="font-black text-sm font-mono">{primary}</span>
+                {secondary && <span className="text-[10px] text-muted-foreground font-bold">{secondary}</span>}
+            </div>
+        </div>
+    );
+}
+
 // --- Detailed View inside a Dialog (Synced with Firebase) ---
-function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { match: ApiMatch | null, isOpen: boolean, onClose: () => void }) {
-    const { matchData, isLoading } = useMatchSync(initialMatch?.id || '');
+function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: ApiMatch | null, isOpen: boolean, onClose: () => void }) {
+    const { matchData, isLoading: isSyncing } = useMatchSync(initialMatch?.id || '');
     
     if (!isOpen || !initialMatch) return null;
 
-    // Use synced data if available, otherwise fallback to initial data
-    const match = matchData ? { ...initialMatch, ...matchData } : initialMatch;
+    const match = matchData || initialMatch;
     const { TeamA, TeamB, Sport, status } = match;
     const isCricket = Sport.name === 'Cricket';
+    
     const scoreDetails = match.score_details || {};
     const teamAScoreData = scoreDetails[match.team_a_id] || { runs: 0, score: 0, wickets: 0, overs: 0 };
     const teamBScoreData = scoreDetails[match.team_b_id] || { runs: 0, score: 0, wickets: 0, overs: 0 };
@@ -76,13 +92,16 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { match: ApiMatch
     const teamAScore = teamAScoreData.runs ?? teamAScoreData.score ?? 0;
     const teamBScore = teamBScoreData.runs ?? teamBScoreData.score ?? 0;
     
-    // Sort events by timestamp descending
-    const events = (Array.isArray(match.match_events) ? match.match_events : [])
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    const events = (Array.isArray(match.match_events) ? match.match_events : Object.values(match.match_events || {}))
+        .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    const batsmenStats = match.current_batsmen_stats || {};
+    const bowlerStats = match.current_bowler_stats || {};
+    const state = match.match_state || {};
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-[95vw] sm:max-w-2xl p-0 overflow-hidden border-none shadow-2xl rounded-3xl">
+            <DialogContent className="max-w-[95vw] sm:max-w-2xl p-0 overflow-hidden border-none shadow-2xl rounded-3xl bg-background">
                 <DialogHeader className="sr-only">
                     <DialogTitle>{TeamA.team_name} vs {TeamB.team_name} - {Sport.name}</DialogTitle>
                     <DialogDescription>Live Match Updates</DialogDescription>
@@ -128,32 +147,70 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { match: ApiMatch
                 </div>
 
                 <div className="p-6">
-                    <Tabs defaultValue="timeline" className="w-full">
+                    <Tabs defaultValue={isCricket ? "stats" : "timeline"} className="w-full">
                         <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 rounded-2xl h-12">
+                            {isCricket && <TabsTrigger value="stats" className="rounded-xl font-bold text-xs uppercase tracking-widest">Stats</TabsTrigger>}
                             <TabsTrigger value="timeline" className="rounded-xl font-bold text-xs uppercase tracking-widest">Timeline</TabsTrigger>
-                            <TabsTrigger value="info" className="rounded-xl font-bold text-xs uppercase tracking-widest">Info</TabsTrigger>
                         </TabsList>
+                        
+                        {isCricket && (
+                            <TabsContent value="stats" className="mt-6 space-y-6">
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Current Batsmen</p>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {Object.entries(batsmenStats).map(([id, stats]: [string, any]) => (
+                                            <PlayerStatRow 
+                                                key={id} 
+                                                name={stats.name} 
+                                                primary={stats.runs} 
+                                                secondary={`(${stats.balls})`} 
+                                                highlight={id === state.striker_id}
+                                            />
+                                        ))}
+                                        {Object.keys(batsmenStats).length === 0 && <p className="text-xs text-muted-foreground italic p-4 text-center col-span-2 border border-dashed rounded-xl">Batsmen details pending...</p>}
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Current Bowler</p>
+                                    {Object.entries(bowlerStats).map(([id, stats]: [string, any]) => (
+                                        <PlayerStatRow 
+                                            key={id} 
+                                            name={stats.name} 
+                                            primary={`${stats.wickets}/${stats.runs_conceded}`} 
+                                            secondary={`(${(stats.overs || 0.0).toFixed(1)} Ov)`} 
+                                            highlight={id === state.bowler_id}
+                                        />
+                                    ))}
+                                    {Object.keys(bowlerStats).length === 0 && <p className="text-xs text-muted-foreground italic p-4 text-center border border-dashed rounded-xl">Bowler details pending...</p>}
+                                </div>
+                            </TabsContent>
+                        )}
+
                         <TabsContent value="timeline" className="mt-6">
                             <ScrollArea className="h-64 pr-4">
-                                <div className="space-y-2">
+                                <div className="space-y-1">
                                     {events.length > 0 ? (
-                                        events.map((event, i) => <TimelineEvent key={event.id || `${event.timestamp}-${i}`} event={event} match={match} />)
+                                        events.map((event: any, i: number) => <TimelineEvent key={event.id || `${event.timestamp}-${i}`} event={event} />)
                                     ) : (
                                         <div className="flex flex-col items-center justify-center py-12 text-muted-foreground space-y-3">
                                             <Activity className="h-8 w-8 opacity-20" />
-                                            <p className="text-[10px] font-black uppercase tracking-widest">Waiting for first action...</p>
+                                            <p className="text-[10px] font-black uppercase tracking-widest">Waiting for match action...</p>
                                         </div>
                                     )}
                                 </div>
                             </ScrollArea>
                         </TabsContent>
-                        <TabsContent value="info" className="mt-6 space-y-4 text-sm">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="p-3 rounded-xl bg-muted/50"><p className="text-[10px] uppercase font-bold text-muted-foreground">Venue</p><p className="font-bold">{match.venue}</p></div>
-                                <div className="p-3 rounded-xl bg-muted/50"><p className="text-[10px] uppercase font-bold text-muted-foreground">Time</p><p className="font-bold">{format(new Date(match.start_time), 'p')}</p></div>
-                            </div>
-                        </TabsContent>
                     </Tabs>
+                </div>
+                
+                <div className="px-6 py-3 bg-muted/50 border-t flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <div className={cn("h-2 w-2 rounded-full", isSyncing ? "bg-amber-500 animate-pulse" : "bg-green-500")} />
+                        <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+                            {isSyncing ? "Syncing Firebase..." : "Real-time Ready"}
+                        </span>
+                    </div>
+                    <button onClick={onClose} className="text-[10px] font-black uppercase text-primary hover:underline">Close Match Center</button>
                 </div>
             </DialogContent>
         </Dialog>
@@ -175,12 +232,12 @@ function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => v
                 </div>
                 <div className="grid grid-cols-[1fr,auto,1fr] gap-4 items-center mb-4">
                     <div className="text-center">
-                        <p className="font-black text-[11px] uppercase leading-tight min-h-[2.5rem]">{TeamA.team_name}</p>
+                        <p className="font-black text-[11px] uppercase leading-tight min-h-[2.5rem] flex items-center justify-center">{TeamA.team_name}</p>
                         <div className="text-2xl font-black font-mono">{isCricket ? `${scoreA?.runs ?? 0}/${scoreA?.wickets ?? 0}` : (scoreA?.score ?? 0)}</div>
                     </div>
                     <div className="text-[9px] font-black text-muted-foreground uppercase">VS</div>
                     <div className="text-center">
-                        <p className="font-black text-[11px] uppercase leading-tight min-h-[2.5rem]">{TeamB.team_name}</p>
+                        <p className="font-black text-[11px] uppercase leading-tight min-h-[2.5rem] flex items-center justify-center">{TeamB.team_name}</p>
                         <div className="text-2xl font-black font-mono">{isCricket ? `${scoreB?.runs ?? 0}/${scoreB?.wickets ?? 0}` : (scoreB?.score ?? 0)}</div>
                     </div>
                 </div>
@@ -189,7 +246,7 @@ function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => v
                 <div className={cn(status === 'live' ? 'text-destructive' : 'text-muted-foreground', "font-black text-[10px] tracking-widest uppercase flex items-center gap-1.5")}>
                     {status === 'live' && <span className="flex h-2 w-2 rounded-full bg-destructive animate-pulse" />} {status}
                 </div>
-                <div className="flex items-center gap-1 text-[10px] font-black uppercase text-muted-foreground group-hover:text-primary transition-colors">Match Center <ArrowRight className="h-3 w-3" /></div>
+                <div className="flex items-center gap-1 text-[10px] font-black uppercase text-muted-foreground group-hover:text-primary transition-colors">Open Match Center <ArrowRight className="h-3 w-3" /></div>
             </div>
         </Card>
     );
@@ -207,21 +264,21 @@ export default function LivePage() {
                 const matches = await getLiveMatches();
                 setLiveMatches(matches);
             } catch (error) {
-                toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch matches.' });
+                console.error("Fetch matches error:", error);
             } finally {
                 setIsLoading(false);
             }
         };
         fetchLiveMatches();
-        const interval = setInterval(fetchLiveMatches, 30000); // Polling for match list updates
+        const interval = setInterval(fetchLiveMatches, 30000); 
         return () => clearInterval(interval);
-    }, [toast]);
+    }, []);
 
     return (
         <div className="container py-8 md:py-16 space-y-12">
             <div className="text-center space-y-4 max-w-3xl mx-auto">
                 <h1 className="text-5xl md:text-6xl font-black font-headline tracking-tighter text-primary uppercase italic">Match Center</h1>
-                <p className="text-lg text-muted-foreground">Instant real-time scores and ball-by-ball updates from Energy 2026.</p>
+                <p className="text-lg text-muted-foreground">Instant real-time scores and ball-by-ball updates from Energy 2026 via Firebase RTDB.</p>
             </div>
 
             <div className="min-h-[400px]">
@@ -239,11 +296,18 @@ export default function LivePage() {
                     <div className="text-center py-24 text-muted-foreground border-2 border-dashed rounded-3xl bg-muted/20">
                         <Activity className="h-16 w-16 mx-auto mb-6 opacity-40" />
                         <h3 className="text-2xl font-black uppercase tracking-tighter text-foreground mb-2">No Active Battles</h3>
-                        <p className="max-w-xs mx-auto text-sm">Stay tuned for the action!</p>
+                        <p className="max-w-xs mx-auto text-sm">Check back soon for the latest tournament action!</p>
                     </div>
                 )}
             </div>
-            <MatchDetailsDialog isOpen={!!selectedMatch} initialMatch={selectedMatch} onClose={() => setSelectedMatch(null)} />
+            
+            {selectedMatch && (
+                <MatchDetailsDialog 
+                    isOpen={!!selectedMatch} 
+                    initialMatch={selectedMatch} 
+                    onClose={() => setSelectedMatch(null)} 
+                />
+            )}
         </div>
     );
 }
