@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -81,8 +82,17 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
     
     if (!isOpen || !initialMatch) return null;
 
-    const match = matchData || initialMatch;
-    const { TeamA, TeamB, Sport, status } = match;
+    // Merge logic: Combine initial relational data (REST) with real-time updates (Firebase)
+    const match = matchData ? { ...initialMatch, ...matchData } : initialMatch;
+    
+    // Defensive extraction to prevent "undefined" reading property errors
+    const TeamA = match?.TeamA || initialMatch?.TeamA;
+    const TeamB = match?.TeamB || initialMatch?.TeamB;
+    const Sport = match?.Sport || initialMatch?.Sport;
+    const status = match?.status || 'live';
+
+    if (!Sport || !TeamA || !TeamB) return null;
+
     const isCricket = Sport.name === 'Cricket';
     
     const scoreDetails = match.score_details || {};
@@ -219,7 +229,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
 
 function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => void }) {
     const { TeamA, TeamB, Sport, status, venue, score_details } = match;
-    const isCricket = Sport.name === 'Cricket';
+    const isCricket = Sport?.name === 'Cricket';
     const scoreA = score_details?.[match.team_a_id];
     const scoreB = score_details?.[match.team_b_id];
 
@@ -227,17 +237,17 @@ function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => v
         <Card onClick={onSelect} className="cursor-pointer overflow-hidden border-2 transition-all duration-300 hover:shadow-2xl bg-card/50 backdrop-blur-sm group">
             <div className="p-5">
                 <div className="flex justify-between items-center mb-6">
-                    <span className="font-bold text-xs uppercase tracking-widest text-primary">{Sport.name}</span>
+                    <span className="font-bold text-xs uppercase tracking-widest text-primary">{Sport?.name}</span>
                     <Badge variant="outline" className="text-[10px]"><MapPin className="h-3 w-3 mr-1" /> {venue}</Badge>
                 </div>
                 <div className="grid grid-cols-[1fr,auto,1fr] gap-4 items-center mb-4">
                     <div className="text-center">
-                        <p className="font-black text-[11px] uppercase leading-tight min-h-[2.5rem] flex items-center justify-center">{TeamA.team_name}</p>
+                        <p className="font-black text-[11px] uppercase leading-tight min-h-[2.5rem] flex items-center justify-center">{TeamA?.team_name}</p>
                         <div className="text-2xl font-black font-mono">{isCricket ? `${scoreA?.runs ?? 0}/${scoreA?.wickets ?? 0}` : (scoreA?.score ?? 0)}</div>
                     </div>
                     <div className="text-[9px] font-black text-muted-foreground uppercase">VS</div>
                     <div className="text-center">
-                        <p className="font-black text-[11px] uppercase leading-tight min-h-[2.5rem] flex items-center justify-center">{TeamB.team_name}</p>
+                        <p className="font-black text-[11px] uppercase leading-tight min-h-[2.5rem] flex items-center justify-center">{TeamB?.team_name}</p>
                         <div className="text-2xl font-black font-mono">{isCricket ? `${scoreB?.runs ?? 0}/${scoreB?.wickets ?? 0}` : (scoreB?.score ?? 0)}</div>
                     </div>
                 </div>
