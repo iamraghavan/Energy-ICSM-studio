@@ -68,8 +68,9 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
     const score = liveScore || initialMatch.score_details || {};
     const state = matchState || initialMatch.match_state || {};
     
-    const battingTeamId = state.batting_team_id || initialMatch.team_a_id;
-    const bowlingTeamId = battingTeamId === initialMatch.team_a_id ? initialMatch.team_b_id : initialMatch.team_a_id;
+    // Ensure we have a valid batting team ID string
+    const battingTeamId = String(state.batting_team_id || initialMatch.team_a_id);
+    const bowlingTeamId = battingTeamId === String(initialMatch.team_a_id) ? String(initialMatch.team_b_id) : String(initialMatch.team_a_id);
 
     useEffect(() => {
         const fetchRosters = async () => {
@@ -82,7 +83,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                 setTeamARoster(teamA.members || []);
                 setTeamBRoster(teamB.members || []);
             } catch (error) {
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch team rosters.' });
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch team rosters. Check your connection.' });
             } finally {
                 setIsLoading(false);
             }
@@ -98,15 +99,15 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
         }
     }, [isPlayerSelectOpen, state.striker_id, state.non_striker_id, state.bowler_id]);
 
-    const battingTeam = battingTeamId === initialMatch.team_a_id ? initialMatch.TeamA : initialMatch.TeamB;
-    const bowlingTeam = bowlingTeamId === initialMatch.team_a_id ? initialMatch.TeamA : initialMatch.TeamB;
+    const battingTeam = battingTeamId === String(initialMatch.team_a_id) ? initialMatch.TeamA : initialMatch.TeamB;
+    const bowlingTeam = bowlingTeamId === String(initialMatch.team_a_id) ? initialMatch.TeamA : initialMatch.TeamB;
     
-    const battingRoster = battingTeamId === initialMatch.team_a_id ? teamARoster : teamBRoster;
-    const bowlingRoster = bowlingTeamId === initialMatch.team_a_id ? teamARoster : teamBRoster;
+    const battingRoster = battingTeamId === String(initialMatch.team_a_id) ? teamARoster : teamBRoster;
+    const bowlingRoster = bowlingTeamId === String(initialMatch.team_a_id) ? teamARoster : teamBRoster;
 
-    const striker = battingRoster.find(p => p.student_id === state.striker_id || p.id === state.striker_id);
-    const nonStriker = battingRoster.find(p => p.student_id === state.non_striker_id || p.id === state.non_striker_id);
-    const bowler = bowlingRoster.find(p => p.student_id === state.bowler_id || p.id === state.bowler_id);
+    const striker = battingRoster.find(p => String(p.student_id) === String(state.striker_id) || String(p.id) === String(state.striker_id));
+    const nonStriker = battingRoster.find(p => String(p.student_id) === String(state.non_striker_id) || String(p.id) === String(state.non_striker_id));
+    const bowler = bowlingRoster.find(p => String(p.student_id) === String(state.bowler_id) || String(p.id) === String(state.bowler_id));
 
     const strikerStats = state.batsmen_stats?.[state.striker_id] || { runs: 0, balls: 0 };
     const nonStrikerStats = state.batsmen_stats?.[state.non_striker_id] || { runs: 0, balls: 0 };
@@ -141,7 +142,10 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
     };
 
     const handleRotateStriker = async () => {
-        if (!state.striker_id || !state.non_striker_id) return;
+        if (!state.striker_id || !state.non_striker_id) {
+            toast({ variant: 'destructive', title: 'Rotation Error', description: 'Striker and Non-Striker must be selected first.' });
+            return;
+        }
         setIsUpdatingState(true);
         try {
             await updateMatchState(initialMatch.id, {
@@ -153,11 +157,10 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
             });
             toast({ title: 'Strikers Swapped' });
         } catch (error: any) {
-            const isTimeout = error.code === 'ECONNABORTED';
             toast({ 
                 variant: 'destructive', 
                 title: 'Rotation Failed', 
-                description: isTimeout ? "Server is busy. Trying again..." : "Failed to rotate strikers." 
+                description: "Failed to rotate strikers. Check your connection." 
             });
         } finally {
             setIsUpdatingState(false);
@@ -273,7 +276,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                                     <SelectTrigger className="bg-slate-800 border-slate-700 h-14 rounded-2xl font-bold"><SelectValue placeholder="Select Striker" /></SelectTrigger>
                                     <SelectContent className="bg-slate-800 border-slate-700 text-white">
                                         {battingRoster.map(p => (
-                                            <SelectItem key={p.student_id || p.id} value={p.student_id || p.id} className="font-bold uppercase text-xs">
+                                            <SelectItem key={String(p.student_id || p.id)} value={String(p.student_id || p.id)} className="font-bold uppercase text-xs">
                                                 {p.name || p.Student?.name}
                                             </SelectItem>
                                         ))}
@@ -286,7 +289,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                                     <SelectTrigger className="bg-slate-800 border-slate-700 h-14 rounded-2xl font-bold"><SelectValue placeholder="Select Non-Striker" /></SelectTrigger>
                                     <SelectContent className="bg-slate-800 border-slate-700 text-white">
                                         {battingRoster.map(p => (
-                                            <SelectItem key={p.student_id || p.id} value={p.student_id || p.id} className="font-bold uppercase text-xs">
+                                            <SelectItem key={String(p.student_id || p.id)} value={String(p.student_id || p.id)} className="font-bold uppercase text-xs">
                                                 {p.name || p.Student?.name}
                                             </SelectItem>
                                         ))}
@@ -299,7 +302,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                                     <SelectTrigger className="bg-slate-800 border-slate-700 h-14 rounded-2xl font-bold"><SelectValue placeholder="Select Bowler" /></SelectTrigger>
                                     <SelectContent className="bg-slate-800 border-slate-700 text-white">
                                         {bowlingRoster.map(p => (
-                                            <SelectItem key={p.student_id || p.id} value={p.student_id || p.id} className="font-bold uppercase text-xs">
+                                            <SelectItem key={String(p.student_id || p.id)} value={String(p.student_id || p.id)} className="font-bold uppercase text-xs">
                                                 {p.name || p.Student?.name}
                                             </SelectItem>
                                         ))}

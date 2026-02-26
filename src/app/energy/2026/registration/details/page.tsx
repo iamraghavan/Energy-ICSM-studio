@@ -14,7 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ShareButton } from '@/components/shared/share-button';
 
 
-const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
+const API_BASE_URL = 'http://103.76.189.250:81/api/v1';
 
 function InfoDetail({ icon: Icon, label, value, isMono = false }: { icon?: React.ElementType, label: string, value: string | null | undefined, isMono?: boolean }) {
     if (!value) return null;

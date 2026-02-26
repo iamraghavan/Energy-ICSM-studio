@@ -282,11 +282,13 @@ export type ApiMatch = {
     TeamB: ApiTeam;
 };
 
-const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL 
+    ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1` 
+    : 'https://energy-sports-meet-backend.onrender.com/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000, // Increased to 30s to handle slow server spin-ups
+  timeout: 30000,
 });
 
 api.interceptors.request.use((config) => {
@@ -366,9 +368,17 @@ export const createMatch = async (matchData: any) => {
 export const getScorerTeamDetails = async (teamId: string): Promise<FullSportsHeadTeam> => {
     const response = await api.get(`/scorer/teams/${teamId}`);
     const data = response.data.data || response.data;
+    
+    // Ensure 'members' exists even if returned as 'Members'
     if (data.Members && !data.members) {
         data.members = data.Members;
     }
+    
+    // If it's an array wrapped in a success status
+    if (Array.isArray(data)) {
+        return { members: data } as any;
+    }
+
     return data;
 }
 
