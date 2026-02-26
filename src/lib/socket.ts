@@ -3,7 +3,7 @@
 import { io, Socket } from "socket.io-client";
 
 const SOCKET_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "https://energy-sports-meet-backend.onrender.com";
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://103.76.189.250:81";
 
 let socketInstance: Socket | null = null;
 

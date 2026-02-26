@@ -284,7 +284,7 @@ export type ApiMatch = {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL 
     ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1` 
-    : 'https://energy-sports-meet-backend.onrender.com/api/v1';
+    : 'http://103.76.189.250:81/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
