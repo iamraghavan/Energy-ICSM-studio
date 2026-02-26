@@ -369,12 +369,12 @@ export const getScorerTeamDetails = async (teamId: string): Promise<FullSportsHe
     const response = await api.get(`/scorer/teams/${teamId}`);
     const data = response.data.data || response.data;
     
-    // Ensure 'members' exists even if returned as 'Members'
-    if (data.Members && !data.members) {
+    // Normalize members field
+    if (data && !data.members && data.Members) {
         data.members = data.Members;
     }
     
-    // If it's an array wrapped in a success status
+    // If it's an array of members directly
     if (Array.isArray(data)) {
         return { members: data } as any;
     }
@@ -402,8 +402,8 @@ export const endMatch = async (matchId: string, winnerId: string | null, mvpId?:
 
 export const getLiveMatches = async (): Promise<ApiMatch[]> => {
     const response = await api.get('/matches/live');
-    const data = response.data;
-    return Array.isArray(data) ? data : (data?.data || []);
+    const responseData = response.data;
+    return Array.isArray(responseData) ? responseData : responseData?.data || [];
 };
 
 export const getAdminAnalytics = async () => {
@@ -440,6 +440,12 @@ export const getRegistrations = async (): Promise<Registration[]> => {
 export const getPayments = async (filters: { status?: string, sport_id?: string }): Promise<Registration[]> => {
     const response = await api.get('/admin/payments', { params: filters });
     return Array.isArray(response.data) ? response.data : (response.data?.data || []);
+};
+
+export const getColleges = async (): Promise<College[]> => {
+    const response = await api.get('/colleges');
+    const responseData = response.data;
+    return Array.isArray(responseData) ? responseData : responseData?.data || [];
 };
 
 export const getCollegesAdmin = async (): Promise<(Omit<College, 'id'> & {id: number})[]> => {

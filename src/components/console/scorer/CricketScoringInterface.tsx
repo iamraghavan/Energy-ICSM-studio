@@ -68,7 +68,6 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
     const score = liveScore || initialMatch.score_details || {};
     const state = matchState || initialMatch.match_state || {};
     
-    // Ensure we have a valid batting team ID string
     const battingTeamId = String(state.batting_team_id || initialMatch.team_a_id);
     const bowlingTeamId = battingTeamId === String(initialMatch.team_a_id) ? String(initialMatch.team_b_id) : String(initialMatch.team_a_id);
 
@@ -83,7 +82,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                 setTeamARoster(teamA.members || []);
                 setTeamBRoster(teamB.members || []);
             } catch (error) {
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch team rosters. Check your connection.' });
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch team rosters.' });
             } finally {
                 setIsLoading(false);
             }
@@ -93,21 +92,18 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
 
     useEffect(() => {
         if (isPlayerSelectOpen) {
-            setModalStrikerId(state.striker_id || null);
-            setModalNonStrikerId(state.non_striker_id || null);
-            setModalBowlerId(state.bowler_id || null);
+            setModalStrikerId(state.striker_id ? String(state.striker_id) : null);
+            setModalNonStrikerId(state.non_striker_id ? String(state.non_striker_id) : null);
+            setModalBowlerId(state.bowler_id ? String(state.bowler_id) : null);
         }
     }, [isPlayerSelectOpen, state.striker_id, state.non_striker_id, state.bowler_id]);
 
-    const battingTeam = battingTeamId === String(initialMatch.team_a_id) ? initialMatch.TeamA : initialMatch.TeamB;
-    const bowlingTeam = bowlingTeamId === String(initialMatch.team_a_id) ? initialMatch.TeamA : initialMatch.TeamB;
-    
     const battingRoster = battingTeamId === String(initialMatch.team_a_id) ? teamARoster : teamBRoster;
     const bowlingRoster = bowlingTeamId === String(initialMatch.team_a_id) ? teamARoster : teamBRoster;
 
-    const striker = battingRoster.find(p => String(p.student_id) === String(state.striker_id) || String(p.id) === String(state.striker_id));
-    const nonStriker = battingRoster.find(p => String(p.student_id) === String(state.non_striker_id) || String(p.id) === String(state.non_striker_id));
-    const bowler = bowlingRoster.find(p => String(p.student_id) === String(state.bowler_id) || String(p.id) === String(state.bowler_id));
+    const striker = battingRoster.find(p => String(p.student_id || p.id) === String(state.striker_id));
+    const nonStriker = battingRoster.find(p => String(p.student_id || p.id) === String(state.non_striker_id));
+    const bowler = bowlingRoster.find(p => String(p.student_id || p.id) === String(state.bowler_id));
 
     const strikerStats = state.batsmen_stats?.[state.striker_id] || { runs: 0, balls: 0 };
     const nonStrikerStats = state.batsmen_stats?.[state.non_striker_id] || { runs: 0, balls: 0 };
@@ -130,12 +126,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
             toast({ title: 'Lineup Updated' });
             setIsPlayerSelectOpen(false);
         } catch (error: any) {
-            const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout');
-            const msg = isTimeout 
-                ? "Server is slow to respond. Please try again in a few seconds." 
-                : error.response?.data?.message || "Could not update lineup. Check your connection.";
-            
-            toast({ variant: 'destructive', title: 'Update Failed', description: msg });
+            toast({ variant: 'destructive', title: 'Update Failed', description: error.response?.data?.message || 'Could not update lineup.' });
         } finally {
             setIsUpdatingState(false);
         }
@@ -143,7 +134,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
 
     const handleRotateStriker = async () => {
         if (!state.striker_id || !state.non_striker_id) {
-            toast({ variant: 'destructive', title: 'Rotation Error', description: 'Striker and Non-Striker must be selected first.' });
+            toast({ variant: 'destructive', title: 'Rotation Error', description: 'Players must be selected first.' });
             return;
         }
         setIsUpdatingState(true);
@@ -157,11 +148,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
             });
             toast({ title: 'Strikers Swapped' });
         } catch (error: any) {
-            toast({ 
-                variant: 'destructive', 
-                title: 'Rotation Failed', 
-                description: "Failed to rotate strikers. Check your connection." 
-            });
+            toast({ variant: 'destructive', title: 'Rotation Failed' });
         } finally {
             setIsUpdatingState(false);
         }
@@ -177,6 +164,9 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
             await submitAction('submit_cricket_ball', {
                 runs,
                 is_wicket: isWicket,
+                wicket_type: isWicket ? 'bowled' : null,
+                extras: 0,
+                extra_type: null,
                 striker_id: state.striker_id,
                 non_striker_id: state.non_striker_id,
                 bowler_id: state.bowler_id,
@@ -207,7 +197,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                 <div className="text-center">
                     <h1 className="font-black text-[10px] tracking-[0.2em] uppercase text-blue-400">Cricket Scorer Pro</h1>
                     <div className="flex items-center gap-1.5 justify-center mt-0.5">
-                        <div className={cn("w-1.5 h-1.5 rounded-full", isConnected ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-red-500")} />
+                        <div className={cn("w-1.5 h-1.5 rounded-full", isConnected ? "bg-green-500" : "bg-red-500")} />
                         <span className="text-[9px] uppercase font-black text-slate-500 tracking-widest">{isConnected ? 'Live Sync' : 'Offline Mode'}</span>
                     </div>
                 </div>
@@ -215,14 +205,13 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
             </header>
 
             <main className="p-4 space-y-4 max-w-md mx-auto w-full flex-1">
-                <Card className="bg-slate-900 border-slate-800 text-white p-6 shadow-2xl relative overflow-hidden group">
-                    <div className="absolute -top-4 -right-4 p-2 opacity-5 group-hover:opacity-10 transition-opacity rotate-12"><User size={120}/></div>
+                <Card className="bg-slate-900 border-slate-800 text-white p-6 shadow-2xl relative overflow-hidden group text-center">
                     <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-6">
-                        <span className="text-blue-400 max-w-[120px] truncate">{battingTeam.team_name}</span>
+                        <span className="text-blue-400 max-w-[120px] truncate">{initialMatch.TeamA.team_name}</span>
                         <span className="px-2 py-0.5 bg-slate-800 rounded-full text-[8px]">VS</span>
-                        <span className="max-w-[120px] truncate">{bowlingTeam.team_name}</span>
+                        <span className="max-w-[120px] truncate">{initialMatch.TeamB.team_name}</span>
                     </div>
-                    <div className="text-center">
+                    <div>
                         <div className="flex items-baseline justify-center gap-1">
                             <p className="text-7xl font-black tracking-tighter">{teamScore.runs || 0}</p>
                             <p className="text-3xl font-black text-slate-600">/{teamScore.wickets || 0}</p>
@@ -242,11 +231,11 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
 
                 <div className="grid grid-cols-4 gap-2 pt-4">
                     {[0, 1, 2, 3].map(r => (
-                        <Button key={r} className="h-16 text-2xl font-black bg-slate-800 hover:bg-slate-700 border-b-4 border-slate-950 active:translate-y-1 active:border-b-0 transition-all" onClick={() => handleBall(r)}>{r}</Button>
+                        <Button key={r} className="h-16 text-2xl font-black bg-slate-800" onClick={() => handleBall(r)}>{r}</Button>
                     ))}
-                    <Button className="h-16 text-2xl font-black bg-emerald-600 hover:bg-emerald-500 border-b-4 border-emerald-800 active:translate-y-1 active:border-b-0" onClick={() => handleBall(4)}>4</Button>
-                    <Button className="h-16 text-2xl font-black bg-blue-600 hover:bg-blue-500 border-b-4 border-blue-800 active:translate-y-1 active:border-b-0" onClick={() => handleBall(6)}>6</Button>
-                    <Button className="h-16 text-2xl font-black bg-red-600 hover:bg-red-500 border-b-4 border-red-800 active:translate-y-1 active:border-b-0" onClick={() => handleBall(0, true)}>W</Button>
+                    <Button className="h-16 text-2xl font-black bg-emerald-600" onClick={() => handleBall(4)}>4</Button>
+                    <Button className="h-16 text-2xl font-black bg-blue-600" onClick={() => handleBall(6)}>6</Button>
+                    <Button className="h-16 text-2xl font-black bg-red-600" onClick={() => handleBall(0, true)}>W</Button>
                     <Button variant="outline" className="h-16 bg-slate-900 border-slate-700 font-black text-xs uppercase" onClick={handleUndo}><RotateCcw className="w-4 h-4 mr-2"/>Undo</Button>
                 </div>
 
@@ -263,10 +252,10 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
             </main>
 
             <Dialog open={isPlayerSelectOpen} onOpenChange={setIsPlayerSelectOpen}>
-                <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-[95vw] sm:max-w-md rounded-3xl overflow-hidden p-0 border-none shadow-2xl">
-                    <DialogHeader className="p-6 bg-slate-800/50 text-left">
+                <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-[95vw] sm:max-w-md rounded-3xl overflow-hidden p-0">
+                    <DialogHeader className="p-6 bg-slate-800/50">
                         <DialogTitle className="text-xl font-black uppercase tracking-tighter">Lineup Management</DialogTitle>
-                        <DialogDescription className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Select active strikers and current bowler</DialogDescription>
+                        <DialogDescription className="text-slate-400 text-xs font-bold uppercase tracking-widest">Select active strikers and current bowler</DialogDescription>
                     </DialogHeader>
                     <div className="p-6 space-y-6">
                         <div className="space-y-4">
@@ -275,11 +264,13 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                                 <Select onValueChange={setModalStrikerId} value={modalStrikerId || undefined}>
                                     <SelectTrigger className="bg-slate-800 border-slate-700 h-14 rounded-2xl font-bold"><SelectValue placeholder="Select Striker" /></SelectTrigger>
                                     <SelectContent className="bg-slate-800 border-slate-700 text-white">
-                                        {battingRoster.map(p => (
-                                            <SelectItem key={String(p.student_id || p.id)} value={String(p.student_id || p.id)} className="font-bold uppercase text-xs">
-                                                {p.name || p.Student?.name}
-                                            </SelectItem>
-                                        ))}
+                                        {battingRoster.map(p => {
+                                            const pId = String(p.student_id || p.id);
+                                            const pName = p.name || p.Student?.name || 'Unknown Player';
+                                            return (
+                                                <SelectItem key={pId} value={pId} className="font-bold uppercase text-xs">{pName}</SelectItem>
+                                            );
+                                        })}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -288,33 +279,37 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                                 <Select onValueChange={setModalNonStrikerId} value={modalNonStrikerId || undefined}>
                                     <SelectTrigger className="bg-slate-800 border-slate-700 h-14 rounded-2xl font-bold"><SelectValue placeholder="Select Non-Striker" /></SelectTrigger>
                                     <SelectContent className="bg-slate-800 border-slate-700 text-white">
-                                        {battingRoster.map(p => (
-                                            <SelectItem key={String(p.student_id || p.id)} value={String(p.student_id || p.id)} className="font-bold uppercase text-xs">
-                                                {p.name || p.Student?.name}
-                                            </SelectItem>
-                                        ))}
+                                        {battingRoster.map(p => {
+                                            const pId = String(p.student_id || p.id);
+                                            const pName = p.name || p.Student?.name || 'Unknown Player';
+                                            return (
+                                                <SelectItem key={pId} value={pId} className="font-bold uppercase text-xs">{pName}</SelectItem>
+                                            );
+                                        })}
                                     </SelectContent>
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-emerald-400 text-[10px] uppercase font-black tracking-[0.2em]">Current Bowler ({bowlingTeam.team_name})</Label>
+                                <Label className="text-emerald-400 text-[10px] uppercase font-black tracking-[0.2em]">Current Bowler</Label>
                                 <Select onValueChange={setModalBowlerId} value={modalBowlerId || undefined}>
                                     <SelectTrigger className="bg-slate-800 border-slate-700 h-14 rounded-2xl font-bold"><SelectValue placeholder="Select Bowler" /></SelectTrigger>
                                     <SelectContent className="bg-slate-800 border-slate-700 text-white">
-                                        {bowlingRoster.map(p => (
-                                            <SelectItem key={String(p.student_id || p.id)} value={String(p.student_id || p.id)} className="font-bold uppercase text-xs">
-                                                {p.name || p.Student?.name}
-                                            </SelectItem>
-                                        ))}
+                                        {bowlingRoster.map(p => {
+                                            const pId = String(p.student_id || p.id);
+                                            const pName = p.name || p.Student?.name || 'Unknown Player';
+                                            return (
+                                                <SelectItem key={pId} value={pId} className="font-bold uppercase text-xs">{pName}</SelectItem>
+                                            );
+                                        })}
                                     </SelectContent>
                                 </Select>
                             </div>
                         </div>
                     </div>
-                    <DialogFooter className="p-6 bg-slate-800/20">
-                        <Button onClick={handleSavePlayers} disabled={isUpdatingState} className="w-full h-14 bg-blue-600 hover:bg-blue-500 rounded-2xl text-md font-black uppercase tracking-widest shadow-lg active:scale-95 transition-transform">
+                    <DialogFooter className="p-6">
+                        <Button onClick={handleSavePlayers} disabled={isUpdatingState} className="w-full h-14 bg-blue-600 font-black uppercase">
                             {isUpdatingState ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : null}
-                            Update Match State
+                            Update Lineup
                         </Button>
                     </DialogFooter>
                 </DialogContent>
