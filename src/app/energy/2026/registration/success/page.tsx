@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -36,12 +35,13 @@ function SuccessPageContent() {
     const router = useRouter();
     const { toast } = useToast();
     const registrationId = searchParams.get('id');
+    const initialCode = searchParams.get('code');
 
     const [registration, setRegistration] = useState<Registration | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        if (!registrationId) {
+        if (!registrationId || registrationId === 'undefined') {
             router.replace('/energy/2026/registration');
             return;
         }
@@ -67,7 +67,24 @@ function SuccessPageContent() {
     }, [registrationId, router, toast]);
 
     if (isLoading || !registrationId) {
-        return <LoadingSkeleton />;
+        return (
+            <>
+                <CardHeader className="text-center items-center space-y-4">
+                    <Loader2 className="h-16 w-16 text-primary animate-spin" />
+                    <div className="space-y-2">
+                        <CardTitle className="text-2xl font-bold font-headline">Finalizing Registration...</CardTitle>
+                        {initialCode && (
+                            <CardDescription>
+                                Registered with Code: <span className="font-mono font-bold text-primary">{initialCode}</span>
+                            </CardDescription>
+                        )}
+                    </div>
+                </CardHeader>
+                <CardContent className="flex flex-col items-center justify-center py-10">
+                    <p className="text-muted-foreground text-sm">Please wait while we prepare your ticket.</p>
+                </CardContent>
+            </>
+        );
     }
     
     if (!registration) {
@@ -108,7 +125,7 @@ function SuccessPageContent() {
                 <div className="space-y-2">
                     <CardTitle className="text-2xl font-bold font-headline">Registration Submitted!</CardTitle>
                     <CardDescription>
-                        Your registration is successful! Your code is <span className="font-mono font-bold">{registration.registration_code}</span>.
+                        Your registration is successful! Your code is <span className="font-mono font-bold text-foreground">{registration.registration_code}</span>.
                     </CardDescription>
                 </div>
             </CardHeader>

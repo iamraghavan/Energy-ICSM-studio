@@ -282,9 +282,7 @@ export type ApiMatch = {
     TeamB: ApiTeam;
 };
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL 
-    ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1` 
-    : 'https://energy-sports-meet-backend.onrender.com/api/v1';
+const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -357,7 +355,7 @@ export const getScorerMatches = async (): Promise<ApiMatch[]> => {
 
 export const getMatchById = async (matchId: string): Promise<ApiMatch> => {
     const response = await api.get(`/scorer/matches/${matchId}`);
-    return response.data;
+    return response.data?.data || response.data;
 };
 
 export const createMatch = async (matchData: any) => {
@@ -369,12 +367,10 @@ export const getScorerTeamDetails = async (teamId: string): Promise<FullSportsHe
     const response = await api.get(`/scorer/teams/${teamId}`);
     const data = response.data.data || response.data;
     
-    // Normalize members field
     if (data && !data.members && data.Members) {
         data.members = data.Members;
     }
     
-    // If it's an array of members directly
     if (Array.isArray(data)) {
         return { members: data } as any;
     }
@@ -384,7 +380,7 @@ export const getScorerTeamDetails = async (teamId: string): Promise<FullSportsHe
 
 export const getLineup = async (matchId: string) => {
     const response = await api.get(`/scorer/matches/${matchId}/lineup`);
-    return response.data;
+    return response.data?.data || response.data;
 }
 
 export const saveLineup = async (matchId: string, lineup: {player_id: string, is_substitute: boolean}[]) => {
@@ -408,7 +404,7 @@ export const getLiveMatches = async (): Promise<ApiMatch[]> => {
 
 export const getAdminAnalytics = async () => {
     const response = await api.get('/admin/analytics');
-    return response.data;
+    return response.data?.data || response.data;
 }
 
 export const getUsers = async (): Promise<User[]> => {
@@ -490,7 +486,7 @@ export const createSport = async (sportData: any) => {
 
 export const getRegistration = async (id: string): Promise<Registration> => {
     const response = await api.get(`/register/details`, { params: { id } });
-    return response.data.data || response.data;
+    return response.data?.data || response.data;
 };
 
 export const verifyPayment = async (registrationId: string, status: 'approved' | 'rejected', remarks: string) => {
@@ -546,7 +542,7 @@ export const verifyStudentOtp = async (identifier: string, otp: string) => {
 
 export const getStudentDashboardOverview = async (): Promise<StudentDashboardOverview> => {
     const response = await api.get('/student/dashboard/overview');
-    return response.data;
+    return response.data?.data || response.data;
 };
 
 export const createStudentTeam = async (sportId: number, teamName: string) => {
@@ -556,7 +552,7 @@ export const createStudentTeam = async (sportId: number, teamName: string) => {
 
 export const getStudentTeamDetails = async (teamId: string): Promise<FullTeamDetails> => {
     const response = await api.get(`/student/teams/${teamId}`);
-    return response.data;
+    return response.data?.data || response.data;
 };
 
 export const updateTeamName = async (teamId: string, teamName: string) => {
@@ -588,17 +584,18 @@ export const updateTeamMember = async (memberId: string, data: any) => {
 
 export const getSportsHeadStats = async () => {
     const response = await api.get('/sports-head/stats');
-    return response.data;
+    return response.data?.data || response.data;
 };
 
 export const getSportsHeadAnalytics = async () => {
     const response = await api.get('/sports-head/analytics');
-    return response.data;
+    return response.data?.data || response.data;
 };
 
 export const getSportsHeadMatches = async (status?: string): Promise<ApiMatch[]> => {
     const response = await api.get('/sports-head/matches', { params: { status } });
-    return response.data;
+    const data = response.data;
+    return Array.isArray(data) ? data : (data?.data || []);
 };
 
 export const scheduleMatch = async (matchData: any) => {
@@ -608,12 +605,14 @@ export const scheduleMatch = async (matchData: any) => {
 
 export const getSportsHeadTeams = async (): Promise<SportsHeadTeam[]> => {
     const response = await api.get('/sports-head/teams');
-    return response.data;
+    const data = response.data;
+    return Array.isArray(data) ? data : (data?.data || []);
 };
 
 export const getSportsHeadRegistrations = async (): Promise<SportsHeadRegistration[]> => {
     const response = await api.get('/sports-head/registrations');
-    return response.data;
+    const data = response.data;
+    return Array.isArray(data) ? data : (data?.data || []);
 };
 
 export const createSportsHeadTeam = async (teamData: any) => {
@@ -623,7 +622,7 @@ export const createSportsHeadTeam = async (teamData: any) => {
 
 export const getSportsHeadTeamDetails = async (teamId: string): Promise<FullSportsHeadTeam> => {
     const response = await api.get(`/sports-head/teams/${teamId}`);
-    return response.data;
+    return response.data?.data || response.data;
 };
 
 export const removePlayerFromTeam = async (teamId: string, studentId: string) => {
@@ -653,7 +652,8 @@ export const updateSportsHeadTeamMember = async (teamId: string, studentId: stri
 
 export const getSportsHeadStudents = async (): Promise<SportStudent[]> => {
     const response = await api.get('/sports-head/students');
-    return response.data;
+    const data = response.data;
+    return Array.isArray(data) ? data : (data?.data || []);
 };
 
 export const bulkAddPlayersToTeam = async (teamId: string, registrationIds: string[]) => {
