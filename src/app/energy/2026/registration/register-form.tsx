@@ -465,14 +465,14 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
         }
 
         try {
-            const response = await registerStudent(formData);
-            // Navigate based on correct response structure
-            const regData = response.data || response;
-            const registrationId = regData.registration_id || regData.id;
-            const registrationCode = regData.registration_code || regData.code;
+            const result = await registerStudent(formData);
+            
+            // Access registration_id and code from result.data based on API spec
+            const registrationId = result.data?.registration_id;
+            const registrationCode = result.data?.registration_code;
 
             if (!registrationId) {
-                console.error("No registration ID returned:", response);
+                console.error("No registration ID returned:", result);
                 throw new Error("Registration succeeded but no ID was returned from server.");
             }
 
@@ -481,11 +481,7 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                 description: `We're finalizing your registration. One moment...`,
             });
             
-            const params = new URLSearchParams();
-            params.set('id', registrationId);
-            if (registrationCode) params.set('code', registrationCode);
-
-            router.push(`/energy/2026/registration/success?${params.toString()}`);
+            router.push(`/energy/2026/registration/success?id=${registrationId}${registrationCode ? `&code=${registrationCode}` : ''}`);
         } catch (error: any) {
             console.error("Form submission error:", error);
             const errorMessage = error.response?.data?.error || error.response?.data?.message || "An unknown error occurred. Please try again.";

@@ -13,7 +13,18 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-// Lazy initialization to avoid build-time crashes during NextJS prerendering
+/**
+ * Lazy initialization for Firebase services.
+ * IMPORTANT: Ensure RTDB Rules in Firebase Console are set to allow public reads:
+ * {
+ *   "rules": {
+ *     "sports": {
+ *       ".read": true,
+ *       ".write": false
+ *     }
+ *   }
+ * }
+ */
 let app: FirebaseApp | undefined;
 let database: Database | undefined;
 
@@ -21,7 +32,12 @@ const getRtDatabase = (): Database | null => {
     if (typeof window === 'undefined') return null;
     
     if (!app) {
-        app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+        try {
+            app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+        } catch (error) {
+            console.error("Firebase Initialization Error:", error);
+            return null;
+        }
     }
     
     if (!database) {

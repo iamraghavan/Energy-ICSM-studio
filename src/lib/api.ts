@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 import type { College } from './types';
 
@@ -281,7 +282,7 @@ export type ApiMatch = {
     TeamB: ApiTeam;
 };
 
-const API_BASE_URL = 'https://energy-sports-meet-backend.vercel.app/api/v1';
+const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
