@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -32,7 +33,15 @@ function TimelineEvent({ event, match }: { event: any, match: ApiMatch }) {
                 let title = `${e.runs || 0} run${e.runs !== 1 ? 's' : ''}`;
                 if (e.is_wicket) title = 'WICKET!';
                 if (e.extras > 0) title = `${e.extras} ${e.extra_type || 'extra'}`;
-                return { icon: Trophy, color: 'text-blue-500 bg-blue-500/10', title: title, commentary: e.commentary };
+                
+                // Enhanced cricket commentary
+                let commentary = e.commentary;
+                if (!commentary && e.striker_name && e.bowler_name) {
+                    commentary = `${e.striker_name} scores ${e.runs} run${e.runs !== 1 ? 's' : ''} off ${e.bowler_name}`;
+                    if (e.is_wicket) commentary = `${e.striker_name} is OUT! Bowled by ${e.bowler_name}`;
+                }
+                
+                return { icon: Trophy, color: 'text-blue-500 bg-blue-500/10', title: title, commentary };
             default:
                 return { icon: Info, color: 'text-gray-500 bg-gray-500/10', title: e.event_type || 'Match Update' };
         }
@@ -82,11 +91,11 @@ function MatchDetailsDialog({ match: initialMatch, isOpen, onClose }: { match: A
             const currentEvents = Array.isArray(prev) ? prev : [];
             const newEventsArr = Array.isArray(newEventData) ? newEventData : [newEventData];
             
-            const validNewEvents = newEventsArr.filter(e => e && typeof e === 'object' && (e.id || e.timestamp));
+            const validNewEvents = newEventsArr.filter(e => e && typeof e === 'object');
             if (validNewEvents.length === 0) return currentEvents;
 
-            const existingMap = new Map(currentEvents.map(e => [e.id || e.timestamp, e]));
-            validNewEvents.forEach(e => existingMap.set(e.id || e.timestamp, e));
+            const existingMap = new Map(currentEvents.map(e => [e.id || `${e.timestamp}-${e.event_type}`, e]));
+            validNewEvents.forEach(e => existingMap.set(e.id || `${e.timestamp}-${e.event_type}`, e));
             
             return Array.from(existingMap.values()).sort((a,b) => {
                 const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
@@ -110,14 +119,18 @@ function MatchDetailsDialog({ match: initialMatch, isOpen, onClose }: { match: A
 
         const handleScoreUpdate = (data: any) => {
             if (data.matchId === initialMatch.id) {
-                setMatch(prev => prev ? { ...prev, score_details: data.score } : null);
+                setMatch(prev => prev ? { ...prev, score_details: data.score || data.scoreDetails } : null);
                 if (data.event) processNewEvents(data.event);
             }
         };
 
         const handleCricketUpdate = (data: any) => {
             if (data.matchId === initialMatch.id) {
-                setMatch(prev => prev ? { ...prev, score_details: data.score } : null);
+                setMatch(prev => prev ? { 
+                    ...prev, 
+                    score_details: data.score || data.scoreDetails,
+                    match_state: data.state || prev.match_state
+                } : null);
                 if (data.last_ball) processNewEvents(data.last_ball);
             }
         };
@@ -137,11 +150,12 @@ function MatchDetailsDialog({ match: initialMatch, isOpen, onClose }: { match: A
 
     const { TeamA, TeamB, Sport, status } = match;
     const isCricket = Sport.name === 'Cricket';
-    const teamAScoreDetails = match.score_details?.[match.team_a_id];
-    const teamBScoreDetails = match.score_details?.[match.team_b_id];
+    const scoreDetails = match.score_details || {};
+    const teamAScoreData = scoreDetails[match.team_a_id] || { runs: 0, score: 0, wickets: 0, overs: 0 };
+    const teamBScoreData = scoreDetails[match.team_b_id] || { runs: 0, score: 0, wickets: 0, overs: 0 };
 
-    const teamAScore = teamAScoreDetails?.runs ?? teamAScoreDetails?.score ?? 0;
-    const teamBScore = teamBScoreDetails?.runs ?? teamBScoreDetails?.score ?? 0;
+    const teamAScore = teamAScoreData.runs ?? teamAScoreData.score ?? 0;
+    const teamBScore = teamBScoreData.runs ?? teamBScoreData.score ?? 0;
     
     const getResultText = () => {
         if (status === 'live') return 'Match In Progress';
@@ -185,9 +199,9 @@ function MatchDetailsDialog({ match: initialMatch, isOpen, onClose }: { match: A
                                 <p className="font-black text-xs sm:text-sm uppercase tracking-tight text-balance leading-tight min-h-[2.5rem] flex items-center justify-center">{TeamA.team_name}</p>
                                 <div className="space-y-1">
                                     <p className="text-4xl sm:text-6xl font-black font-mono tracking-tighter">
-                                        {teamAScore}{isCricket && <span className="text-2xl sm:text-3xl text-muted-foreground">/{teamAScoreDetails?.wickets ?? 0}</span>}
+                                        {teamAScore}{isCricket && <span className="text-2xl sm:text-3xl text-muted-foreground">/{teamAScoreData.wickets ?? 0}</span>}
                                     </p>
-                                    {isCricket && <p className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest">({teamAScoreDetails?.overs?.toFixed(1) ?? '0.0'} Ov)</p>}
+                                    {isCricket && <p className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest">({(teamAScoreData.overs ?? 0.0).toFixed(1)} Ov)</p>}
                                 </div>
                             </div>
                             <div className="flex flex-col items-center gap-2"><div className="h-12 w-[2px] bg-border" /><span className="text-[10px] font-black text-muted-foreground uppercase bg-background px-2 py-1 rounded-full border">VS</span><div className="h-12 w-[2px] bg-border" /></div>
@@ -195,9 +209,9 @@ function MatchDetailsDialog({ match: initialMatch, isOpen, onClose }: { match: A
                                 <p className="font-black text-xs sm:text-sm uppercase tracking-tight text-balance leading-tight min-h-[2.5rem] flex items-center justify-center">{TeamB.team_name}</p>
                                 <div className="space-y-1">
                                     <p className="text-4xl sm:text-6xl font-black font-mono tracking-tighter">
-                                        {teamBScore}{isCricket && <span className="text-2xl sm:text-3xl text-muted-foreground">/{teamBScoreDetails?.wickets ?? 0}</span>}
+                                        {teamBScore}{isCricket && <span className="text-2xl sm:text-3xl text-muted-foreground">/{teamBScoreData.wickets ?? 0}</span>}
                                     </p>
-                                    {isCricket && <p className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest">({teamBScoreDetails?.overs?.toFixed(1) ?? '0.0'} Ov)</p>}
+                                    {isCricket && <p className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest">({(teamBScoreData.overs ?? 0.0).toFixed(1)} Ov)</p>}
                                 </div>
                             </div>
                         </div>
@@ -273,7 +287,7 @@ function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => v
                         <span className="text-2xl font-black font-mono">{score?.runs ?? 0}</span>
                         <span className="text-sm text-muted-foreground font-bold">/{score?.wickets ?? 0}</span>
                     </div>
-                    <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-tighter">({(score?.overs ?? 0).toFixed(1)} Ov)</span>
+                    <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-tighter">({(score?.overs ?? 0.0).toFixed(1)} Ov)</span>
                 </div>
             );
         }
@@ -359,7 +373,7 @@ export default function LivePage() {
         
         const onConnect = () => socket.emit('join_room', 'live_overview');
         if (socket.connected) onConnect();
-        else socket.on('connect', onConnect);
+        else socket.on("connect", onConnect);
 
         const onUpdate = () => fetchLiveMatches();
         

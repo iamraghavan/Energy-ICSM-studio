@@ -17,14 +17,14 @@ export const useMatchSocket = (matchId: string, initialMatchData: ApiMatch | nul
 
     setEvents(prev => {
         const currentEvents = Array.isArray(prev) ? prev : [];
-        const newEvents = Array.isArray(newEventData) ? newEventData : [newEventData];
+        const newEvents = Array.isArray(newEventData) ? newEvents : [newEventData];
         
-        // Filter valid events with IDs
-        const validNewEvents = newEvents.filter(e => e && typeof e === 'object' && e.id);
+        // Use ID or timestamp + event_type as a unique key
+        const validNewEvents = newEvents.filter(e => e && typeof e === 'object');
         if (validNewEvents.length === 0) return currentEvents;
 
-        const eventIds = new Set(currentEvents.map(e => e.id));
-        const trulyNewEvents = validNewEvents.filter(e => !eventIds.has(e.id));
+        const eventKeys = new Set(currentEvents.map(e => e.id || `${e.timestamp}-${e.event_type}`));
+        const trulyNewEvents = validNewEvents.filter(e => !eventKeys.has(e.id || `${e.timestamp}-${e.event_type}`));
         
         if (trulyNewEvents.length === 0) return currentEvents;
         
@@ -57,6 +57,7 @@ export const useMatchSocket = (matchId: string, initialMatchData: ApiMatch | nul
       if (data.matchId === matchId) {
         setScore(data.score || data.scoreDetails);
         if (data.last_ball) processNewEvents(data.last_ball);
+        if (data.state) setMatchState(data.state);
       }
     };
     
@@ -110,7 +111,6 @@ export const useMatchSocket = (matchId: string, initialMatchData: ApiMatch | nul
   const submitAction = useCallback((eventName: string, payload: any): Promise<any> => {
     return new Promise((resolve, reject) => {
       if (!socket.connected) {
-        console.error("Socket not connected, cannot emit:", eventName);
         return reject("Socket not connected");
       }
       socket.emit(eventName, { matchId, ...payload }, (ack: any) => {
