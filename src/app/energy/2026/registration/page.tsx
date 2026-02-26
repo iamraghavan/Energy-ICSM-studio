@@ -1,7 +1,9 @@
+
 import { getSports } from "@/lib/api";
 import { RegisterForm } from "./register-form";
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { AlertTriangle } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, RefreshCcw } from "lucide-react";
 
 export default async function RegisterPage() {
     let sports;
@@ -20,9 +22,17 @@ export default async function RegisterPage() {
                         <AlertTriangle className="h-12 w-12 text-destructive mx-auto" />
                         <CardTitle className="text-destructive mt-4">Could Not Load Form</CardTitle>
                         <CardDescription>
-                            We were unable to load the necessary data for the registration form. The backend service may be temporarily unavailable. Please try refreshing the page in a few moments.
+                            We were unable to load the necessary data for the registration form. The backend service may be starting up or temporarily unavailable.
                         </CardDescription>
                     </CardHeader>
+                    <CardContent className="flex justify-center">
+                        <Button asChild variant="outline">
+                            <a href="/energy/2026/registration">
+                                <RefreshCcw className="mr-2 h-4 w-4" />
+                                Retry Loading
+                            </a>
+                        </Button>
+                    </CardContent>
                 </Card>
             </div>
         )
