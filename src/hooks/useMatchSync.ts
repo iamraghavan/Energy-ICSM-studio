@@ -17,10 +17,9 @@ export const useMatchSocket = (matchId: string, initialMatchData: ApiMatch | nul
 
     setEvents(prev => {
         const currentEvents = Array.isArray(prev) ? prev : [];
-        const newEvents = Array.isArray(newEventData) ? newEvents : [newEventData];
+        const incoming = Array.isArray(newEventData) ? newEventData : [newEventData];
         
-        // Use ID or timestamp + event_type as a unique key
-        const validNewEvents = newEvents.filter(e => e && typeof e === 'object');
+        const validNewEvents = incoming.filter(e => e && typeof e === 'object');
         if (validNewEvents.length === 0) return currentEvents;
 
         const eventKeys = new Set(currentEvents.map(e => e.id || `${e.timestamp}-${e.event_type}`));
@@ -28,7 +27,8 @@ export const useMatchSocket = (matchId: string, initialMatchData: ApiMatch | nul
         
         if (trulyNewEvents.length === 0) return currentEvents;
         
-        return [...trulyNewEvents, ...currentEvents].sort((a,b) => {
+        const merged = [...trulyNewEvents, ...currentEvents];
+        return merged.sort((a,b) => {
             const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
             const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
             return timeB - timeA;
