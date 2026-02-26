@@ -131,9 +131,6 @@ function MatchDetailsDialog({ match: initialMatch, isOpen, onClose }: { match: A
     const teamAScore = teamAScoreDetails?.runs ?? teamAScoreDetails?.score ?? 0;
     const teamBScore = teamBScoreDetails?.runs ?? teamBScoreDetails?.score ?? 0;
     
-    const teamAScoreDisplay = `${teamAScore}${isCricket && teamAScoreDetails?.wickets !== undefined ? `/${teamAScoreDetails.wickets}` : ''}`;
-    const teamBScoreDisplay = `${teamBScore}${isCricket && teamBScoreDetails?.wickets !== undefined ? `/${teamBScoreDetails.wickets}` : ''}`;
-
     const getResultText = () => {
         if (status === 'live') return 'Match is currently live';
         if (status === 'completed') {
@@ -147,7 +144,15 @@ function MatchDetailsDialog({ match: initialMatch, isOpen, onClose }: { match: A
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="max-w-[95vw] sm:max-w-2xl p-0 overflow-hidden border-none shadow-2xl rounded-3xl">
-                {/* Header / Info Bar */}
+                {/* Accessibility Headers (Visually Hidden) */}
+                <DialogHeader className="sr-only">
+                    <DialogTitle>{TeamA.team_name} vs {TeamB.team_name} - {Sport.name}</DialogTitle>
+                    <DialogDescription>
+                        Match Center for {TeamA.team_name} vs {TeamB.team_name}. View live score, overs, and event timeline.
+                    </DialogDescription>
+                </DialogHeader>
+
+                {/* Custom Header / Info Bar */}
                 <div className="bg-primary px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="bg-white/10 p-2 rounded-xl">
@@ -439,7 +444,7 @@ export default function LivePage() {
                                     />
                                 ))}
                             </div>
-                        </AnimatePresence>
+                         </AnimatePresence>
                     ) : (
                          <motion.div 
                             initial={{ opacity: 0 }}
