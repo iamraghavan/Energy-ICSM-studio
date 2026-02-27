@@ -11,7 +11,7 @@ import {
     type StudentTeamMember 
 } from "@/lib/api";
 import { useMatchSync } from "@/hooks/useMatchSync";
-import { ArrowLeft, User, Loader2, Info, Trophy, RotateCcw, AlertCircle, CheckCircle2, Activity, Swords, Zap } from 'lucide-react';
+import { ArrowLeft, User, Loader2, Info, RotateCcw, AlertCircle, CheckCircle2, Activity, Swords, Zap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -38,34 +38,6 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { cn } from '@/lib/utils';
 import { EndMatchDialog } from './EndMatchDialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-
-const BatsmanCard = ({ player, onStrike, stats }: { player: any, onStrike: boolean, stats: any }) => {
-    const name = stats?.name || player?.Student?.name || player?.name || 'Assign Batter';
-    const runs = Number(stats?.runs || 0);
-    const balls = Number(stats?.balls || 0);
-    
-    return (
-        <Card className={cn(
-            "border-slate-700 p-4 transition-all duration-300 relative overflow-hidden", 
-            onStrike ? 'bg-blue-600 ring-4 ring-blue-400 shadow-[0_0_30px_rgba(37,99,235,0.5)] scale-105 z-10 text-white' : 'bg-slate-800 opacity-80 text-slate-300'
-        )}>
-            {onStrike && <div className="absolute top-0 right-0 p-1"><Zap className="h-3 w-3 text-white animate-pulse" /></div>}
-            <h4 className="font-black text-[11px] uppercase tracking-tight truncate mb-2 flex items-center gap-1">
-                {name} {onStrike && <span className="text-white">*</span>}
-            </h4>
-            <div className="flex items-baseline gap-1">
-                <p className="text-4xl font-black font-mono tracking-tighter">{runs}</p>
-                <p className={cn("text-[12px] font-bold uppercase", onStrike ? "text-white/60" : "text-slate-500")}>
-                    ({balls})
-                </p>
-            </div>
-            <div className="flex gap-3 mt-2">
-                <p className={cn("text-[9px] uppercase font-black px-1.5 py-0.5 rounded bg-black/20", onStrike ? "text-white/60" : "text-slate-600")}>4s: {stats?.fours || 0}</p>
-                <p className={cn("text-[9px] uppercase font-black px-1.5 py-0.5 rounded bg-black/20", onStrike ? "text-white/60" : "text-slate-600")}>6s: {stats?.sixes || 0}</p>
-            </div>
-        </Card>
-    )
-}
 
 const BowlerCard = ({ player, stats }: { player: any, stats: any }) => {
     const name = stats?.name || player?.Student?.name || player?.name || 'Select Bowler';
@@ -117,7 +89,6 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
 
     const score = matchData?.score_details || initialMatch.score_details || {};
     const state = matchData?.match_state || initialMatch.match_state || {};
-    const batsmenStats = matchData?.current_batsmen_stats || {};
     const bowlerStats = matchData?.current_bowler_stats || {};
     
     const battingTeamId = String(state.batting_team_id || initialMatch.team_a_id);
@@ -151,17 +122,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
     const battingRoster = battingTeamId === String(initialMatch.team_a_id) ? teamARoster : teamBRoster;
     const bowlingRoster = bowlingTeamId === String(initialMatch.team_a_id) ? teamARoster : teamBRoster;
 
-    const striker = battingRoster.find(p => String(p.student_id) === String(state.striker_id) || String(p.id) === String(state.striker_id));
-    const nonStriker = battingRoster.find(p => String(p.student_id) === String(state.non_striker_id) || String(p.id) === String(state.non_striker_id));
     const activeBowler = bowlingRoster.find(p => String(p.student_id) === String(state.bowler_id) || String(p.id) === String(state.bowler_id));
-
-    // Improved lookup with multiple key checks to ensure stats find their target
-    const getBatsmanStat = (playerId: any) => {
-        if (!playerId) return { runs: 0, balls: 0, fours: 0, sixes: 0 };
-        const id = String(playerId);
-        const stats = batsmenStats[id] || Object.values(batsmenStats).find((s: any) => String(s.student_id) === id || String(s.id) === id);
-        return stats || { runs: 0, balls: 0, fours: 0, sixes: 0 };
-    };
 
     const getBowlerStat = (playerId: any) => {
         if (!playerId) return { runs_conceded: 0, wickets: 0, overs: 0 };
@@ -170,8 +131,6 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
         return stats || { runs_conceded: 0, wickets: 0, overs: 0 };
     };
 
-    const currentStrikerStats = getBatsmanStat(state.striker_id);
-    const currentNonStrikerStats = getBatsmanStat(state.non_striker_id);
     const currentBowlerStats = getBowlerStat(state.bowler_id);
 
     const handleSavePlayers = async () => {
@@ -335,11 +294,6 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                         <AlertDescription className="text-[11px] font-bold">Please select a new bowler or rotate strike.</AlertDescription>
                     </Alert>
                 )}
-
-                <div className="grid grid-cols-2 gap-3">
-                    <BatsmanCard player={striker} onStrike={true} stats={currentStrikerStats} />
-                    <BatsmanCard player={nonStriker} onStrike={false} stats={currentNonStrikerStats} />
-                </div>
                 
                 <BowlerCard player={activeBowler} stats={currentBowlerStats} />
 

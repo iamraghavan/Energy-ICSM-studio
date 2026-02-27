@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import type { College } from './types';
 
@@ -315,6 +314,12 @@ export const getSports = async (): Promise<ApiSport[]> => {
   const response = await api.get('/sports');
   const responseData = response.data;
   return Array.isArray(responseData) ? responseData : responseData?.data || [];
+};
+
+export const getColleges = async (): Promise<College[]> => {
+    const response = await api.get('/colleges');
+    const responseData = response.data;
+    return Array.isArray(responseData) ? responseData : responseData?.data || [];
 };
 
 export const getTeamsBySport = async (sportId: string): Promise<ApiTeam[]> => {
