@@ -671,21 +671,21 @@ export const getPassHTML = async (registrationId: string): Promise<string> => {
 };
 
 export const createUser = async (userData: any) => {
-    const response = await api.post('/users', userData);
+    const response = await api.post('/admin/users', userData);
     return response.data;
 };
 
 export const updateUser = async (userId: string, userData: any) => {
-    const response = await api.put(`/users/${userId}`, userData);
+    const response = await api.put(`/admin/users/${userId}`, userData);
     return response.data;
 };
 
 export const deleteUser = async (userId: string) => {
-    const response = await api.delete(`/users/${userId}`);
+    const response = await api.delete(`/admin/users/${userId}`);
     return response.data;
 };
 
 export const getUsers = async (): Promise<User[]> => {
-    const response = await api.get('/users');
+    const response = await api.get('/admin/users');
     return Array.isArray(response.data) ? response.data : (response.data?.data || []);
 };

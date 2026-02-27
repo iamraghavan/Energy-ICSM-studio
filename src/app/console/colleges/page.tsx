@@ -28,7 +28,6 @@ import {
   DialogDescription,
   DialogFooter,
   DialogClose,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
     AlertDialog,
@@ -50,7 +49,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { getCollegesAdmin, createCollege, updateCollege, deleteCollege, bulkCreateColleges, type College } from '@/lib/api';
+import { getColleges, createCollege, updateCollege, deleteCollege, bulkCreateColleges, type College } from '@/lib/api';
 import { Loader2, MoreHorizontal, Building, Upload } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -76,12 +75,12 @@ const bulkCollegeSchema = z.string().refine(val => {
 }, { message: 'Invalid JSON format or structure. Must be an array of {name, city, state} objects.' });
 
 export default function CollegeManagementPage() {
-  const [colleges, setColleges] = useState<(Omit<College, 'id'> & {id: number})[]>([]);
+  const [colleges, setColleges] = useState<College[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [selectedCollege, setSelectedCollege] = useState<(Omit<College, 'id'> & {id: number}) | null>(null);
+  const [selectedCollege, setSelectedCollege] = useState<College | null>(null);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof collegeFormSchema>>({
@@ -98,7 +97,7 @@ export default function CollegeManagementPage() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const data = await getCollegesAdmin();
+      const data = await getColleges();
       setColleges(data);
     } catch (error) {
       toast({
@@ -115,10 +114,14 @@ export default function CollegeManagementPage() {
     fetchData();
   }, []);
 
-  const handleModalOpen = (college: (Omit<College, 'id'> & {id: number}) | null = null) => {
+  const handleModalOpen = (college: College | null = null) => {
     setSelectedCollege(college);
     if (college) {
-      form.reset(college);
+      form.reset({
+          name: college.name,
+          city: college.city,
+          state: college.state
+      });
     } else {
       form.reset({ name: '', city: '', state: '' });
     }
@@ -131,7 +134,7 @@ export default function CollegeManagementPage() {
     form.reset();
   };
   
-  const handleDeleteConfirmOpen = (college: (Omit<College, 'id'> & {id: number})) => {
+  const handleDeleteConfirmOpen = (college: College) => {
     setSelectedCollege(college);
     setIsConfirmOpen(true);
   }
@@ -139,7 +142,7 @@ export default function CollegeManagementPage() {
   const handleDeleteCollege = async () => {
     if (!selectedCollege) return;
     try {
-      await deleteCollege(selectedCollege.id);
+      await deleteCollege(parseInt(selectedCollege.id));
       toast({ title: 'College deleted successfully!' });
       fetchData();
     } catch (error) {
@@ -156,7 +159,7 @@ export default function CollegeManagementPage() {
   const onSubmit = async (values: z.infer<typeof collegeFormSchema>) => {
     try {
       if (selectedCollege) {
-        await updateCollege(selectedCollege.id, values);
+        await updateCollege(parseInt(selectedCollege.id), values);
         toast({ title: 'College updated successfully!' });
       } else {
         await createCollege(values);

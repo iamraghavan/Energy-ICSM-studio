@@ -117,7 +117,7 @@ export default function UserManagementPage() {
         name: '',
         email: '',
         username: '',
-        role: undefined,
+        role: 'scorer' as any,
         password: '',
         assigned_sport_id: undefined,
     },
@@ -179,7 +179,7 @@ export default function UserManagementPage() {
         assigned_sport_id: user.assigned_sport_id ? String(user.assigned_sport_id) : undefined,
       });
     } else {
-      form.reset({ name: '', email: '', username: '', role: undefined, password: '', assigned_sport_id: undefined });
+      form.reset({ name: '', email: '', username: '', role: 'scorer' as any, password: '', assigned_sport_id: undefined });
     }
     setIsModalOpen(true);
   };
@@ -254,7 +254,7 @@ export default function UserManagementPage() {
           <div className="flex items-center justify-between">
             <div>
                 <CardTitle>User Management</CardTitle>
-                <CardDescription>Add, edit, or remove console users.</CardDescription>
+                <CardDescription>Add, edit, or remove staff accounts.</CardDescription>
             </div>
             <Button onClick={() => handleModalOpen()}>
               <UserPlus className="mr-2" />
