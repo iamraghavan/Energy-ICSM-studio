@@ -304,23 +304,15 @@ export default function LivePage() {
     }, []);
 
     useEffect(() => {
-        let isMounted = true;
-        let timeoutId: NodeJS.Timeout;
+        // Fetch immediately on mount
+        fetchLiveMatches();
 
-        const poll = async () => {
-            if (!isMounted) return;
-            await fetchLiveMatches();
-            if (isMounted) {
-                timeoutId = setTimeout(poll, 15000);
-            }
-        };
+        // Setup polling interval (30s since we have real-time sync for active matches)
+        const intervalId = setInterval(() => {
+            fetchLiveMatches();
+        }, 30000);
 
-        poll();
-
-        return () => {
-            isMounted = false;
-            clearTimeout(timeoutId);
-        };
+        return () => clearInterval(intervalId);
     }, [fetchLiveMatches]);
 
     return (
@@ -352,7 +344,7 @@ export default function LivePage() {
                             ))}
                         </div>
                     ) : (
-                        <div className="text-center py-24 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[20px] max-w-2xl mx-auto shadow-sm">
+                        <div className="text-center py-24 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-none max-w-2xl mx-auto shadow-sm">
                             <Activity className="h-16 w-16 mx-auto mb-6 text-slate-300 dark:text-slate-700" />
                             <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-900 dark:text-white mb-2">Arena Quiet</h3>
                             <p className="max-w-xs mx-auto text-sm font-medium text-slate-500">Check back soon for the next inter-college showdown!</p>
