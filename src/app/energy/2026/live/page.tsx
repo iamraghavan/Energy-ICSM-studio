@@ -73,10 +73,18 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
     
     if (!isOpen || !initialMatch) return null;
 
+    // Granular Merging: Preserve initial data while overlaying live score updates
     const match = {
         ...initialMatch,
         ...(matchData || {}),
-        score_details: matchData?.score_details || initialMatch.score_details || {}
+        score_details: {
+            ...(initialMatch.score_details || {}),
+            ...(matchData?.score_details || {})
+        },
+        match_state: {
+            ...(initialMatch.match_state || {}),
+            ...(matchData?.match_state || {})
+        }
     };
     
     const TeamA = match.TeamA;
@@ -100,9 +108,14 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
     const bowlerStats = match.current_bowler_stats || {};
     const state = match.match_state || {};
 
+    // Enhanced lookup for player statistics
     const getStat = (id: any, source: any) => {
+        if (!id || !source) return null;
         const sid = String(id);
-        return source[sid] || Object.values(source).find((s: any) => String(s.student_id) === sid) || null;
+        // Try direct key, then student_id property, then id property
+        return source[sid] || 
+               Object.values(source).find((s: any) => String(s.student_id) === sid || String(s.id) === sid) || 
+               null;
     };
 
     return (
@@ -199,7 +212,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                                         return (
                                             <PlayerStatRow 
                                                 name={stats?.name || 'Bowler'} 
-                                                primary={`${stats?.wickets ?? 0}/${stats?.runs_conceded ?? 0}`} 
+                                                primary={`${stats?.wickets ?? 0}/${stats?.runs_conceded ?? stats?.runs ?? 0}`} 
                                                 secondary={`(${parseFloat(String(stats?.overs || 0)).toFixed(1)} Ov)`} 
                                                 highlight={true}
                                             />
@@ -269,10 +282,10 @@ function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => v
                 <div className="grid grid-cols-[1fr,auto,1fr] gap-4 items-center mb-4">
                     <div className="text-center">
                         <p className="font-black text-[10px] uppercase leading-tight min-h-[2rem] flex items-center justify-center mb-2">{TeamA?.team_name}</p>
-                        <div className="text-4xl font-black font-mono tracking-tighter">
+                        <div className="text-4xl font-black font-mono tracking-tighter text-foreground">
                             {isCricket ? (
-                                <>{scoreA.runs}<span className="text-xl text-muted-foreground">/{scoreA.wickets || 0}</span></>
-                            ) : (scoreA.score || 0)}
+                                <>{Number(scoreA.runs ?? 0)}<span className="text-xl text-muted-foreground">/{Number(scoreA.wickets ?? 0)}</span></>
+                            ) : (Number(scoreA.score ?? 0))}
                         </div>
                     </div>
                     <div className="flex flex-col items-center opacity-20">
@@ -282,10 +295,10 @@ function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => v
                     </div>
                     <div className="text-center">
                         <p className="font-black text-[10px] uppercase leading-tight min-h-[2rem] flex items-center justify-center mb-2">{TeamB?.team_name}</p>
-                        <div className="text-4xl font-black font-mono tracking-tighter">
+                        <div className="text-4xl font-black font-mono tracking-tighter text-foreground">
                             {isCricket ? (
-                                <>{scoreB.runs}<span className="text-xl text-muted-foreground">/{scoreB.wickets || 0}</span></>
-                            ) : (scoreB.score || 0)}
+                                <>{Number(scoreB.runs ?? 0)}<span className="text-xl text-muted-foreground">/{Number(scoreB.wickets ?? 0)}</span></>
+                            ) : (Number(scoreB.score ?? 0))}
                         </div>
                     </div>
                 </div>

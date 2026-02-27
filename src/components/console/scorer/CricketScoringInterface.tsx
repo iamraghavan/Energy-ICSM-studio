@@ -155,17 +155,19 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
     const nonStriker = battingRoster.find(p => String(p.student_id) === String(state.non_striker_id) || String(p.id) === String(state.non_striker_id));
     const activeBowler = bowlingRoster.find(p => String(p.student_id) === String(state.bowler_id) || String(p.id) === String(state.bowler_id));
 
-    // Lookup with ID fallback to ensure stats find their target
+    // Improved lookup with multiple key checks to ensure stats find their target
     const getBatsmanStat = (playerId: any) => {
         if (!playerId) return { runs: 0, balls: 0, fours: 0, sixes: 0 };
         const id = String(playerId);
-        return batsmenStats[id] || Object.values(batsmenStats).find((s: any) => String(s.student_id) === id) || { runs: 0, balls: 0, fours: 0, sixes: 0 };
+        const stats = batsmenStats[id] || Object.values(batsmenStats).find((s: any) => String(s.student_id) === id || String(s.id) === id);
+        return stats || { runs: 0, balls: 0, fours: 0, sixes: 0 };
     };
 
     const getBowlerStat = (playerId: any) => {
         if (!playerId) return { runs_conceded: 0, wickets: 0, overs: 0 };
         const id = String(playerId);
-        return bowlerStats[id] || Object.values(bowlerStats).find((s: any) => String(s.student_id) === id) || { runs_conceded: 0, wickets: 0, overs: 0 };
+        const stats = bowlerStats[id] || Object.values(bowlerStats).find((s: any) => String(s.student_id) === id || String(s.id) === id);
+        return stats || { runs_conceded: 0, wickets: 0, overs: 0 };
     };
 
     const currentStrikerStats = getBatsmanStat(state.striker_id);
@@ -242,7 +244,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
     const handleSwitchInnings = async () => {
         setIsProcessing(true);
         try {
-            const currentTotal = score[battingTeamId]?.runs || 0;
+            const currentTotal = Number(score[battingTeamId]?.runs || 0);
             await updateMatchState(initialMatch.id, {
                 batting_team_id: bowlingTeamId,
                 current_innings: (state.current_innings || 1) + 1,
@@ -310,8 +312,8 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                     </div>
                     <div className="text-center relative z-10">
                         <div className="flex items-baseline justify-center gap-1">
-                            <p className="text-8xl font-black tracking-tighter text-white drop-shadow-[0_5px_15px_rgba(255,255,255,0.1)]">{teamScore.runs ?? 0}</p>
-                            <p className="text-4xl font-black text-slate-700">/{teamScore.wickets ?? 0}</p>
+                            <p className="text-8xl font-black tracking-tighter text-white drop-shadow-[0_5px_15px_rgba(255,255,255,0.1)]">{Number(teamScore.runs ?? 0)}</p>
+                            <p className="text-4xl font-black text-slate-700">/{Number(teamScore.wickets ?? 0)}</p>
                         </div>
                         <div className="flex items-center justify-center gap-2 mt-4">
                             <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20 font-black tracking-[0.3em] px-5 py-2 text-xs shadow-lg">
