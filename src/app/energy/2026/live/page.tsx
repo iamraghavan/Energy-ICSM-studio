@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect } from 'react';
 import { Card } from "@/components/ui/card";
@@ -242,9 +241,16 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
 
 function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => void }) {
     const { TeamA, TeamB, Sport, status, venue, score_details } = match;
+    
+    // Defensive check: handle if score_details is stringified
+    let parsedScores = score_details;
+    if (typeof score_details === 'string') {
+        try { parsedScores = JSON.parse(score_details); } catch(e) { parsedScores = {}; }
+    }
+
     const isCricket = Sport?.name === 'Cricket';
-    const scoreA = score_details?.[match.team_a_id] || { runs: 0, score: 0, wickets: 0 };
-    const scoreB = score_details?.[match.team_b_id] || { runs: 0, score: 0, wickets: 0 };
+    const scoreA = parsedScores?.[match.team_a_id] || { runs: 0, score: 0, wickets: 0 };
+    const scoreB = parsedScores?.[match.team_b_id] || { runs: 0, score: 0, wickets: 0 };
 
     return (
         <Card onClick={onSelect} className="cursor-pointer overflow-hidden border-2 border-primary/10 transition-all duration-300 hover:shadow-2xl bg-card/50 backdrop-blur-sm group hover:-translate-y-1">

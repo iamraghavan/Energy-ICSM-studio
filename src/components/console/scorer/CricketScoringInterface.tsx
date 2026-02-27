@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect } from 'react';
 import { Card } from "@/components/ui/card";
@@ -12,7 +11,7 @@ import {
     type StudentTeamMember 
 } from "@/lib/api";
 import { useMatchSync } from "@/hooks/useMatchSync";
-import { ArrowLeft, User, Loader2, Info, Trophy, ChevronRight, RotateCcw, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, User, Loader2, Info, Trophy, ChevronRight, RotateCcw, AlertCircle, CheckCircle2, Activity } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { 
