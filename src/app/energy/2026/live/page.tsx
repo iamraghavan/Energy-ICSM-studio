@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getLiveMatches, type ApiMatch } from "@/lib/api";
@@ -285,18 +286,18 @@ function LiveMatchRow({ match, onSelect }: { match: ApiMatch, onSelect: () => vo
                 </div>
             </TableCell>
             <TableCell className="font-bold">
-                <div className="grid grid-cols-1 md:grid-cols-[1fr,auto,1fr] items-center gap-2 md:gap-8">
-                    <div className="text-left md:text-right uppercase tracking-tight text-xs md:text-sm">
+                <div className="grid grid-cols-[1fr,auto,1fr] items-center gap-8">
+                    <div className="text-right uppercase tracking-tight text-sm">
                         {TeamA?.team_name}
                     </div>
-                    <div className="hidden md:flex items-center justify-center px-3 py-1 bg-slate-100 text-[10px] font-black text-slate-400 rounded-none border italic">VS</div>
-                    <div className="text-left uppercase tracking-tight text-xs md:text-sm">
+                    <div className="flex items-center justify-center px-3 py-1 bg-slate-100 text-[10px] font-black text-slate-400 rounded-none border italic">VS</div>
+                    <div className="text-left uppercase tracking-tight text-sm">
                         {TeamB?.team_name}
                     </div>
                 </div>
             </TableCell>
             <TableCell className="text-center">
-                <div className="inline-flex items-center gap-4 bg-slate-950 text-white px-6 py-2 rounded-none font-mono font-black text-xl md:text-2xl tracking-tighter shadow-lg transform group-hover:scale-105 transition-transform">
+                <div className="inline-flex items-center gap-4 bg-slate-950 text-white px-6 py-2 rounded-none font-mono font-black text-2xl tracking-tighter shadow-lg transform group-hover:scale-105 transition-transform">
                     <span className="tabular-nums">{scoreADisplay}</span>
                     <span className="text-slate-600 text-sm">/</span>
                     <span className="tabular-nums">{scoreBDisplay}</span>
@@ -313,6 +314,75 @@ function LiveMatchRow({ match, onSelect }: { match: ApiMatch, onSelect: () => vo
                 </Button>
             </TableCell>
         </TableRow>
+    );
+}
+
+function MobileMatchItem({ match, onSelect }: { match: ApiMatch, onSelect: () => void }) {
+    const { matchData } = useMatchSync(match.id);
+    
+    const getLiveScores = () => {
+        let base = match.score_details;
+        if (typeof base === 'string') {
+            try { base = JSON.parse(base); } catch(e) { base = {}; }
+        }
+        return { ...(base || {}), ...(matchData?.score_details || {}) };
+    };
+
+    const scores = getLiveScores();
+    const { TeamA, TeamB, Sport, status } = match;
+    const isCricket = Sport?.name === 'Cricket';
+    const scoreA = scores[match.team_a_id] || { runs: 0, score: 0, wickets: 0, overs: 0 };
+    const scoreB = scores[match.team_b_id] || { runs: 0, score: 0, wickets: 0, overs: 0 };
+
+    const scoreADisplay = isCricket ? `${scoreA.runs ?? 0}/${scoreA.wickets ?? 0}` : (scoreA.score ?? scoreA.runs ?? 0);
+    const scoreBDisplay = isCricket ? `${scoreB.runs ?? 0}/${scoreB.wickets ?? 0}` : (scoreB.score ?? scoreB.runs ?? 0);
+
+    return (
+        <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            onClick={onSelect}
+            className="bg-white border-2 border-slate-200 p-5 space-y-5 active:scale-[0.98] transition-all"
+        >
+            <div className="flex justify-between items-center">
+                <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{Sport?.name}</span>
+                    <div className="flex items-center gap-2 mt-1">
+                        <div className={cn("h-1.5 w-1.5 rounded-full", status === 'live' ? "bg-red-600 animate-pulse shadow-[0_0_8px_rgba(220,38,38,0.5)]" : "bg-slate-300")} />
+                        <span className={cn("text-[9px] font-black uppercase tracking-[0.15em]", status === 'live' ? "text-red-600" : "text-slate-400")}>
+                            {status === 'live' ? 'Live Broadcast' : status}
+                        </span>
+                    </div>
+                </div>
+                <div className="bg-slate-100 px-3 py-1 text-[9px] font-black text-slate-500 uppercase tracking-widest italic border">VS Match</div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+                <div className="flex items-center justify-between gap-4">
+                    <span className="text-xs font-black uppercase tracking-tight text-slate-800 flex-1 leading-tight">{TeamA?.team_name}</span>
+                    <span className="text-2xl font-mono font-black text-slate-950 tabular-nums">{scoreADisplay}</span>
+                </div>
+                <div className="h-[2px] bg-slate-100 w-full relative">
+                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2">
+                        <Zap className="h-3 w-3 text-slate-200" />
+                    </div>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                    <span className="text-xs font-black uppercase tracking-tight text-slate-800 flex-1 leading-tight">{TeamB?.team_name}</span>
+                    <span className="text-2xl font-mono font-black text-slate-950 tabular-nums">{scoreBDisplay}</span>
+                </div>
+            </div>
+
+            {isCricket && (
+                <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center bg-slate-50 py-2 border-y dashed">
+                    Progress: {parseFloat(String(scoreA.overs || 0)).toFixed(1)} OV vs {parseFloat(String(scoreB.overs || 0)).toFixed(1)} OV
+                </div>
+            )}
+            
+            <Button variant="outline" size="sm" className="w-full rounded-none font-black text-[10px] uppercase tracking-widest h-10 border-2 active:bg-primary active:text-white">
+                Open Match Hub <ExternalLink className="ml-2 h-3 w-3" />
+            </Button>
+        </motion.div>
     );
 }
 
@@ -367,27 +437,41 @@ export default function LivePage() {
                             ))}
                         </div>
                     ) : liveMatches.length > 0 ? (
-                        <div className="bg-white border-2 border-slate-200 shadow-xl rounded-none overflow-hidden">
-                            <Table>
-                                <TableHeader className="bg-slate-50 border-b-2 border-slate-200">
-                                    <TableRow>
-                                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 py-4">Status</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 py-4">Competing Teams</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 py-4 text-center">Live Score</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 py-4 text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {liveMatches.map((match) => (
-                                        <LiveMatchRow 
-                                            key={match.id} 
-                                            match={match} 
-                                            onSelect={() => setSelectedMatch(match)} 
-                                        />
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
+                        <>
+                            {/* Mobile View: High-Density List */}
+                            <div className="md:hidden space-y-4">
+                                {liveMatches.map((match) => (
+                                    <MobileMatchItem 
+                                        key={match.id} 
+                                        match={match} 
+                                        onSelect={() => setSelectedMatch(match)} 
+                                    />
+                                ))}
+                            </div>
+
+                            {/* Desktop View: Industrial Table */}
+                            <div className="hidden md:block bg-white border-2 border-slate-200 shadow-xl rounded-none overflow-hidden">
+                                <Table>
+                                    <TableHeader className="bg-slate-50 border-b-2 border-slate-200">
+                                        <TableRow>
+                                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 py-4">Status</TableHead>
+                                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 py-4">Competing Teams</TableHead>
+                                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 py-4 text-center">Live Score</TableHead>
+                                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 py-4 text-right">Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {liveMatches.map((match) => (
+                                            <LiveMatchRow 
+                                                key={match.id} 
+                                                match={match} 
+                                                onSelect={() => setSelectedMatch(match)} 
+                                            />
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </>
                     ) : (
                         <div className="text-center py-24 bg-white border-2 border-slate-200 rounded-none max-w-2xl mx-auto shadow-xl">
                             <Activity className="h-16 w-16 mx-auto mb-6 text-slate-300" />
