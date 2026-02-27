@@ -1,4 +1,3 @@
-
 'use client';
 import type { ApiMatch } from "@/lib/api";
 import { format } from 'date-fns';
@@ -9,18 +8,29 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { TossDialog } from "./TossDialog";
 import { LineupDialog } from "./LineupDialog";
+import { useMatchSync } from "@/hooks/useMatchSync";
 
 export function MatchCard({ match, onUpdate }: { match: ApiMatch, onUpdate: () => void }) {
     const router = useRouter();
     const [isTossOpen, setIsTossOpen] = useState(false);
     const [isLineupOpen, setIsLineupOpen] = useState(false);
+    const { matchData } = useMatchSync(match.id);
 
     const handleScoreClick = () => {
         router.push(`/console/scorer/live/${match.id}`);
     }
 
-    const teamAScore = match.score_details?.[match.team_a_id]?.score ?? match.score_details?.[match.team_a_id]?.runs ?? 0;
-    const teamBScore = match.score_details?.[match.team_b_id]?.score ?? match.score_details?.[match.team_b_id]?.runs ?? 0;
+    const getScoreData = () => {
+        let base = match.score_details;
+        if (typeof base === 'string') {
+            try { base = JSON.parse(base); } catch(e) { base = {}; }
+        }
+        return { ...(base || {}), ...(matchData?.score_details || {}) };
+    };
+
+    const scores = getScoreData();
+    const teamAScore = Number(scores[match.team_a_id]?.score ?? scores[match.team_a_id]?.runs ?? 0);
+    const teamBScore = Number(scores[match.team_b_id]?.score ?? scores[match.team_b_id]?.runs ?? 0);
 
     return (
         <>

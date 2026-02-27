@@ -74,13 +74,24 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
     if (!isOpen || !initialMatch) return null;
 
     // Granular Merging: Preserve initial data while overlaying live score updates
+    // We must handle the case where initialMatch.score_details is a string
+    const getInitialScores = () => {
+        let base = initialMatch.score_details;
+        if (typeof base === 'string') {
+            try { base = JSON.parse(base); } catch(e) { base = {}; }
+        }
+        return base || {};
+    };
+
+    const mergedScores = {
+        ...getInitialScores(),
+        ...(matchData?.score_details || {})
+    };
+
     const match = {
         ...initialMatch,
         ...(matchData || {}),
-        score_details: {
-            ...(initialMatch.score_details || {}),
-            ...(matchData?.score_details || {})
-        },
+        score_details: mergedScores,
         match_state: {
             ...(initialMatch.match_state || {}),
             ...(matchData?.match_state || {})
@@ -237,16 +248,22 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
 }
 
 function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => void }) {
-    const { TeamA, TeamB, Sport, status, venue, score_details } = match;
+    const { matchData } = useMatchSync(match.id);
     
-    let parsedScores = score_details;
-    if (typeof score_details === 'string') {
-        try { parsedScores = JSON.parse(score_details); } catch(e) { parsedScores = {}; }
-    }
+    // Resolve score data from both REST poll and Realtime Sync
+    const getLiveScores = () => {
+        let base = match.score_details;
+        if (typeof base === 'string') {
+            try { base = JSON.parse(base); } catch(e) { base = {}; }
+        }
+        return { ...(base || {}), ...(matchData?.score_details || {}) };
+    };
 
+    const scores = getLiveScores();
+    const { TeamA, TeamB, Sport, status, venue } = match;
     const isCricket = Sport?.name === 'Cricket';
-    const scoreA = parsedScores?.[match.team_a_id] || { runs: 0, score: 0, wickets: 0 };
-    const scoreB = parsedScores?.[match.team_b_id] || { runs: 0, score: 0, wickets: 0 };
+    const scoreA = scores[match.team_a_id] || { runs: 0, score: 0, wickets: 0 };
+    const scoreB = scores[match.team_b_id] || { runs: 0, score: 0, wickets: 0 };
 
     return (
         <Card onClick={onSelect} className="cursor-pointer overflow-hidden border-2 border-primary/10 transition-all duration-300 hover:shadow-2xl bg-card/50 backdrop-blur-sm group hover:-translate-y-1 rounded-[2rem]">
