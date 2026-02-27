@@ -292,29 +292,33 @@ function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => v
                             </h3>
                         </div>
 
-                        <div className="shrink-0 flex flex-col items-center">
-                            <div className="bg-slate-900 text-white px-8 py-4 rounded-none shadow-[0_10px_20px_rgba(0,0,0,0.15)] transform transition-transform group-hover:scale-110 duration-500 min-w-[200px]">
-                                <div className="font-black flex items-center justify-center gap-4 md:gap-6">
-                                    {isCricket ? (
-                                        <>
+                        <div className="shrink-0 transform transition-transform group-hover:scale-110 duration-500 min-w-[220px]">
+                            <div className="flex items-center justify-center gap-4 md:gap-8 font-black">
+                                {isCricket ? (
+                                    <>
+                                        <div className="flex flex-col items-center md:items-end">
                                             <div className="flex items-baseline gap-1">
-                                                <span className="text-4xl md:text-5xl tracking-tighter">{teamAScore}</span>
+                                                <span className="text-5xl md:text-6xl tracking-tighter text-slate-950">{teamAScore}</span>
                                                 <span className="text-xl md:text-2xl text-slate-400">/{scoreA.wickets || 0}</span>
                                             </div>
-                                            <span className="text-primary text-xl md:text-2xl italic font-black">VS</span>
+                                        </div>
+                                        <div className="flex flex-col items-center">
+                                            <span className="text-primary text-2xl italic font-black">VS</span>
+                                        </div>
+                                        <div className="flex flex-col items-center md:items-start">
                                             <div className="flex items-baseline gap-1">
-                                                <span className="text-4xl md:text-5xl tracking-tighter">{teamBScore}</span>
+                                                <span className="text-5xl md:text-6xl tracking-tighter text-slate-950">{teamBScore}</span>
                                                 <span className="text-xl md:text-2xl text-slate-400">/{scoreB.wickets || 0}</span>
                                             </div>
-                                        </>
-                                    ) : (
-                                        <div className="text-4xl md:text-5xl font-mono tracking-tighter flex items-center gap-4">
-                                            <span>{teamAScore}</span>
-                                            <span className="text-slate-600 opacity-50">-</span>
-                                            <span>{teamBScore}</span>
                                         </div>
-                                    )}
-                                </div>
+                                    </>
+                                ) : (
+                                    <div className="text-5xl md:text-6xl font-black tracking-tighter flex items-center gap-6 text-slate-950">
+                                        <span>{teamAScore}</span>
+                                        <span className="text-primary italic text-3xl">VS</span>
+                                        <span>{teamBScore}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
