@@ -1,16 +1,16 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { Card } from "@/components/ui/card";
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getLiveMatches, type ApiMatch } from "@/lib/api";
 import { useMatchSync } from "@/hooks/useMatchSync";
-import { Trophy, Goal, Square, Info, Activity, ChevronRight, Zap, Radio } from 'lucide-react';
-import { Badge } from "@/components/ui/badge";
+import { Activity, Radio } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
+import { LiveScoreCard, LiveScoreCardSkeleton } from '@/components/shared/LiveScoreCard';
+import { Trophy, Goal, Square, Info, Zap } from 'lucide-react';
 
 function TimelineEvent({ event }: { event: any }) {
     const getEventDetails = (e: any) => {
@@ -140,9 +140,9 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                             <h3 className="text-white font-bold text-sm uppercase tracking-widest leading-none">{Sport?.name}</h3>
                         </div>
                     </div>
-                    <Badge variant={status === 'live' ? 'destructive' : 'outline'} className={cn(status === 'live' && "animate-pulse", "px-3 py-1 font-black text-[10px] tracking-[0.2em] uppercase rounded-none")}>
+                    <div className={cn("px-3 py-1 font-black text-[10px] tracking-[0.2em] uppercase rounded-none border border-white/20", status === 'live' ? 'bg-red-600 text-white animate-pulse' : 'bg-white/10 text-white/80')}>
                         {status}
-                    </Badge>
+                    </div>
                 </div>
 
                 <div className="bg-muted/30 p-6 sm:p-10 border-b">
@@ -173,9 +173,9 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                     </div>
                     {isCricket && state.target_score && (
                         <div className="mt-6 text-center">
-                            <Badge variant="secondary" className="px-4 py-2 font-black text-[10px] tracking-[0.2em] uppercase border-2 rounded-none">
+                            <div className="inline-block bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-100 dark:border-amber-900/50 px-4 py-2 font-black text-[10px] tracking-[0.2em] uppercase text-amber-700 dark:text-amber-400">
                                 Target: {state.target_score} | Needed: {Number(state.target_score) - (state.batting_team_id === TeamA.id ? teamAScore : teamBScore)} runs
-                            </Badge>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -241,7 +241,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
     );
 }
 
-function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => void }) {
+function LiveMatchCardWrapper({ match, onSelect }: { match: ApiMatch, onSelect: () => void }) {
     const { matchData } = useMatchSync(match.id);
     
     const getLiveScores = () => {
@@ -255,85 +255,31 @@ function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => v
     const scores = getLiveScores();
     const { TeamA, TeamB, Sport, status, start_time } = match;
     const isCricket = Sport?.name === 'Cricket';
-    const scoreA = scores[match.team_a_id] || { runs: 0, score: 0, wickets: 0 };
-    const scoreB = scores[match.team_b_id] || { runs: 0, score: 0, wickets: 0 };
+    const scoreA = scores[match.team_a_id] || { runs: 0, score: 0, wickets: 0, overs: 0 };
+    const scoreB = scores[match.team_b_id] || { runs: 0, score: 0, wickets: 0, overs: 0 };
 
-    const teamAScore = Number(scoreA.runs ?? scoreA.score ?? 0);
-    const teamBScore = Number(scoreB.runs ?? scoreB.score ?? 0);
+    const scoreADisplay = isCricket 
+        ? `${scoreA.runs ?? 0}/${scoreA.wickets ?? 0}` 
+        : (scoreA.score ?? scoreA.runs ?? 0);
+    
+    const scoreBDisplay = isCricket 
+        ? `${scoreB.runs ?? 0}/${scoreB.wickets ?? 0}` 
+        : (scoreB.score ?? scoreB.runs ?? 0);
+
+    const meta = isCricket 
+        ? `${parseFloat(String(scoreA.overs || 0)).toFixed(1)} Ov VS ${parseFloat(String(scoreB.overs || 0)).toFixed(1)} Ov`
+        : undefined;
 
     return (
-        <Card 
-            onClick={onSelect} 
-            className="cursor-pointer group relative overflow-hidden border bg-white rounded-none shadow-md transition-all duration-500 hover:shadow-2xl hover:border-primary/20"
-        >
-            <div className="bg-slate-50 px-6 py-3 border-b flex justify-between items-center">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">{Sport?.name}</span>
-                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
-                    {format(new Date(start_time), 'MMM dd, yyyy')}
-                </span>
-            </div>
-
-            <div className="p-8 space-y-8">
-                <div className="flex flex-col items-center gap-6">
-                    {/* Live Badge */}
-                    <div className="inline-flex items-center gap-2 bg-red-50 px-3 py-1 rounded-none border border-red-100">
-                        <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
-                        </span>
-                        <span className="text-[9px] font-black text-red-600 uppercase tracking-widest animate-pulse">Live Broadcast</span>
-                    </div>
-
-                    {/* Industrial Score Hub */}
-                    <div className="w-full flex flex-col md:flex-row items-center justify-between gap-6 md:gap-4">
-                        <div className="flex-1 text-center md:text-right">
-                            <h3 className="font-black text-sm md:text-base uppercase tracking-tight leading-tight text-slate-900 group-hover:text-primary transition-colors break-words">
-                                {TeamA?.team_name}
-                            </h3>
-                        </div>
-
-                        <div className="shrink-0 transform transition-transform group-hover:scale-110 duration-500 min-w-[220px]">
-                            <div className="flex items-center justify-center gap-4 md:gap-8 font-black">
-                                {isCricket ? (
-                                    <>
-                                        <div className="flex flex-col items-center md:items-end">
-                                            <div className="flex items-baseline gap-1">
-                                                <span className="text-5xl md:text-6xl tracking-tighter text-slate-950">{teamAScore}</span>
-                                                <span className="text-xl md:text-2xl text-slate-400">/{scoreA.wickets || 0}</span>
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col items-center">
-                                            <span className="text-primary text-2xl italic font-black">VS</span>
-                                        </div>
-                                        <div className="flex flex-col items-center md:items-start">
-                                            <div className="flex items-baseline gap-1">
-                                                <span className="text-5xl md:text-6xl tracking-tighter text-slate-950">{teamBScore}</span>
-                                                <span className="text-xl md:text-2xl text-slate-400">/{scoreB.wickets || 0}</span>
-                                            </div>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="text-5xl md:text-6xl font-black tracking-tighter flex items-center gap-6 text-slate-950">
-                                        <span>{teamAScore}</span>
-                                        <span className="text-primary italic text-3xl">VS</span>
-                                        <span>{teamBScore}</span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="flex-1 text-center md:text-left">
-                            <h3 className="font-black text-sm md:text-base uppercase tracking-tight leading-tight text-slate-900 group-hover:text-primary transition-colors break-words">
-                                {TeamB?.team_name}
-                            </h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            {/* Visual bottom accent */}
-            <div className="h-1.5 w-full bg-slate-100 group-hover:bg-primary transition-colors duration-500" />
-        </Card>
+        <LiveScoreCard
+            sportType={Sport?.name}
+            date={format(new Date(start_time), 'MMM dd, yyyy')}
+            isLive={status === 'live'}
+            teamA={{ name: TeamA?.team_name, score: scoreADisplay }}
+            teamB={{ name: TeamB?.team_name, score: scoreBDisplay }}
+            metaInfo={meta}
+            onClick={onSelect}
+        />
     );
 }
 
@@ -341,66 +287,73 @@ export default function LivePage() {
     const [liveMatches, setLiveMatches] = useState<ApiMatch[]>([]);
     const [selectedMatch, setSelectedMatch] = useState<ApiMatch | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const isFetchingRef = useRef(false);
 
-    useEffect(() => {
-        const fetchLiveMatches = async () => {
-            try {
-                const matches = await getLiveMatches();
-                setLiveMatches(matches);
-            } catch (error) {
-                console.error("Fetch matches error:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchLiveMatches();
-        const interval = setInterval(fetchLiveMatches, 15000); 
-        return () => clearInterval(interval);
+    const fetchLiveMatches = useCallback(async () => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
+        try {
+            const matches = await getLiveMatches();
+            setLiveMatches(matches);
+        } catch (error) {
+            console.error("Fetch matches error:", error);
+        } finally {
+            setIsLoading(false);
+            isFetchingRef.current = false;
+        }
     }, []);
 
-    return (
-        <div className="container py-8 md:py-16 space-y-12">
-            <div className="text-center space-y-4 max-w-3xl mx-auto">
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="inline-flex items-center gap-2 px-4 py-1.5 rounded-none bg-primary/10 text-primary border border-primary/20 mb-4"
-                >
-                    <Radio className="h-4 w-4 animate-pulse" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.3em]">Stadium Live Bridge</span>
-                </motion.div>
-                <h1 className="text-5xl md:text-7xl font-black font-headline tracking-tighter text-foreground uppercase italic leading-none">
-                    Stadium <span className="text-primary">Live</span>
-                </h1>
-            </div>
+    useEffect(() => {
+        fetchLiveMatches();
+        const intervalId = setInterval(fetchLiveMatches, 15000); 
+        return () => clearInterval(intervalId);
+    }, [fetchLiveMatches]);
 
-            <div className="min-h-[400px]">
-                {isLoading ? (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {[...Array(3)].map((_, i) => <Card key={i} className="h-80 w-full animate-pulse bg-muted rounded-none" />)}
-                    </div>
-                ) : liveMatches.length > 0 ? (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-10 max-w-6xl mx-auto">
-                        {liveMatches.map((match) => (
-                            <LiveMatchCard key={match.id} match={match} onSelect={() => setSelectedMatch(match)} />
-                        ))}
-                    </div>
-                ) : (
-                    <div className="text-center py-24 text-muted-foreground border-2 border-dashed rounded-none bg-muted/20">
-                        <Activity className="h-16 w-16 mx-auto mb-6 opacity-40" />
-                        <h3 className="text-2xl font-black uppercase tracking-tighter text-foreground mb-2">Arena Quiet</h3>
-                        <p className="max-w-xs mx-auto text-sm font-medium">Check back soon for the next inter-college showdown!</p>
-                    </div>
+    return (
+        <div className="min-h-screen bg-[#f5f7fa] dark:bg-slate-950 pb-20">
+            <div className="container py-12 md:py-20 space-y-12">
+                <div className="text-center space-y-4 max-w-3xl mx-auto">
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20 mb-4"
+                    >
+                        <Radio className="h-4 w-4 animate-pulse" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.3em]">Stadium Live Bridge</span>
+                    </motion.div>
+                    <h1 className="text-5xl md:text-7xl font-black font-headline tracking-tighter text-slate-900 dark:text-white uppercase italic leading-none">
+                        Stadium <span className="text-primary">Live</span>
+                    </h1>
+                </div>
+
+                <div className="min-h-[400px]">
+                    {isLoading ? (
+                        <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-10 max-w-6xl mx-auto">
+                            {[...Array(2)].map((_, i) => <LiveScoreCardSkeleton key={i} />)}
+                        </div>
+                    ) : liveMatches.length > 0 ? (
+                        <div className="grid md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-10 max-w-6xl mx-auto">
+                            {liveMatches.map((match) => (
+                                <LiveMatchCardWrapper key={match.id} match={match} onSelect={() => setSelectedMatch(match)} />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-24 bg-white dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[20px] max-w-2xl mx-auto">
+                            <Activity className="h-16 w-16 mx-auto mb-6 text-slate-300 dark:text-slate-700" />
+                            <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-900 dark:text-white mb-2">Arena Quiet</h3>
+                            <p className="max-w-xs mx-auto text-sm font-medium text-slate-500">Check back soon for the next inter-college showdown!</p>
+                        </div>
+                    )}
+                </div>
+                
+                {selectedMatch && (
+                    <MatchDetailsDialog 
+                        isOpen={!!selectedMatch} 
+                        initialMatch={selectedMatch} 
+                        onClose={() => setSelectedMatch(null)} 
+                    />
                 )}
             </div>
-            
-            {selectedMatch && (
-                <MatchDetailsDialog 
-                    isOpen={!!selectedMatch} 
-                    initialMatch={selectedMatch} 
-                    onClose={() => setSelectedMatch(null)} 
-                />
-            )}
         </div>
     );
 }
