@@ -148,7 +148,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                 <div className="bg-muted/30 p-6 sm:p-10 border-b">
                     <div className="grid grid-cols-[1fr,auto,1fr] items-center gap-4 sm:gap-8">
                         <div className="text-center space-y-4">
-                            <p className="font-black text-[11px] sm:text-xs uppercase tracking-tight leading-tight min-h-[2.5rem] flex items-center justify-center">{TeamA?.team_name}</p>
+                            <p className="font-black text-[11px] sm:text-xs uppercase tracking-tight leading-tight min-h-[2.5rem] flex items-center justify-center break-words">{TeamA?.team_name}</p>
                             <div className="space-y-1">
                                 <p className="text-4xl sm:text-6xl font-black font-mono tracking-tighter">
                                     {teamAScore}{isCricket && <span className="text-2xl sm:text-3xl text-muted-foreground">/{teamAScoreData.wickets ?? 0}</span>}
@@ -162,7 +162,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                             <div className="h-12 w-[2px] bg-border" />
                         </div>
                         <div className="text-center space-y-4">
-                            <p className="font-black text-[11px] sm:text-xs uppercase tracking-tight leading-tight min-h-[2.5rem] flex items-center justify-center">{TeamB?.team_name}</p>
+                            <p className="font-black text-[11px] sm:text-xs uppercase tracking-tight leading-tight min-h-[2.5rem] flex items-center justify-center break-words">{TeamB?.team_name}</p>
                             <div className="space-y-1">
                                 <p className="text-4xl sm:text-6xl font-black font-mono tracking-tighter">
                                     {teamBScore}{isCricket && <span className="text-2xl sm:text-3xl text-muted-foreground">/{teamBScoreData.wickets ?? 0}</span>}
@@ -262,65 +262,62 @@ function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => v
     const teamBScore = Number(scoreB.runs ?? scoreB.score ?? 0);
 
     return (
-        <Card onClick={onSelect} className="cursor-pointer group relative overflow-hidden border bg-white rounded-xl shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-            <div className="p-6 space-y-6">
-                {/* Header: Date and Live Indicator */}
-                <div className="flex flex-col items-center gap-1">
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                        {format(new Date(start_time), 'MMM dd, yyyy')}
-                    </p>
-                    <div className="flex items-center gap-2">
+        <Card 
+            onClick={onSelect} 
+            className="cursor-pointer group relative overflow-hidden border bg-white rounded-[2rem] shadow-md transition-all duration-500 hover:shadow-2xl hover:border-primary/20"
+        >
+            <div className="bg-slate-50 px-6 py-3 border-b flex justify-between items-center">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">{Sport?.name}</span>
+                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
+                    {format(new Date(start_time), 'MMM dd, yyyy')}
+                </span>
+            </div>
+
+            <div className="p-8 space-y-8">
+                <div className="flex flex-col items-center gap-6">
+                    {/* Live Badge */}
+                    <div className="inline-flex items-center gap-2 bg-red-50 px-3 py-1 rounded-full border border-red-100">
                         <span className="relative flex h-2 w-2">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
                         </span>
-                        <span className="text-[10px] font-black text-red-600 uppercase tracking-[0.2em] animate-pulse">Live</span>
-                    </div>
-                </div>
-
-                {/* Scoreboard Grid (Industrial Style) */}
-                <div className="grid grid-cols-[1fr,auto,1fr] items-center gap-4">
-                    {/* Team A Name */}
-                    <div className="text-center">
-                        <h3 className="font-black text-xs md:text-sm uppercase tracking-tight leading-tight line-clamp-2 text-slate-800">
-                            {TeamA?.team_name}
-                        </h3>
+                        <span className="text-[9px] font-black text-red-600 uppercase tracking-widest animate-pulse">Live Broadcast</span>
                     </div>
 
-                    {/* Score (Massive Center) */}
-                    <div className="flex flex-col items-center px-4">
-                        <div className="text-3xl md:text-4xl font-black font-mono tracking-tighter text-slate-900 flex items-center gap-2">
-                            <span>{teamAScore}</span>
-                            <span className="text-slate-300">-</span>
-                            <span>{teamBScore}</span>
+                    {/* Industrial Score Hub */}
+                    <div className="w-full flex flex-col md:flex-row items-center justify-between gap-6 md:gap-4">
+                        <div className="flex-1 text-center md:text-right">
+                            <h3 className="font-black text-sm md:text-base uppercase tracking-tight leading-tight text-slate-900 group-hover:text-primary transition-colors break-words">
+                                {TeamA?.team_name}
+                            </h3>
                         </div>
-                        {isCricket && (
-                            <div className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tighter">
-                                ({scoreA.wickets || 0} W) vs ({scoreB.wickets || 0} W)
+
+                        <div className="shrink-0 flex flex-col items-center">
+                            <div className="bg-slate-900 text-white px-8 py-4 rounded-3xl shadow-[0_10px_20px_rgba(0,0,0,0.15)] transform transition-transform group-hover:scale-110 duration-500">
+                                <div className="text-4xl md:text-5xl font-black font-mono tracking-tighter flex items-center gap-4">
+                                    <span>{teamAScore}</span>
+                                    <span className="text-slate-600 opacity-50">-</span>
+                                    <span>{teamBScore}</span>
+                                </div>
                             </div>
-                        )}
-                    </div>
+                            {isCricket && (
+                                <div className="mt-2 text-[10px] font-black text-muted-foreground uppercase tracking-tighter">
+                                    {scoreA.wickets || 0} WKT — {scoreB.wickets || 0} WKT
+                                </div>
+                            )}
+                        </div>
 
-                    {/* Team B Name */}
-                    <div className="text-center">
-                        <h3 className="font-black text-xs md:text-sm uppercase tracking-tight leading-tight line-clamp-2 text-slate-800">
-                            {TeamB?.team_name}
-                        </h3>
+                        <div className="flex-1 text-center md:text-left">
+                            <h3 className="font-black text-sm md:text-base uppercase tracking-tight leading-tight text-slate-900 group-hover:text-primary transition-colors break-words">
+                                {TeamB?.team_name}
+                            </h3>
+                        </div>
                     </div>
                 </div>
-
-                {/* Sport */}
-                <div className="text-center pt-2">
-                    <p className="text-[11px] font-black uppercase tracking-widest text-primary">{Sport?.name}</p>
-                </div>
             </div>
-
-            {/* Bottom Call to Action */}
-            <div className="bg-slate-50 py-3 text-center border-t transition-all duration-300 group-hover:bg-primary group-hover:text-white">
-                <span className="text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1">
-                    Enter Match Hub <ChevronRight className="h-3 w-3" />
-                </span>
-            </div>
+            
+            {/* Visual bottom accent */}
+            <div className="h-1.5 w-full bg-slate-100 group-hover:bg-primary transition-colors duration-500" />
         </Card>
     );
 }
@@ -368,7 +365,7 @@ export default function LivePage() {
                         {[...Array(3)].map((_, i) => <Card key={i} className="h-80 w-full animate-pulse bg-muted rounded-xl" />)}
                     </div>
                 ) : liveMatches.length > 0 ? (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div className="grid md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-10 max-w-6xl mx-auto">
                         {liveMatches.map((match) => (
                             <LiveMatchCard key={match.id} match={match} onSelect={() => setSelectedMatch(match)} />
                         ))}
