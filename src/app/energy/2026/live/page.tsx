@@ -77,7 +77,6 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
     
     if (!isOpen || !initialMatch) return null;
 
-    // Architecture: REST metadata (names, icons) + RTDB state (scores, stats)
     const match = matchData ? { ...initialMatch, ...matchData } : initialMatch;
     
     const TeamA = initialMatch.TeamA;
@@ -93,6 +92,9 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
     const teamAScore = teamAScoreData.runs ?? teamAScoreData.score ?? 0;
     const teamBScore = teamBScoreData.runs ?? teamBScoreData.score ?? 0;
     
+    const teamAOvers = parseFloat(String(teamAScoreData.overs || 0)).toFixed(1);
+    const teamBOvers = parseFloat(String(teamBScoreData.overs || 0)).toFixed(1);
+
     const history = match.match_history || [];
     const batsmenStats = match.current_batsmen_stats || {};
     const bowlerStats = match.current_bowler_stats || {};
@@ -129,7 +131,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                                 <p className="text-4xl sm:text-6xl font-black font-mono tracking-tighter">
                                     {teamAScore}{isCricket && <span className="text-2xl sm:text-3xl text-muted-foreground">/{teamAScoreData.wickets ?? 0}</span>}
                                 </p>
-                                {isCricket && <p className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest">({(teamAScoreData.overs || 0.0).toFixed(1)} Ov)</p>}
+                                {isCricket && <p className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest">({teamAOvers} Ov)</p>}
                             </div>
                         </div>
                         <div className="flex flex-col items-center gap-2"><div className="h-12 w-[2px] bg-border" /><span className="text-[10px] font-black text-muted-foreground uppercase bg-background px-2 py-1 rounded-full border">VS</span><div className="h-12 w-[2px] bg-border" /></div>
@@ -139,7 +141,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                                 <p className="text-4xl sm:text-6xl font-black font-mono tracking-tighter">
                                     {teamBScore}{isCricket && <span className="text-2xl sm:text-3xl text-muted-foreground">/{teamBScoreData.wickets ?? 0}</span>}
                                 </p>
-                                {isCricket && <p className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest">({(teamBScoreData.overs || 0.0).toFixed(1)} Ov)</p>}
+                                {isCricket && <p className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest">({teamBOvers} Ov)</p>}
                             </div>
                         </div>
                     </div>
@@ -179,7 +181,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                                             key={id} 
                                             name={stats.name} 
                                             primary={`${stats.wickets ?? 0}/${stats.runs_conceded ?? 0}`} 
-                                            secondary={`(${(stats.overs || 0.0).toFixed(1)} Ov)`} 
+                                            secondary={`(${parseFloat(String(stats.overs || 0)).toFixed(1)} Ov)`} 
                                             highlight={true}
                                         />
                                     )) : (

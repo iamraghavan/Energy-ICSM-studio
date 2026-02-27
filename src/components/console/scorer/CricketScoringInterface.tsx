@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import { Card } from "@/components/ui/card";
@@ -39,6 +40,7 @@ const BatsmanCard = ({ player, onStrike, stats }: { player: any, onStrike: boole
 
 const BowlerCard = ({ player, stats }: { player: any, stats: any }) => {
     const name = stats?.name || player?.Student?.name || player?.name || 'Select Bowler';
+    const overs = parseFloat(String(stats?.overs || 0)).toFixed(1);
     return (
         <Card className="bg-slate-900 border-slate-700 text-white p-4">
              <div className="flex justify-between items-center">
@@ -56,7 +58,7 @@ const BowlerCard = ({ player, stats }: { player: any, stats: any }) => {
                         {stats?.wickets ?? 0}/{stats?.runs_conceded ?? 0}
                     </p>
                     <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">
-                        {(stats?.overs || 0.0).toFixed(1)} OVERS
+                        {overs} OVERS
                     </p>
                  </div>
             </div>
@@ -81,7 +83,6 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
 
     const { toast } = useToast();
     
-    // Commands: Command Logic (REST) + Reactive Logic (Firebase RTDB)
     const score = matchData?.score_details || initialMatch.score_details || {};
     const state = matchData?.match_state || initialMatch.match_state || {};
     const batsmenStats = matchData?.current_batsmen_stats || {};
@@ -151,7 +152,6 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
         }
         setIsProcessingCommand(true);
         try {
-            // Commands: Specialized high-performance scoring payload
             await submitCricketBall(initialMatch.id, {
                 batting_team_id: battingTeamId,
                 striker_id: String(state.striker_id),
@@ -159,7 +159,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                 bowler_id: String(state.bowler_id),
                 runs: runs,
                 extras: extraType ? 1 : 0,
-                extra_type: extraType as any,
+                extra_type: extraType,
                 is_wicket: isWicket,
                 wicket_type: isWicket ? 'bowled' : null
             });
@@ -192,8 +192,8 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
     }
 
     const teamScore = score[battingTeamId] || { runs: 0, wickets: 0, overs: 0 };
-    const currentOvers = teamScore.overs || 0.0;
-    const isOverEnd = currentOvers > 0 && Math.round((currentOvers % 1) * 10) === 0;
+    const currentOversFloat = parseFloat(String(teamScore.overs || 0));
+    const isOverEnd = currentOversFloat > 0 && Math.round((currentOversFloat * 10) % 10) === 0;
 
     return (
         <div className="bg-slate-950 text-white min-h-screen flex flex-col font-body">
@@ -223,7 +223,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                         </div>
                         <div className="flex items-center justify-center gap-2 mt-4">
                             <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20 font-black tracking-widest px-4 py-1 text-xs">
-                                {(teamScore.overs || 0.0).toFixed(1)} OVERS
+                                {currentOversFloat.toFixed(1)} OVERS
                             </Badge>
                         </div>
                     </div>
