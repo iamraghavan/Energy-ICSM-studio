@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card } from "@/components/ui/card";
 import { getLiveMatches, type ApiMatch } from "@/lib/api";
 import { useMatchSync } from "@/hooks/useMatchSync";
-import { Trophy, Goal, Square, Info, MapPin, ArrowRight, Activity, Clock } from 'lucide-react';
+import { Trophy, Goal, Square, Info, MapPin, ArrowRight, Activity, Clock, ShieldCheck, ChevronRight } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { cn } from '@/lib/utils';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -77,13 +77,18 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
     
     if (!isOpen || !initialMatch) return null;
 
-    const match = matchData ? { ...initialMatch, ...matchData } : initialMatch;
+    // Unified Data Merge: RTDB state overrides REST basics
+    const match = {
+        ...initialMatch,
+        ...(matchData || {}),
+        score_details: matchData?.score_details || initialMatch.score_details || {}
+    };
     
-    const TeamA = initialMatch.TeamA;
-    const TeamB = initialMatch.TeamB;
-    const Sport = initialMatch.Sport;
+    const TeamA = match.TeamA;
+    const TeamB = match.TeamB;
+    const Sport = match.Sport;
     const isCricket = Sport?.name === 'Cricket';
-    const status = match.status || initialMatch.status;
+    const status = match.status;
 
     const scoreDetails = match.score_details || {};
     const teamAScoreData = scoreDetails[initialMatch.team_a_id] || { runs: 0, score: 0, wickets: 0, overs: 0 };
@@ -114,7 +119,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                         <div>
                             <h3 className="text-white font-bold text-sm uppercase tracking-widest leading-none">{Sport?.name}</h3>
                             <div className="flex items-center gap-1.5 text-white/60 text-[10px] mt-1 font-bold uppercase">
-                                <MapPin className="h-3 w-3" /> {match.venue || initialMatch.venue}
+                                <MapPin className="h-3 w-3" /> {match.venue}
                             </div>
                         </div>
                     </div>
@@ -134,7 +139,11 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                                 {isCricket && <p className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest">({teamAOvers} Ov)</p>}
                             </div>
                         </div>
-                        <div className="flex flex-col items-center gap-2"><div className="h-12 w-[2px] bg-border" /><span className="text-[10px] font-black text-muted-foreground uppercase bg-background px-2 py-1 rounded-full border">VS</span><div className="h-12 w-[2px] bg-border" /></div>
+                        <div className="flex flex-col items-center gap-2">
+                            <div className="h-12 w-[2px] bg-border" />
+                            <span className="text-[10px] font-black text-muted-foreground uppercase bg-background px-2 py-1 rounded-full border shadow-sm">VS</span>
+                            <div className="h-12 w-[2px] bg-border" />
+                        </div>
                         <div className="text-center space-y-4">
                             <p className="font-black text-xs sm:text-sm uppercase tracking-tight leading-tight min-h-[2.5rem] flex items-center justify-center">{TeamB?.team_name}</p>
                             <div className="space-y-1">
@@ -145,6 +154,13 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                             </div>
                         </div>
                     </div>
+                    {isCricket && state.target_score && (
+                        <div className="mt-6 text-center">
+                            <Badge variant="secondary" className="px-4 py-1.5 font-bold tracking-tight">
+                                Target: {state.target_score} | Needed: {state.target_score - (state.batting_team_id === TeamA.id ? teamAScore : teamBScore)} runs
+                            </Badge>
+                        </div>
+                    )}
                 </div>
 
                 <div className="p-6">
@@ -227,28 +243,39 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
 function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => void }) {
     const { TeamA, TeamB, Sport, status, venue, score_details } = match;
     const isCricket = Sport?.name === 'Cricket';
-    const scoreA = score_details?.[match.team_a_id];
-    const scoreB = score_details?.[match.team_b_id];
+    const scoreA = score_details?.[match.team_a_id] || { runs: 0, score: 0, wickets: 0 };
+    const scoreB = score_details?.[match.team_b_id] || { runs: 0, score: 0, wickets: 0 };
 
     return (
-        <Card onClick={onSelect} className="cursor-pointer overflow-hidden border-2 transition-all duration-300 hover:shadow-2xl bg-card/50 backdrop-blur-sm group hover:-translate-y-1">
+        <Card onClick={onSelect} className="cursor-pointer overflow-hidden border-2 border-primary/10 transition-all duration-300 hover:shadow-2xl bg-card/50 backdrop-blur-sm group hover:-translate-y-1">
             <div className="p-5">
                 <div className="flex justify-between items-center mb-6">
-                    <span className="font-bold text-xs uppercase tracking-widest text-primary">{Sport?.name}</span>
-                    <Badge variant="outline" className="text-[10px] bg-background"><MapPin className="h-3 w-3 mr-1" /> {venue}</Badge>
+                    <div className="flex items-center gap-2">
+                        <div className="bg-primary/10 p-1.5 rounded-lg"><Trophy className="h-3 w-3 text-primary" /></div>
+                        <span className="font-bold text-xs uppercase tracking-widest text-primary">{Sport?.name}</span>
+                    </div>
+                    <Badge variant="outline" className="text-[10px] bg-background font-bold tracking-tight"><MapPin className="h-3 w-3 mr-1 text-muted-foreground" /> {venue}</Badge>
                 </div>
                 <div className="grid grid-cols-[1fr,auto,1fr] gap-4 items-center mb-4">
                     <div className="text-center">
                         <p className="font-black text-[11px] uppercase leading-tight min-h-[2.5rem] flex items-center justify-center">{TeamA?.team_name}</p>
-                        <div className="text-2xl font-black font-mono">
-                            {isCricket ? `${scoreA?.runs ?? 0}/${scoreA?.wickets ?? 0}` : (scoreA?.score ?? 0)}
+                        <div className="text-3xl font-black font-mono tracking-tighter">
+                            {isCricket ? (
+                                <>{scoreA.runs}<span className="text-xl text-muted-foreground">/{scoreA.wickets || 0}</span></>
+                            ) : (scoreA.score || 0)}
                         </div>
                     </div>
-                    <div className="text-[9px] font-black text-muted-foreground uppercase opacity-40">VS</div>
+                    <div className="flex flex-col items-center opacity-30">
+                        <div className="h-8 w-px bg-border" />
+                        <span className="text-[9px] font-black my-1">VS</span>
+                        <div className="h-8 w-px bg-border" />
+                    </div>
                     <div className="text-center">
                         <p className="font-black text-[11px] uppercase leading-tight min-h-[2.5rem] flex items-center justify-center">{TeamB?.team_name}</p>
-                        <div className="text-2xl font-black font-mono">
-                            {isCricket ? `${scoreB?.runs ?? 0}/${scoreB?.wickets ?? 0}` : (scoreB?.score ?? 0)}
+                        <div className="text-3xl font-black font-mono tracking-tighter">
+                            {isCricket ? (
+                                <>{scoreB.runs}<span className="text-xl text-muted-foreground">/{scoreB.wickets || 0}</span></>
+                            ) : (scoreB.score || 0)}
                         </div>
                     </div>
                 </div>
@@ -257,7 +284,9 @@ function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => v
                 <div className={cn(status === 'live' ? 'text-destructive' : 'text-muted-foreground', "font-black text-[10px] tracking-widest uppercase flex items-center gap-1.5")}>
                     {status === 'live' && <span className="flex h-2 w-2 rounded-full bg-destructive animate-pulse" />} {status}
                 </div>
-                <div className="flex items-center gap-1 text-[10px] font-black uppercase text-muted-foreground group-hover:text-primary transition-colors">Open Match Center <ArrowRight className="h-3 w-3" /></div>
+                <div className="flex items-center gap-1 text-[10px] font-black uppercase text-muted-foreground group-hover:text-primary transition-colors">
+                    View Live Center <ChevronRight className="h-3 w-3" />
+                </div>
             </div>
         </Card>
     );
@@ -280,15 +309,25 @@ export default function LivePage() {
             }
         };
         fetchLiveMatches();
-        const interval = setInterval(fetchLiveMatches, 30000); 
+        const interval = setInterval(fetchLiveMatches, 15000); // 15s refresh for the list
         return () => clearInterval(interval);
     }, []);
 
     return (
         <div className="container py-8 md:py-16 space-y-12">
             <div className="text-center space-y-4 max-w-3xl mx-auto">
-                <h1 className="text-5xl md:text-6xl font-black font-headline tracking-tighter text-primary uppercase italic">Match Center</h1>
-                <p className="text-lg text-muted-foreground">Instant real-time scores and ball-by-ball updates from Energy 2026 via Firebase RTDB.</p>
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20 mb-4"
+                >
+                    <Activity className="h-4 w-4 animate-pulse" />
+                    <span className="text-xs font-black uppercase tracking-widest">Real-time Match Hub</span>
+                </motion.div>
+                <h1 className="text-5xl md:text-7xl font-black font-headline tracking-tighter text-foreground uppercase italic leading-none">
+                    Energy <span className="text-primary">2026</span> Live
+                </h1>
+                <p className="text-lg text-muted-foreground font-medium">Sub-second real-time scores and ball-by-ball commentary for every battle.</p>
             </div>
 
             <div className="min-h-[400px]">
@@ -305,8 +344,8 @@ export default function LivePage() {
                 ) : (
                     <div className="text-center py-24 text-muted-foreground border-2 border-dashed rounded-[3rem] bg-muted/20">
                         <Activity className="h-16 w-16 mx-auto mb-6 opacity-40" />
-                        <h3 className="text-2xl font-black uppercase tracking-tighter text-foreground mb-2">No Active Battles</h3>
-                        <p className="max-w-xs mx-auto text-sm">Check back soon for the latest tournament action!</p>
+                        <h3 className="text-2xl font-black uppercase tracking-tighter text-foreground mb-2">Arena Quiet</h3>
+                        <p className="max-w-xs mx-auto text-sm font-medium">Check back soon for the next inter-college showdown!</p>
                     </div>
                 )}
             </div>
