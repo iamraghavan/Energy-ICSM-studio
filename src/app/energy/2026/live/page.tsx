@@ -54,7 +54,7 @@ function TimelineEvent({ event }: { event: any }) {
 function PlayerStatRow({ name, primary, secondary, highlight = false }: { name: string, primary: string | number, secondary?: string, highlight?: boolean }) {
     return (
         <div className={cn(
-            "flex items-center justify-between p-3 rounded-xl transition-all duration-300", 
+            "flex items-center justify-between p-3 rounded-none transition-all duration-300", 
             highlight ? "bg-primary/10 border-primary shadow-sm ring-1 ring-primary/20" : "bg-muted/30 border-transparent border"
         )}>
             <div className="flex items-center gap-2 overflow-hidden">
@@ -127,7 +127,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-[95vw] sm:max-w-2xl p-0 overflow-hidden border-none shadow-2xl rounded-[2rem] bg-background">
+            <DialogContent className="max-w-[95vw] sm:max-w-2xl p-0 overflow-hidden border-none shadow-2xl rounded-none bg-background">
                 <DialogHeader className="sr-only">
                     <DialogTitle>{TeamA?.team_name} vs {TeamB?.team_name}</DialogTitle>
                     <DialogDescription>Live Real-time Feed</DialogDescription>
@@ -135,12 +135,12 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
 
                 <div className="bg-primary px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="bg-white/10 p-2 rounded-xl"><Trophy className="h-5 w-5 text-white" /></div>
+                        <div className="bg-white/10 p-2 rounded-none"><Trophy className="h-5 w-5 text-white" /></div>
                         <div>
                             <h3 className="text-white font-bold text-sm uppercase tracking-widest leading-none">{Sport?.name}</h3>
                         </div>
                     </div>
-                    <Badge variant={status === 'live' ? 'destructive' : 'outline'} className={cn(status === 'live' && "animate-pulse", "px-3 py-1 font-black text-[10px] tracking-[0.2em] uppercase")}>
+                    <Badge variant={status === 'live' ? 'destructive' : 'outline'} className={cn(status === 'live' && "animate-pulse", "px-3 py-1 font-black text-[10px] tracking-[0.2em] uppercase rounded-none")}>
                         {status}
                     </Badge>
                 </div>
@@ -151,21 +151,21 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                             <p className="font-black text-[11px] sm:text-xs uppercase tracking-tight leading-tight min-h-[2.5rem] flex items-center justify-center break-words">{TeamA?.team_name}</p>
                             <div className="space-y-1">
                                 <p className="text-4xl sm:text-6xl font-black font-mono tracking-tighter">
-                                    {teamAScore}{isCricket && <span className="text-2xl sm:text-3xl text-muted-foreground">/{teamAScoreData.wickets ?? 0}</span>}
+                                    {teamAScore}{isCricket && <span className="text-2xl sm:text-3xl text-muted-foreground">/{teamAScoreData.wickets || 0}</span>}
                                 </p>
                                 {isCricket && <p className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest">({teamAOvers} Ov)</p>}
                             </div>
                         </div>
                         <div className="flex flex-col items-center gap-2">
                             <div className="h-12 w-[2px] bg-border" />
-                            <span className="text-[10px] font-black text-muted-foreground uppercase bg-background px-2 py-1 rounded-full border shadow-sm">VS</span>
+                            <span className="text-[10px] font-black text-muted-foreground uppercase bg-background px-2 py-1 rounded-none border shadow-sm">VS</span>
                             <div className="h-12 w-[2px] bg-border" />
                         </div>
                         <div className="text-center space-y-4">
                             <p className="font-black text-[11px] sm:text-xs uppercase tracking-tight leading-tight min-h-[2.5rem] flex items-center justify-center break-words">{TeamB?.team_name}</p>
                             <div className="space-y-1">
                                 <p className="text-4xl sm:text-6xl font-black font-mono tracking-tighter">
-                                    {teamBScore}{isCricket && <span className="text-2xl sm:text-3xl text-muted-foreground">/{teamBScoreData.wickets ?? 0}</span>}
+                                    {teamBScore}{isCricket && <span className="text-2xl sm:text-3xl text-muted-foreground">/{teamBScoreData.wickets || 0}</span>}
                                 </p>
                                 {isCricket && <p className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest">({teamBOvers} Ov)</p>}
                             </div>
@@ -173,7 +173,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                     </div>
                     {isCricket && state.target_score && (
                         <div className="mt-6 text-center">
-                            <Badge variant="secondary" className="px-4 py-2 font-black text-[10px] tracking-[0.2em] uppercase border-2">
+                            <Badge variant="secondary" className="px-4 py-2 font-black text-[10px] tracking-[0.2em] uppercase border-2 rounded-none">
                                 Target: {state.target_score} | Needed: {Number(state.target_score) - (state.batting_team_id === TeamA.id ? teamAScore : teamBScore)} runs
                             </Badge>
                         </div>
@@ -182,9 +182,9 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
 
                 <div className="p-6">
                     <Tabs defaultValue={isCricket ? "stats" : "history"} className="w-full">
-                        <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 rounded-2xl h-12">
-                            {isCricket && <TabsTrigger value="stats" className="rounded-xl font-bold text-xs uppercase tracking-widest">Live Stats</TabsTrigger>}
-                            <TabsTrigger value="history" className="rounded-xl font-bold text-xs uppercase tracking-widest">Commentary</TabsTrigger>
+                        <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 rounded-none h-12">
+                            {isCricket && <TabsTrigger value="stats" className="rounded-none font-bold text-xs uppercase tracking-widest">Live Stats</TabsTrigger>}
+                            <TabsTrigger value="history" className="rounded-none font-bold text-xs uppercase tracking-widest">Commentary</TabsTrigger>
                         </TabsList>
                         
                         {isCricket && (
@@ -202,7 +202,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                                             />
                                         );
                                     })() : (
-                                        <div className="text-center py-6 border border-dashed rounded-2xl bg-muted/20">
+                                        <div className="text-center py-6 border border-dashed rounded-none bg-muted/20">
                                             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Bowler pending...</p>
                                         </div>
                                     )}
@@ -264,7 +264,7 @@ function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => v
     return (
         <Card 
             onClick={onSelect} 
-            className="cursor-pointer group relative overflow-hidden border bg-white rounded-[2rem] shadow-md transition-all duration-500 hover:shadow-2xl hover:border-primary/20"
+            className="cursor-pointer group relative overflow-hidden border bg-white rounded-none shadow-md transition-all duration-500 hover:shadow-2xl hover:border-primary/20"
         >
             <div className="bg-slate-50 px-6 py-3 border-b flex justify-between items-center">
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">{Sport?.name}</span>
@@ -276,7 +276,7 @@ function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => v
             <div className="p-8 space-y-8">
                 <div className="flex flex-col items-center gap-6">
                     {/* Live Badge */}
-                    <div className="inline-flex items-center gap-2 bg-red-50 px-3 py-1 rounded-full border border-red-100">
+                    <div className="inline-flex items-center gap-2 bg-red-50 px-3 py-1 rounded-none border border-red-100">
                         <span className="relative flex h-2 w-2">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
@@ -293,18 +293,29 @@ function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => v
                         </div>
 
                         <div className="shrink-0 flex flex-col items-center">
-                            <div className="bg-slate-900 text-white px-8 py-4 rounded-3xl shadow-[0_10px_20px_rgba(0,0,0,0.15)] transform transition-transform group-hover:scale-110 duration-500">
-                                <div className="text-4xl md:text-5xl font-black font-mono tracking-tighter flex items-center gap-4">
-                                    <span>{teamAScore}</span>
-                                    <span className="text-slate-600 opacity-50">-</span>
-                                    <span>{teamBScore}</span>
+                            <div className="bg-slate-900 text-white px-8 py-4 rounded-none shadow-[0_10px_20px_rgba(0,0,0,0.15)] transform transition-transform group-hover:scale-110 duration-500 min-w-[180px]">
+                                <div className="text-4xl md:text-5xl font-black font-mono tracking-tighter flex items-center justify-center gap-4">
+                                    {isCricket ? (
+                                        <>
+                                            <div className="flex flex-col items-center">
+                                                <span>{teamAScore}</span>
+                                                <span className="text-xs text-slate-400 font-bold">/{scoreA.wickets || 0}</span>
+                                            </div>
+                                            <span className="text-slate-600 text-2xl">VS</span>
+                                            <div className="flex flex-col items-center">
+                                                <span>{teamBScore}</span>
+                                                <span className="text-xs text-slate-400 font-bold">/{scoreB.wickets || 0}</span>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span>{teamAScore}</span>
+                                            <span className="text-slate-600 opacity-50">-</span>
+                                            <span>{teamBScore}</span>
+                                        </>
+                                    )}
                                 </div>
                             </div>
-                            {isCricket && (
-                                <div className="mt-2 text-[10px] font-black text-muted-foreground uppercase tracking-tighter">
-                                    {scoreA.wickets || 0} WKT — {scoreB.wickets || 0} WKT
-                                </div>
-                            )}
                         </div>
 
                         <div className="flex-1 text-center md:text-left">
@@ -349,7 +360,7 @@ export default function LivePage() {
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20 mb-4"
+                    className="inline-flex items-center gap-2 px-4 py-1.5 rounded-none bg-primary/10 text-primary border border-primary/20 mb-4"
                 >
                     <Radio className="h-4 w-4 animate-pulse" />
                     <span className="text-[10px] font-black uppercase tracking-[0.3em]">Stadium Live Bridge</span>
@@ -362,7 +373,7 @@ export default function LivePage() {
             <div className="min-h-[400px]">
                 {isLoading ? (
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {[...Array(3)].map((_, i) => <Card key={i} className="h-80 w-full animate-pulse bg-muted rounded-xl" />)}
+                        {[...Array(3)].map((_, i) => <Card key={i} className="h-80 w-full animate-pulse bg-muted rounded-none" />)}
                     </div>
                 ) : liveMatches.length > 0 ? (
                     <div className="grid md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-10 max-w-6xl mx-auto">
@@ -371,7 +382,7 @@ export default function LivePage() {
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center py-24 text-muted-foreground border-2 border-dashed rounded-[3rem] bg-muted/20">
+                    <div className="text-center py-24 text-muted-foreground border-2 border-dashed rounded-none bg-muted/20">
                         <Activity className="h-16 w-16 mx-auto mb-6 opacity-40" />
                         <h3 className="text-2xl font-black uppercase tracking-tighter text-foreground mb-2">Arena Quiet</h3>
                         <p className="max-w-xs mx-auto text-sm font-medium">Check back soon for the next inter-college showdown!</p>
