@@ -381,7 +381,6 @@ export default function LivePage() {
                 <h1 className="text-5xl md:text-7xl font-black font-headline tracking-tighter text-foreground uppercase italic leading-none">
                     Energy <span className="text-primary">2026</span> Live
                 </h1>
-                <p className="text-lg text-muted-foreground font-medium">Sub-second real-time scores and ball-by-ball commentary for every battle.</p>
             </div>
 
             <div className="min-h-[400px]">
