@@ -275,7 +275,7 @@ export type ApiMatch = {
     status: 'scheduled' | 'live' | 'completed';
     score_details: any;
     match_state?: any;
-    match_events?: any[];
+    match_history?: any[];
     referee_name?: string;
     Sport: ApiSport;
     TeamA: ApiTeam;
@@ -523,19 +523,37 @@ export const updateMatchState = async (matchId: string, state: any) => {
 
 // --- Command (REST) Methods for Scorer Hybrid Architecture ---
 
-export const submitCricketBall = async (matchId: string, ballData: any) => {
-    // Ultimate Implementation Guide Payload: 
-    // { batting_team_id, striker_id, non_striker_id, bowler_id, runs, extras, extra_type, is_wicket, wicket_type }
-    const response = await api.post(`/scorer/matches/${matchId}/score/cricket`, ballData);
+export const submitCricketBall = async (matchId: string, ballData: {
+    batting_team_id: string;
+    striker_id: string;
+    non_striker_id: string;
+    bowler_id: string;
+    runs: number;
+    extras: number;
+    extra_type: string | null;
+    is_wicket: boolean;
+    wicket_type: string | null;
+}) => {
+    // API Endpoint per Ultimate Guide: POST /api/v1/matches/:matchId/cricket
+    const response = await api.post(`/matches/${matchId}/cricket`, ballData);
     return response.data;
 };
 
-export const submitStandardScore = async (matchId: string, scoreData: any) => {
-    const response = await api.post(`/scorer/matches/${matchId}/score/standard`, scoreData);
+export const submitStandardScore = async (matchId: string, scoreData: {
+    points: number;
+    team_id: string;
+    event_type: string;
+}) => {
+    // Universal scoring for Football, etc.
+    const response = await api.post(`/matches/${matchId}/score`, scoreData);
     return response.data;
 };
 
-export const submitTossResult = async (matchId: string, tossData: any) => {
+export const submitTossResult = async (matchId: string, tossData: {
+    winner_id: string;
+    decision: string;
+    details: string;
+}) => {
     const response = await api.post(`/scorer/matches/${matchId}/toss`, tossData);
     return response.data;
 };

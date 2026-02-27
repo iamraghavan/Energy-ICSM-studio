@@ -1,18 +1,15 @@
 
 'use client';
 import { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { getLiveMatches, type ApiMatch } from "@/lib/api";
 import { useMatchSync } from "@/hooks/useMatchSync";
-import { useToast } from '@/hooks/use-toast';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Trophy, Goal, Square, Replace, Info, MapPin, Clock, ArrowRight, Activity, Users } from 'lucide-react';
+import { Trophy, Goal, Square, Replace, Info, MapPin, ArrowRight, Activity, Users, Clock } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { cn } from '@/lib/utils';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // --- Timeline Event Component ---
@@ -21,20 +18,15 @@ function TimelineEvent({ event }: { event: any }) {
         switch(e.event_type) {
             case 'goal':
             case 'point':
-                return { icon: Goal, color: 'text-green-500 bg-green-500/10', title: 'Point Scored' };
-            case 'yellow_card':
-                return { icon: Square, color: 'text-yellow-400 bg-yellow-400/10', title: 'Yellow Card' };
-            case 'red_card':
-                return { icon: Square, color: 'text-red-500 bg-red-500/10', title: 'Red Card' };
-            case 'substitution':
-                return { icon: Replace, color: 'text-blue-500 bg-blue-500/10', title: 'Substitution' };
+                return { icon: Goal, color: 'text-green-500 bg-green-500/10', title: e.details || 'Point Scored' };
+            case 'wicket':
+                return { icon: Square, color: 'text-red-500 bg-red-500/10', title: `WICKET! (${e.wicket_type || 'out'})`, commentary: e.details };
             case 'delivery':
                 let title = `${e.runs || 0} run${e.runs !== 1 ? 's' : ''}`;
-                if (e.is_wicket) title = 'WICKET!';
-                if (e.extras > 0) title = `${e.extras} ${e.extra_type || 'extra'}`;
-                return { icon: Trophy, color: 'text-blue-500 bg-blue-500/10', title: title, commentary: e.commentary };
+                if (e.extra_type) title = `${e.extra_type.toUpperCase()} (+${e.runs + e.extras})`;
+                return { icon: Trophy, color: 'text-blue-500 bg-blue-500/10', title: title, commentary: e.details };
             default:
-                return { icon: Info, color: 'text-gray-500 bg-gray-500/10', title: e.event_type || 'Match Update' };
+                return { icon: Info, color: 'text-gray-500 bg-gray-500/10', title: e.event_type?.toUpperCase() || 'Match Update', commentary: e.details };
         }
     };
 
@@ -79,13 +71,13 @@ function PlayerStatRow({ name, primary, secondary, highlight = false }: { name: 
     );
 }
 
-// --- Detailed View inside a Dialog (Synced with Firebase) ---
+// --- Synced Detailed View (Fans Bridge) ---
 function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: ApiMatch | null, isOpen: boolean, onClose: () => void }) {
     const { matchData, isLoading: isSyncing } = useMatchSync(initialMatch?.id || '');
     
     if (!isOpen || !initialMatch) return null;
 
-    // Merge logic: Combine initial relational data (REST) with real-time updates (Firebase)
+    // Logic: Merge REST structure with RTDB state
     const match = matchData ? { ...initialMatch, ...matchData } : initialMatch;
     
     const TeamA = initialMatch.TeamA;
@@ -93,9 +85,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
     const Sport = initialMatch.Sport;
     const status = match.status || initialMatch.status;
 
-    if (!Sport || !TeamA || !TeamB) return null;
-
-    const isCricket = Sport.name === 'Cricket';
+    const isCricket = Sport?.name === 'Cricket';
     
     const scoreDetails = match.score_details || {};
     const teamAScoreData = scoreDetails[initialMatch.team_a_id] || { runs: 0, score: 0, wickets: 0, overs: 0 };
@@ -104,12 +94,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
     const teamAScore = teamAScoreData.runs ?? teamAScoreData.score ?? 0;
     const teamBScore = teamBScoreData.runs ?? teamBScoreData.score ?? 0;
     
-    const rawEvents = match.match_events || [];
-    const eventsArray = Array.isArray(rawEvents) ? rawEvents : Object.values(rawEvents);
-    const sortedEvents = eventsArray.sort((a: any, b: any) => 
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
-
+    const history = match.match_history || [];
     const batsmenStats = match.current_batsmen_stats || {};
     const bowlerStats = match.current_bowler_stats || {};
     const state = match.match_state || {};
@@ -118,15 +103,15 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="max-w-[95vw] sm:max-w-2xl p-0 overflow-hidden border-none shadow-2xl rounded-3xl bg-background">
                 <DialogHeader className="sr-only">
-                    <DialogTitle>{TeamA.team_name} vs {TeamB.team_name} - {Sport.name}</DialogTitle>
-                    <DialogDescription>Live Match Updates</DialogDescription>
+                    <DialogTitle>{TeamA?.team_name} vs {TeamB?.team_name}</DialogTitle>
+                    <DialogDescription>Live Real-time Feed</DialogDescription>
                 </DialogHeader>
 
                 <div className="bg-primary px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="bg-white/10 p-2 rounded-xl"><Trophy className="h-5 w-5 text-white" /></div>
                         <div>
-                            <h3 className="text-white font-bold text-sm uppercase tracking-widest leading-none">{Sport.name}</h3>
+                            <h3 className="text-white font-bold text-sm uppercase tracking-widest leading-none">{Sport?.name}</h3>
                             <div className="flex items-center gap-1.5 text-white/60 text-[10px] mt-1 font-bold uppercase">
                                 <MapPin className="h-3 w-3" /> {match.venue || initialMatch.venue}
                             </div>
@@ -140,7 +125,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                 <div className="bg-muted/30 p-6 sm:p-10 border-b">
                     <div className="grid grid-cols-[1fr,auto,1fr] items-center gap-4 sm:gap-8">
                         <div className="text-center space-y-4">
-                            <p className="font-black text-xs sm:text-sm uppercase tracking-tight leading-tight min-h-[2.5rem] flex items-center justify-center">{TeamA.team_name}</p>
+                            <p className="font-black text-xs sm:text-sm uppercase tracking-tight leading-tight min-h-[2.5rem] flex items-center justify-center">{TeamA?.team_name}</p>
                             <div className="space-y-1">
                                 <p className="text-4xl sm:text-6xl font-black font-mono tracking-tighter">
                                     {teamAScore}{isCricket && <span className="text-2xl sm:text-3xl text-muted-foreground">/{teamAScoreData.wickets ?? 0}</span>}
@@ -150,7 +135,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                         </div>
                         <div className="flex flex-col items-center gap-2"><div className="h-12 w-[2px] bg-border" /><span className="text-[10px] font-black text-muted-foreground uppercase bg-background px-2 py-1 rounded-full border">VS</span><div className="h-12 w-[2px] bg-border" /></div>
                         <div className="text-center space-y-4">
-                            <p className="font-black text-xs sm:text-sm uppercase tracking-tight leading-tight min-h-[2.5rem] flex items-center justify-center">{TeamB.team_name}</p>
+                            <p className="font-black text-xs sm:text-sm uppercase tracking-tight leading-tight min-h-[2.5rem] flex items-center justify-center">{TeamB?.team_name}</p>
                             <div className="space-y-1">
                                 <p className="text-4xl sm:text-6xl font-black font-mono tracking-tighter">
                                     {teamBScore}{isCricket && <span className="text-2xl sm:text-3xl text-muted-foreground">/{teamBScoreData.wickets ?? 0}</span>}
@@ -162,10 +147,10 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                 </div>
 
                 <div className="p-6">
-                    <Tabs defaultValue={isCricket ? "stats" : "timeline"} className="w-full">
+                    <Tabs defaultValue={isCricket ? "stats" : "history"} className="w-full">
                         <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 rounded-2xl h-12">
-                            {isCricket && <TabsTrigger value="stats" className="rounded-xl font-bold text-xs uppercase tracking-widest">Stats</TabsTrigger>}
-                            <TabsTrigger value="timeline" className="rounded-xl font-bold text-xs uppercase tracking-widest">Timeline</TabsTrigger>
+                            {isCricket && <TabsTrigger value="stats" className="rounded-xl font-bold text-xs uppercase tracking-widest">Live Stats</TabsTrigger>}
+                            <TabsTrigger value="history" className="rounded-xl font-bold text-xs uppercase tracking-widest">Commentary</TabsTrigger>
                         </TabsList>
                         
                         {isCricket && (
@@ -183,8 +168,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                                             />
                                         )) : (
                                             <div className="col-span-2 text-center py-6 border border-dashed rounded-2xl bg-muted/20">
-                                                <Users className="h-6 w-6 mx-auto mb-2 opacity-20" />
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Lineup pending...</p>
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Waiting for lineup...</p>
                                             </div>
                                         )}
                                     </div>
@@ -197,11 +181,10 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                                             name={stats.name} 
                                             primary={`${stats.wickets ?? 0}/${stats.runs_conceded ?? 0}`} 
                                             secondary={`(${(stats.overs || 0.0).toFixed(1)} Ov)`} 
-                                            highlight={id === String(state.bowler_id)}
+                                            highlight={true}
                                         />
                                     )) : (
                                         <div className="text-center py-6 border border-dashed rounded-2xl bg-muted/20">
-                                            <Users className="h-6 w-6 mx-auto mb-2 opacity-20" />
                                             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Bowler pending...</p>
                                         </div>
                                     )}
@@ -209,11 +192,11 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                             </TabsContent>
                         )}
 
-                        <TabsContent value="timeline" className="mt-6">
+                        <TabsContent value="history" className="mt-6">
                             <ScrollArea className="h-64 pr-4">
                                 <div className="space-y-1">
-                                    {sortedEvents.length > 0 ? (
-                                        sortedEvents.map((event: any, i: number) => <TimelineEvent key={event.id || `${event.timestamp}-${i}`} event={event} />)
+                                    {history.length > 0 ? (
+                                        history.map((event: any, i: number) => <TimelineEvent key={event.id || `${event.timestamp}-${i}`} event={event} />)
                                     ) : (
                                         <div className="flex flex-col items-center justify-center py-12 text-muted-foreground space-y-3">
                                             <Activity className="h-8 w-8 opacity-20" />
@@ -230,7 +213,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                     <div className="flex items-center gap-2">
                         <div className={cn("h-2 w-2 rounded-full", isSyncing ? "bg-amber-500 animate-pulse" : "bg-green-500")} />
                         <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-                            {isSyncing ? "Syncing RTDB..." : "Real-time Bridged"}
+                            {isSyncing ? "Connecting to RTDB..." : "Real-time Ready"}
                         </span>
                     </div>
                     <button onClick={onClose} className="text-[10px] font-black uppercase text-primary hover:underline">Close Match Center</button>
@@ -310,7 +293,7 @@ export default function LivePage() {
             <div className="min-h-[400px]">
                 {isLoading ? (
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-64 w-full rounded-3xl" />)}
+                        {[...Array(3)].map((_, i) => <Card key={i} className="h-64 w-full animate-pulse bg-muted rounded-3xl" />)}
                     </div>
                 ) : liveMatches.length > 0 ? (
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">

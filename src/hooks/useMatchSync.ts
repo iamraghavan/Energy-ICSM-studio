@@ -1,3 +1,4 @@
+
 "use client";
 import { useEffect, useState } from 'react';
 import { ref, onValue } from 'firebase/database';
@@ -30,9 +31,11 @@ export const useMatchSync = (matchId: string) => {
         
         // Defensive data normalization
         if (data) {
-            // Convert match_events object to sorted array if necessary
-            if (data.match_events && !Array.isArray(data.match_events)) {
-                data.match_events = Object.values(data.match_events);
+            // Convert history object to sorted array
+            if (data.match_history && !Array.isArray(data.match_history)) {
+                data.match_history = Object.values(data.match_history).sort((a: any, b: any) => 
+                    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+                );
             }
             
             // Ensure mandatory objects exist to prevent crashes
