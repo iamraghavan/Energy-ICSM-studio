@@ -4,4 +4,4 @@ export default function RootPage() {
     redirect('/energy/2026');
 }
 
-// 05
+// 06
