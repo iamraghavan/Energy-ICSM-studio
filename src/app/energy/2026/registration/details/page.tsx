@@ -1,11 +1,11 @@
+
 'use client';
 import { getRegistration, type Registration } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Mail, Phone, User, Building, Dribbble, Hash, Users as UsersIcon, Bed, UserCheck, Clock, Download, AlertTriangle, FileBadge } from 'lucide-react';
+import { Mail, Phone, User, Building, Dribbble, Users as UsersIcon, Bed, UserCheck, Clock, Download, AlertTriangle, FileBadge } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useEffect, useState, Suspense } from 'react';
@@ -62,7 +62,6 @@ function RegistrationDetailsSkeleton() {
                     <Skeleton className="h-4 w-64" />
                 </div>
                  <div className="flex gap-2">
-                    <Skeleton className="h-6 w-24" />
                     <Skeleton className="h-6 w-24" />
                 </div>
             </div>
@@ -131,7 +130,7 @@ function PublicRegistrationDetailsContent() {
         )
     }
 
-    const { Sports, Team, Payment, registration_code, payment_status, accommodation_needed, is_captain, status, created_at, name, email, mobile, whatsapp } = registration;
+    const { Sports, Team, registration_code, accommodation_needed, is_captain, status, created_at, name, email, mobile, whatsapp } = registration;
     const ticketUrl = `${API_BASE_URL}/register/${registration.id}/ticket`;
     const detailsUrl = `/energy/2026/registration/details?id=${registration.id}`;
 
@@ -143,18 +142,6 @@ function PublicRegistrationDetailsContent() {
                     <p className="text-sm text-muted-foreground">Code: <span className="font-mono">{registration_code}</span></p>
                 </div>
                  <div className="flex gap-2">
-                    <Badge
-                        variant={
-                            payment_status === 'approved' || payment_status === 'verified'
-                            ? 'default'
-                            : payment_status === 'rejected'
-                            ? 'destructive'
-                            : 'secondary'
-                        }
-                        className="capitalize"
-                        >
-                        Payment: {payment_status}
-                    </Badge>
                      <Badge
                         variant={
                             status === 'approved'
@@ -165,7 +152,7 @@ function PublicRegistrationDetailsContent() {
                         }
                         className="capitalize"
                         >
-                        Reg: {status}
+                        Status: {status}
                     </Badge>
                 </div>
             </div>
@@ -220,24 +207,6 @@ function PublicRegistrationDetailsContent() {
                         </CardContent>
                     </Card>
                  )}
-
-                 {Payment && (
-                     <Card className="md:col-span-3">
-                        <CardHeader><CardTitle>Payment Details</CardTitle></CardHeader>
-                        <CardContent className="grid md:grid-cols-2 gap-6 items-start">
-                             <div className="space-y-4">
-                                <InfoDetail label="Payment Status" value={payment_status} />
-                                <InfoDetail icon={Hash} label="Transaction ID" value={Payment?.txn_id || 'N/A'} isMono />
-                                <InfoDetail label="Amount Paid" value={`₹${Payment?.amount || '0.00'}`} />
-                            </div>
-                            {Payment.screenshot_url && (
-                                <div className="flex justify-center md:justify-end">
-                                    <Image src={Payment.screenshot_url} alt="Payment Screenshot" width={180} height={360} className="rounded-md border object-contain"/>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                 )}
             </div>
         </div>
     );
@@ -251,4 +220,3 @@ export default function PublicRegistrationDetailsPage() {
         </Suspense>
     );
 }
-// 02

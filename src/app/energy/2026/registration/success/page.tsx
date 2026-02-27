@@ -6,7 +6,7 @@ import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle, CardFooter, CardContent } from '@/components/ui/card';
-import { CheckCircle, Loader2, Download, ArrowRight, User, Mail, Phone, IndianRupee, Dribbble, FileText } from 'lucide-react';
+import { CheckCircle, Loader2, Download, ArrowRight, User, Mail, Phone, Dribbble, FileText } from 'lucide-react';
 import { getRegistration, type Registration } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { ShareButton } from '@/components/shared/share-button';
@@ -134,7 +134,6 @@ function SuccessPageContent() {
                     <InfoDetail icon={User} label="Name" value={registration.name} />
                     <InfoDetail icon={Mail} label="Email" value={registration.email} />
                     <InfoDetail icon={Phone} label="Mobile" value={registration.mobile} />
-                    <InfoDetail icon={IndianRupee} label="Amount Paid" value={`₹${registration.Payment?.amount || '0.00'}`} />
                      <InfoDetail icon={Dribbble} label="Registered Sports">
                         <div className="flex flex-wrap gap-2 pt-1">
                             {registration.Sports?.map(sport => (
