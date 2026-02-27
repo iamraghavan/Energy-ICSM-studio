@@ -245,7 +245,6 @@ export function CommitteeDashboard() {
                                                     <div className="flex flex-col">
                                                         <span className="font-bold text-sm">{reg.name}</span>
                                                         <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-tighter">{reg.registration_code}</span>
-                                                        {/* Mobile-only secondary info */}
                                                         <span className="text-[10px] text-primary sm:hidden truncate max-w-[150px] mt-0.5">{reg.college_name}</span>
                                                     </div>
                                                 </td>
