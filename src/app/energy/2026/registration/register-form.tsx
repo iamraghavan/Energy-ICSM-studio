@@ -504,7 +504,7 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
         }).catch(error => {
             console.error('QR Download Error:', error);
             toast({
-                variant: 'destructive',
+                variant: "destructive",
                 title: 'Download Failed',
                 description: 'Could not download the QR code sticker.',
             });

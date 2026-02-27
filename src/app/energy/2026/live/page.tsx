@@ -104,7 +104,6 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
     const teamBOvers = parseFloat(String(teamBScoreData.overs || 0)).toFixed(1);
 
     const history = match.match_history || [];
-    const batsmenStats = match.current_batsmen_stats || {};
     const bowlerStats = match.current_bowler_stats || {};
     const state = match.match_state || {};
 
@@ -185,26 +184,6 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                         
                         {isCricket && (
                             <TabsContent value="stats" className="mt-6 space-y-6">
-                                <div className="space-y-3">
-                                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 flex items-center gap-2">
-                                        <Zap className="h-3 w-3 text-primary" /> Active Strikers
-                                    </p>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        {[state.striker_id, state.non_striker_id].map((id, idx) => {
-                                            const stats = getStat(id, batsmenStats);
-                                            if (!stats && !id) return null;
-                                            return (
-                                                <PlayerStatRow 
-                                                    key={idx}
-                                                    name={stats?.name || (idx === 0 ? 'Striker' : 'Non-Striker')} 
-                                                    primary={stats?.runs ?? 0} 
-                                                    secondary={`(${stats?.balls ?? 0})`} 
-                                                    highlight={idx === 0 && !!id}
-                                                />
-                                            );
-                                        })}
-                                    </div>
-                                </div>
                                 <div className="space-y-3">
                                     <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Current Bowler</p>
                                     {state.bowler_id ? (() => {
