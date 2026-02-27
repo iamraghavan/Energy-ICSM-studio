@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 import type { College } from './types';
 
@@ -357,7 +358,6 @@ export const submitCricketBall = async (matchId: string, ballData: {
     is_wicket: boolean;
     wicket_type: string | null;
 }) => {
-    // Aligns with Guide: POST /api/v1/matches/:matchId/cricket
     const response = await api.post(`/matches/${matchId}/cricket`, ballData);
     return response.data;
 };
@@ -367,7 +367,6 @@ export const submitStandardScore = async (matchId: string, scoreData: {
     team_id: string;
     event_type: string;
 }) => {
-    // Aligns with Guide: POST /api/v1/matches/:matchId/standard
     const response = await api.post(`/matches/${matchId}/standard`, scoreData);
     return response.data;
 };
@@ -377,14 +376,22 @@ export const submitTossResult = async (matchId: string, tossData: {
     decision: string;
     details: string;
 }) => {
-    // Aligns with Guide: POST /api/v1/matches/:matchId/toss
     const response = await api.post(`/matches/${matchId}/toss`, tossData);
     return response.data;
 };
 
 export const updateMatchState = async (matchId: string, state: any) => {
-    // Aligns with Guide: POST /api/v1/matches/:matchId/state
     const response = await api.post(`/matches/${matchId}/state`, state);
+    return response.data;
+};
+
+export const getLineup = async (matchId: string) => {
+    const response = await api.get(`/scorer/matches/${matchId}/lineup`);
+    return response.data?.data || response.data;
+};
+
+export const saveLineup = async (matchId: string, lineup: { player_id: string, is_substitute: boolean }[]) => {
+    const response = await api.post(`/scorer/matches/${matchId}/lineup`, { lineup });
     return response.data;
 };
 
@@ -394,7 +401,6 @@ export const startMatch = async (matchId: string) => {
 };
 
 export const endMatch = async (matchId: string, winnerId: string | null, mvpId?: string | null) => {
-    // Hits /end to trigger MySQL archival as per guide
     const response = await api.post(`/scorer/matches/${matchId}/end`, {
         winner_id: winnerId,
         mvp_id: mvpId
