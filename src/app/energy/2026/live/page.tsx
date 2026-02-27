@@ -316,7 +316,7 @@ export default function LivePage() {
     }, [fetchLiveMatches]);
 
     return (
-        <div className="min-h-screen bg-[#f5f7fa] dark:bg-slate-950 pb-20">
+        <div className="min-h-screen bg-[#f5f7fa] pb-20">
             <div className="container py-12 md:py-20 space-y-12">
                 <div className="text-center space-y-4 max-w-3xl mx-auto">
                     <motion.div
@@ -327,7 +327,7 @@ export default function LivePage() {
                         <Radio className="h-4 w-4 animate-pulse" />
                         <span className="text-[10px] font-black uppercase tracking-[0.3em]">Stadium Live Bridge</span>
                     </motion.div>
-                    <h1 className="text-5xl md:text-7xl font-black font-headline tracking-tighter text-slate-900 dark:text-white uppercase italic leading-none">
+                    <h1 className="text-5xl md:text-7xl font-black font-headline tracking-tighter text-slate-900 uppercase italic leading-none">
                         Stadium <span className="text-primary">Live</span>
                     </h1>
                 </div>
@@ -344,9 +344,9 @@ export default function LivePage() {
                             ))}
                         </div>
                     ) : (
-                        <div className="text-center py-24 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-none max-w-2xl mx-auto shadow-sm">
-                            <Activity className="h-16 w-16 mx-auto mb-6 text-slate-300 dark:text-slate-700" />
-                            <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-900 dark:text-white mb-2">Arena Quiet</h3>
+                        <div className="text-center py-24 bg-white border border-slate-200 rounded-none max-w-2xl mx-auto shadow-sm">
+                            <Activity className="h-16 w-16 mx-auto mb-6 text-slate-300" />
+                            <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-900 mb-2">Arena Quiet</h3>
                             <p className="max-w-xs mx-auto text-sm font-medium text-slate-500">Check back soon for the next inter-college showdown!</p>
                         </div>
                     )}
