@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getLiveMatches, type ApiMatch } from "@/lib/api";
 import { useMatchSync } from "@/hooks/useMatchSync";
-import { Activity, Radio } from 'lucide-react';
+import { Activity, Radio, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -10,22 +10,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { LiveScoreCard, LiveScoreCardSkeleton } from '@/components/shared/LiveScoreCard';
-import { Trophy, Goal, Square, Info, Zap } from 'lucide-react';
+import { Goal, Square, Info, Zap } from 'lucide-react';
 
 function TimelineEvent({ event }: { event: any }) {
-    const getEventDetails = (e: any) => {
-        switch(e.event_type) {
+    const getEventDetails = (event: any) => {
+        switch(event.event_type) {
             case 'goal':
             case 'point':
-                return { icon: Goal, color: 'text-green-500 bg-green-500/10', title: e.details || 'Point Scored' };
+                return { icon: Goal, color: 'text-green-500 bg-green-500/10', title: event.details || 'Point Scored' };
             case 'wicket':
-                return { icon: Square, color: 'text-red-500 bg-red-500/10', title: `WICKET! (${e.wicket_type || 'out'})`, commentary: e.details };
+                return { icon: Square, color: 'text-red-500 bg-red-500/10', title: `WICKET! (${event.wicket_type || 'out'})`, commentary: event.details };
             case 'delivery':
-                let title = `${Number(e.runs || 0)} run${e.runs !== 1 ? 's' : ''}`;
-                if (e.extra_type) title = `${e.extra_type.toUpperCase()} (+${(Number(e.runs || 0)) + (Number(e.extras || 0))})`;
-                return { icon: Zap, color: 'text-blue-500 bg-blue-500/10', title: title, commentary: e.details };
+                let title = `${Number(event.runs || 0)} run${event.runs !== 1 ? 's' : ''}`;
+                if (event.extra_type) title = `${event.extra_type.toUpperCase()} (+${(Number(event.runs || 0)) + (Number(event.extras || 0))})`;
+                return { icon: Zap, color: 'text-blue-500 bg-blue-500/10', title: title, commentary: event.details };
             default:
-                return { icon: Info, color: 'text-gray-500 bg-gray-500/10', title: e.event_type?.toUpperCase() || 'Match Update', commentary: e.details };
+                return { icon: Info, color: 'text-gray-500 bg-gray-500/10', title: event.event_type?.toUpperCase() || 'Match Update', commentary: event.details };
         }
     };
 
@@ -304,9 +304,23 @@ export default function LivePage() {
     }, []);
 
     useEffect(() => {
-        fetchLiveMatches();
-        const intervalId = setInterval(fetchLiveMatches, 15000); 
-        return () => clearInterval(intervalId);
+        let isMounted = true;
+        let timeoutId: NodeJS.Timeout;
+
+        const poll = async () => {
+            if (!isMounted) return;
+            await fetchLiveMatches();
+            if (isMounted) {
+                timeoutId = setTimeout(poll, 15000);
+            }
+        };
+
+        poll();
+
+        return () => {
+            isMounted = false;
+            clearTimeout(timeoutId);
+        };
     }, [fetchLiveMatches]);
 
     return (
@@ -328,17 +342,17 @@ export default function LivePage() {
 
                 <div className="min-h-[400px]">
                     {isLoading ? (
-                        <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-10 max-w-6xl mx-auto">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10 max-w-6xl mx-auto">
                             {[...Array(2)].map((_, i) => <LiveScoreCardSkeleton key={i} />)}
                         </div>
                     ) : liveMatches.length > 0 ? (
-                        <div className="grid md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-10 max-w-6xl mx-auto">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10 max-w-6xl mx-auto">
                             {liveMatches.map((match) => (
                                 <LiveMatchCardWrapper key={match.id} match={match} onSelect={() => setSelectedMatch(match)} />
                             ))}
                         </div>
                     ) : (
-                        <div className="text-center py-24 bg-white dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[20px] max-w-2xl mx-auto">
+                        <div className="text-center py-24 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[20px] max-w-2xl mx-auto shadow-sm">
                             <Activity className="h-16 w-16 mx-auto mb-6 text-slate-300 dark:text-slate-700" />
                             <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-900 dark:text-white mb-2">Arena Quiet</h3>
                             <p className="max-w-xs mx-auto text-sm font-medium text-slate-500">Check back soon for the next inter-college showdown!</p>
