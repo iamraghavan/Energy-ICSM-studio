@@ -282,7 +282,7 @@ export type ApiMatch = {
     TeamB: ApiTeam;
 };
 
-const API_BASE_URL = 'https://energy-sports-meet-backend.onrender.com/api/v1';
+const API_BASE_URL = 'https://energy-sports-meet-backend.vercel.app/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -544,8 +544,19 @@ export const submitStandardScore = async (matchId: string, scoreData: {
     team_id: string;
     event_type: string;
 }) => {
-    // Universal scoring for Football, etc.
-    const response = await api.post(`/matches/${matchId}/score`, scoreData);
+    // Universal scoring for Football, Kabaddi, etc. per Ultimate Guide
+    const response = await api.post(`/matches/${matchId}/standard`, scoreData);
+    return response.data;
+};
+
+export const submitMatchEvent = async (matchId: string, eventData: {
+    event_type: string;
+    team_id?: string;
+    player_id?: string;
+    details: string;
+}) => {
+    // Arbitrary event logging per Ultimate Guide
+    const response = await api.post(`/matches/${matchId}/event`, eventData);
     return response.data;
 };
 

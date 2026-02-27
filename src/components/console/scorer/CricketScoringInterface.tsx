@@ -82,7 +82,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
 
     const { toast } = useToast();
     
-    // Sync data from Firebase
+    // Sync logic: REST for initial structure, Firebase for live state
     const score = matchData?.score_details || initialMatch.score_details || {};
     const state = matchData?.match_state || initialMatch.match_state || {};
     const batsmenStats = matchData?.current_batsmen_stats || {};
@@ -112,7 +112,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
         fetchRosters();
     }, [initialMatch.team_a_id, initialMatch.team_b_id, toast]);
 
-    // Update modal state when Firebase state changes
+    // Update modal selection when Firebase state changes
     useEffect(() => {
         if (isPlayerSelectOpen) {
             setModalStrikerId(state.striker_id ? String(state.striker_id) : null);
@@ -134,7 +134,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
 
     const handleSavePlayers = async () => {
         if (!modalStrikerId || !modalNonStrikerId || !modalBowlerId) {
-            toast({ variant: 'destructive', title: 'Selection Missing', description: 'Please select all players.' });
+            toast({ variant: 'destructive', title: 'Selection Missing', description: 'Please select all active players.' });
             return;
         }
         setIsProcessingCommand(true);
@@ -146,7 +146,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                 batting_team_id: battingTeamId,
                 current_innings: state.current_innings || 1
             });
-            toast({ title: 'Lineup Updated' });
+            toast({ title: 'Lineup Synced to Firebase' });
             setIsPlayerSelectOpen(false);
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Update Failed', description: error.response?.data?.message || 'Server error.' });
@@ -157,15 +157,14 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
 
     const handleBall = async (runs: number, isWicket: boolean = false, extraType: string | null = null) => {
         if (!state.striker_id || !state.bowler_id) {
-            toast({ variant: 'destructive', title: 'Lineup Required', description: 'Please set the striker and bowler.' });
+            toast({ variant: 'destructive', title: 'Lineup Required', description: 'Please assign striker and bowler.' });
             setIsPlayerSelectOpen(true);
             return;
         }
         setIsProcessingCommand(true);
         try {
             const extrasCount = extraType ? 1 : 0;
-            // Guide Payload Requirement: 
-            // { batting_team_id, striker_id, non_striker_id, bowler_id, runs, extras, extra_type, is_wicket, wicket_type }
+            // Guide Payload Requirement
             await submitCricketBall(initialMatch.id, {
                 batting_team_id: battingTeamId,
                 striker_id: String(state.striker_id),
@@ -178,7 +177,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                 wicket_type: isWicket ? 'bowled' : null
             });
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Scoring Error' });
+            toast({ variant: 'destructive', title: 'Command Error', description: 'Failed to record ball event.' });
         } finally {
             setIsProcessingCommand(false);
         }
@@ -188,7 +187,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
         setIsProcessingCommand(true);
         try {
             await undoLastBall(initialMatch.id);
-            toast({ title: 'Action Undone' });
+            toast({ title: 'Event Undone' });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Undo Failed' });
         } finally {
@@ -200,7 +199,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
         return (
             <div className="h-screen flex flex-col items-center justify-center bg-slate-950 text-white space-y-4">
                 <Loader2 className="animate-spin h-12 w-12 text-blue-500" />
-                <p className="font-black uppercase tracking-widest text-xs">Connecting to RTDB...</p>
+                <p className="font-black uppercase tracking-widest text-xs">Authenticating Hybrid Hub...</p>
             </div>
         )
     }
@@ -214,22 +213,22 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
             <header className="p-4 flex items-center justify-between border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
                 <Button variant="ghost" size="icon" onClick={onBack}><ArrowLeft className="w-5 h-5"/></Button>
                 <div className="text-center">
-                    <h1 className="font-black text-[10px] tracking-[0.2em] uppercase text-blue-400">Cricket Console Pro</h1>
+                    <h1 className="font-black text-[10px] tracking-[0.2em] uppercase text-blue-400">Cricket Scoring Pro</h1>
                     <div className="flex items-center gap-1.5 justify-center mt-0.5">
                         <div className={cn("w-1.5 h-1.5 rounded-full", isSyncing ? "bg-amber-500 animate-pulse" : "bg-green-500")} />
-                        <span className="text-[9px] uppercase font-black text-slate-500 tracking-widest">{isSyncing ? 'Syncing RTDB' : 'Live State Sync'}</span>
+                        <span className="text-[9px] uppercase font-black text-slate-500 tracking-widest">{isSyncing ? 'Syncing RTDB' : 'State Ready'}</span>
                     </div>
                 </div>
-                <Button variant="destructive" size="sm" className="font-black uppercase text-[10px] h-8" onClick={() => setIsEndMatchDialogOpen(true)}>End Match</Button>
+                <Button variant="destructive" size="sm" className="font-black uppercase text-[10px] h-8" onClick={() => setIsEndMatchDialogOpen(true)}>Finish Match</Button>
             </header>
 
             <main className="p-4 space-y-4 max-w-md mx-auto w-full flex-1 pb-24">
-                {/* Real-time Scoreboard */}
+                {/* Visual Real-time Scoreboard */}
                 <Card className="bg-slate-900 border-slate-800 text-white p-6 shadow-2xl relative overflow-hidden group">
                     <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-6">
-                        <span className={cn(battingTeamId === String(initialMatch.team_a_id) ? "text-blue-400" : "text-white")}>{initialMatch.TeamA.team_name}</span>
+                        <span className={cn(battingTeamId === String(initialMatch.team_a_id) ? "text-blue-400 font-black" : "text-white")}>{initialMatch.TeamA.team_name}</span>
                         <span className="px-2 py-0.5 bg-slate-800 rounded-full text-[8px]">VS</span>
-                        <span className={cn(battingTeamId === String(initialMatch.team_b_id) ? "text-blue-400" : "text-white")}>{initialMatch.TeamB.team_name}</span>
+                        <span className={cn(battingTeamId === String(initialMatch.team_b_id) ? "text-blue-400 font-black" : "text-white")}>{initialMatch.TeamB.team_name}</span>
                     </div>
                     <div className="text-center">
                         <div className="flex items-baseline justify-center gap-1">
@@ -244,25 +243,25 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                     </div>
                 </Card>
 
-                {/* Automation Alert */}
+                {/* Over-End Assistant */}
                 {isOverEnd && (
                     <Alert className="bg-amber-500/10 border-amber-500/20 text-amber-500 py-3">
                         <Info className="h-4 w-4 stroke-amber-500" />
-                        <AlertTitle className="font-black uppercase text-[10px] tracking-widest">Over Cycle Complete</AlertTitle>
-                        <AlertDescription className="text-[11px] font-bold">Please change bowler and swap striker position.</AlertDescription>
+                        <AlertTitle className="font-black uppercase text-[10px] tracking-widest">Over Cycle Detected</AlertTitle>
+                        <AlertDescription className="text-[11px] font-bold">Please update the bowler and verify strike positions.</AlertDescription>
                     </Alert>
                 )}
 
-                {/* Batsmen Performance (RTDB Synced) */}
+                {/* Synced Batsmen State */}
                 <div className="grid grid-cols-2 gap-3">
                     <BatsmanCard player={striker} onStrike={true} stats={currentStrikerStats} />
                     <BatsmanCard player={nonStriker} onStrike={false} stats={currentNonStrikerStats} />
                 </div>
                 
-                {/* Active Bowler Figures */}
+                {/* Synced Bowler State */}
                 <BowlerCard player={activeBowler} stats={currentBowlerStats} />
 
-                {/* Scoring Command Center */}
+                {/* Scoring Command Grid */}
                 <div className="space-y-4 pt-4">
                     <div className="grid grid-cols-4 gap-2">
                         {[0, 1, 2, 3].map(r => (
@@ -282,21 +281,21 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
 
                 <Button variant="secondary" className="w-full h-14 bg-slate-800 font-black uppercase text-xs tracking-widest hover:bg-slate-700 border-slate-700 border" onClick={() => setIsPlayerSelectOpen(true)} disabled={isProcessingCommand}>
                     {isProcessingCommand ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <ChevronRight className="w-4 h-4 mr-2"/>}
-                    Change Bowler / Adjust Lineup
+                    Lineup & Rotation Management
                 </Button>
             </main>
 
-            {/* RTDB Player Selection Modal */}
+            {/* In-Console Player Assignment Modal */}
             <Dialog open={isPlayerSelectOpen} onOpenChange={setIsPlayerSelectOpen}>
                 <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-[95vw] sm:max-w-md rounded-3xl overflow-hidden p-0">
                     <DialogHeader className="p-6 bg-slate-800/50">
-                        <DialogTitle className="text-xl font-black uppercase tracking-tighter">Lineup Management</DialogTitle>
-                        <DialogDescription className="text-slate-400 text-xs font-bold uppercase">Assign active players from synced roster</DialogDescription>
+                        <DialogTitle className="text-xl font-black uppercase tracking-tighter">Match State Management</DialogTitle>
+                        <DialogDescription className="text-slate-400 text-xs font-bold uppercase">Assign active roles from synced team rosters</DialogDescription>
                     </DialogHeader>
                     <div className="p-6 space-y-6">
                         <div className="space-y-4">
                             <div className="space-y-2">
-                                <Label className="text-blue-400 text-[10px] uppercase font-black tracking-[0.2em]">Striker</Label>
+                                <Label className="text-blue-400 text-[10px] uppercase font-black tracking-[0.2em]">Striker (Facing Ball)</Label>
                                 <Select onValueChange={setModalStrikerId} value={modalStrikerId || undefined}>
                                     <SelectTrigger className="bg-slate-800 border-slate-700 h-14 rounded-2xl font-bold"><SelectValue placeholder="Select Striker" /></SelectTrigger>
                                     <SelectContent className="bg-slate-800 border-slate-700 text-white">
@@ -322,7 +321,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-emerald-400 text-[10px] uppercase font-black tracking-[0.2em]">Current Bowler</Label>
+                                <Label className="text-emerald-400 text-[10px] uppercase font-black tracking-[0.2em]">Active Bowler</Label>
                                 <Select onValueChange={setModalBowlerId} value={modalBowlerId || undefined}>
                                     <SelectTrigger className="bg-slate-800 border-slate-700 h-14 rounded-2xl font-bold"><SelectValue placeholder="Select Bowler" /></SelectTrigger>
                                     <SelectContent className="bg-slate-800 border-slate-700 text-white">
@@ -339,7 +338,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                     <DialogFooter className="p-6">
                         <Button onClick={handleSavePlayers} disabled={isProcessingCommand} className="w-full h-14 bg-blue-600 hover:bg-blue-700 font-black uppercase text-lg">
                             {isProcessingCommand ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : null}
-                            Confirm Lineup
+                            Commit Match State
                         </Button>
                     </DialogFooter>
                 </DialogContent>

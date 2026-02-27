@@ -77,7 +77,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
     
     if (!isOpen || !initialMatch) return null;
 
-    // Logic: Merge REST structure with RTDB state
+    // Architecture: Merge REST metadata with RTDB state
     const match = matchData ? { ...initialMatch, ...matchData } : initialMatch;
     
     const TeamA = initialMatch.TeamA;

@@ -1,3 +1,4 @@
+
 'use client';
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,20 +18,21 @@ export function StandardScoringInterface({ match: initialMatch, onBack }: { matc
     const [isProcessing, setIsProcessing] = useState(false);
     const { toast } = useToast();
 
-    // Priority: Firebase Data > Initial REST Data
+    // Guided Logic: RTDB state overrides initial REST data
     const score = matchData?.score_details || initialMatch.score_details || {};
 
     const handleScoreEvent = async (teamId: string, points: number) => {
         setIsProcessing(true);
         try {
+            // Optimized Guide Endpoint: /standard
             await submitStandardScore(initialMatch.id, { 
                 points, 
                 team_id: teamId, 
                 event_type: points > 0 ? 'point' : 'adjustment' 
             });
-            toast({ title: "Score Updated" });
+            toast({ title: "Command Sent" });
         } catch(error) {
-            toast({ variant: 'destructive', title: 'Save Failed', description: 'Could not update score.' });
+            toast({ variant: 'destructive', title: 'Save Failed', description: 'Could not update live score.' });
         } finally {
             setIsProcessing(false);
         }
@@ -40,7 +42,7 @@ export function StandardScoringInterface({ match: initialMatch, onBack }: { matc
         setIsProcessing(true);
         try {
             await undoLastBall(initialMatch.id);
-            toast({ title: "Last Action Undone" });
+            toast({ title: "State Restored" });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Undo Failed' });
         } finally {
@@ -48,8 +50,8 @@ export function StandardScoringInterface({ match: initialMatch, onBack }: { matc
         }
     }
     
-    const teamAScore = score?.[initialMatch.team_a_id]?.score ?? 0;
-    const teamBScore = score?.[initialMatch.team_b_id]?.score ?? 0;
+    const teamAScore = score?.[initialMatch.team_a_id]?.score ?? score?.[initialMatch.team_a_id]?.runs ?? 0;
+    const teamBScore = score?.[initialMatch.team_b_id]?.score ?? score?.[initialMatch.team_b_id]?.runs ?? 0;
 
     return (
         <div className="container py-8 max-w-4xl mx-auto space-y-6">
@@ -58,11 +60,11 @@ export function StandardScoringInterface({ match: initialMatch, onBack }: { matc
                     <div className="flex items-center gap-4">
                         <Button variant="outline" size="icon" onClick={onBack}><ArrowLeft className="h-4 w-4" /></Button>
                         <div>
-                            <CardTitle>Live Scoring: {initialMatch.Sport.name}</CardTitle>
+                            <CardTitle>Live Scoring Hub: {initialMatch.Sport.name}</CardTitle>
                             <CardDescription>{initialMatch.venue}</CardDescription>
                         </div>
                         <div className="ml-auto flex items-center gap-2">
-                             <Badge variant={isSyncing ? "secondary" : "default"} className={!isSyncing ? "bg-green-500" : ""}>{isSyncing ? "Syncing..." : "Real-time"}</Badge>
+                             <Badge variant={isSyncing ? "secondary" : "default"} className={!isSyncing ? "bg-green-500" : ""}>{isSyncing ? "Syncing Hub..." : "Connected"}</Badge>
                              <Button size="sm" variant="destructive" onClick={() => setIsEndMatchOpen(true)}>End Match</Button>
                         </div>
                     </div>
@@ -70,7 +72,7 @@ export function StandardScoringInterface({ match: initialMatch, onBack }: { matc
                 <CardContent className="space-y-8 pt-6">
                     <div className="grid grid-cols-[1fr,auto,1fr] items-center gap-8">
                         <div className="text-center space-y-4">
-                            <Avatar className="mx-auto h-24 w-24 border-4 border-muted"><AvatarFallback className="text-2xl">{initialMatch.TeamA.team_name.substring(0, 2)}</AvatarFallback></Avatar>
+                            <Avatar className="mx-auto h-24 w-24 border-4 border-muted"><AvatarFallback className="text-2xl">{initialMatch.TeamA.team_name.substring(0, 2).toUpperCase()}</AvatarFallback></Avatar>
                             <h3 className="font-bold text-xl">{initialMatch.TeamA.team_name}</h3>
                             <p className="text-7xl font-black font-mono">{teamAScore}</p>
                             <div className='flex gap-2 justify-center'>
@@ -82,7 +84,7 @@ export function StandardScoringInterface({ match: initialMatch, onBack }: { matc
                         <p className="text-4xl font-bold text-muted-foreground italic">VS</p>
 
                         <div className="text-center space-y-4">
-                            <Avatar className="mx-auto h-24 w-24 border-4 border-muted"><AvatarFallback className="text-2xl">{initialMatch.TeamB.team_name.substring(0, 2)}</AvatarFallback></Avatar>
+                            <Avatar className="mx-auto h-24 w-24 border-4 border-muted"><AvatarFallback className="text-2xl">{initialMatch.TeamB.team_name.substring(0, 2).toUpperCase()}</AvatarFallback></Avatar>
                             <h3 className="font-bold text-xl">{initialMatch.TeamB.team_name}</h3>
                             <p className="text-7xl font-black font-mono">{teamBScore}</p>
                              <div className='flex gap-2 justify-center'>
@@ -95,7 +97,7 @@ export function StandardScoringInterface({ match: initialMatch, onBack }: { matc
                     <div className="flex justify-center pt-8 border-t">
                         <Button variant="outline" size="lg" onClick={handleUndo} disabled={isProcessing} className="gap-2">
                             {isProcessing ? <Loader2 className="animate-spin h-5 w-5" /> : <RotateCcw className="w-5 h-5" />}
-                            Undo Last Action
+                            Undo Last Event
                         </Button>
                     </div>
                 </CardContent>
