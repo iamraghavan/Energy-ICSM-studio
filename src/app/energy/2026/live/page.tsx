@@ -36,7 +36,7 @@ function PlayerStatRow({ name, primary, secondary, highlight = false }: { name: 
  * Streamlined Match Hub Modal focused on live scoring and core stats.
  */
 function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: ApiMatch | null, isOpen: boolean, onClose: () => void }) {
-    const { matchData, isLoading: isSyncing } = useMatchSync(initialMatch?.id || '');
+    const { matchData } = useMatchSync(initialMatch?.id || '');
     
     if (!isOpen || !initialMatch) return null;
 
@@ -107,7 +107,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                         </div>
                     </div>
                     <div className={cn("px-3 py-1 font-black text-[9px] tracking-[0.2em] uppercase rounded-none border", status === 'live' ? 'bg-red-600 text-white border-red-500 animate-pulse' : 'bg-slate-800 text-slate-400 border-slate-700')}>
-                        {status === 'live' ? 'Stadium Live' : status}
+                        {status === 'live' ? 'Live' : status}
                     </div>
                 </div>
 
@@ -115,7 +115,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                 <div className="p-8 sm:p-12 border-b border-slate-100">
                     <div className="grid grid-cols-[1fr,auto,1fr] items-center gap-4 sm:gap-10">
                         <div className="text-center space-y-4">
-                            <p className="font-black text-[10px] sm:text-xs uppercase tracking-tight leading-tight min-h-[3rem] flex items-center justify-center text-slate-600 px-2">{TeamA?.team_name}</p>
+                            <p className="font-headline font-bold text-[10px] sm:text-xs uppercase tracking-tight leading-tight min-h-[3rem] flex items-center justify-center text-slate-600 px-2">{TeamA?.team_name}</p>
                             <div className="space-y-1">
                                 <p className="text-5xl sm:text-7xl font-black font-mono tracking-tighter text-slate-950">
                                     {teamAScore}{isCricket && <span className="text-2xl sm:text-3xl text-slate-300">/{teamAScoreData.wickets || 0}</span>}
@@ -129,7 +129,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                             <div className="h-10 w-[2px] bg-slate-100" />
                         </div>
                         <div className="text-center space-y-4">
-                            <p className="font-black text-[10px] sm:text-xs uppercase tracking-tight leading-tight min-h-[3rem] flex items-center justify-center text-slate-600 px-2">{TeamB?.team_name}</p>
+                            <p className="font-headline font-bold text-[10px] sm:text-xs uppercase tracking-tight leading-tight min-h-[3rem] flex items-center justify-center text-slate-600 px-2">{TeamB?.team_name}</p>
                             <div className="space-y-1">
                                 <p className="text-5xl sm:text-7xl font-black font-mono tracking-tighter text-slate-950">
                                     {teamBScore}{isCricket && <span className="text-2xl sm:text-3xl text-slate-300">/{teamBScoreData.wickets || 0}</span>}
@@ -175,13 +175,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                 )}
                 
                 {/* Fixed Footer Actions */}
-                <div className="p-6 bg-slate-50 border-t flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className={cn("h-2 w-2 rounded-full", isSyncing ? "bg-amber-500 animate-pulse" : "bg-green-500")} />
-                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
-                            {isSyncing ? "Connecting Broadcast..." : "Secure Hub Connection"}
-                        </span>
-                    </div>
+                <div className="p-6 bg-slate-50 border-t flex items-center justify-center">
                     <Button 
                         variant="default" 
                         size="sm" 
@@ -374,10 +368,10 @@ export default function LivePage() {
                         className="inline-flex items-center gap-2 px-4 py-1.5 rounded-none bg-primary/10 text-primary border-2 border-primary/20 mb-4"
                     >
                         <Radio className="h-4 w-4 animate-pulse" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.3em]">Stadium Live Bridge</span>
+                        <span className="text-[10px] font-black uppercase tracking-[0.3em]">Energy Bridge Live</span>
                     </motion.div>
                     <h1 className="text-5xl md:text-7xl font-black font-headline tracking-tighter text-slate-900 uppercase italic leading-none">
-                        Stadium <span className="text-primary">Live</span>
+                        Energy`26 <span className="text-primary">Live</span>
                     </h1>
                 </div>
 
