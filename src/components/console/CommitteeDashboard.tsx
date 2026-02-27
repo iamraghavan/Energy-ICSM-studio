@@ -5,7 +5,7 @@ import { Search, SlidersHorizontal, CheckCircle, Package, UserCheck, X, Printer 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { getCommitteeRegistrations, updateCheckIn, type Registration, getSports, getCollegesAdmin, type ApiSport, type College, getPassHTML } from '@/lib/api';
+import { getCommitteeRegistrations, updateCheckIn, type Registration, getSports, getColleges, type ApiSport, type College, getPassHTML } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { Skeleton } from '../ui/skeleton';
@@ -24,7 +24,7 @@ export function CommitteeDashboard() {
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [registrations, setRegistrations] = useState<Registration[]>([]);
     const [sports, setSports] = useState<ApiSport[]>([]);
-    const [colleges, setColleges] = useState<(Omit<College, 'id'> & {id: number})[]>([]);
+    const [colleges, setColleges] = useState<College[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
     
@@ -61,7 +61,7 @@ export function CommitteeDashboard() {
     useEffect(() => {
         const fetchFilterOptions = async () => {
             try {
-                const [sportsData, collegesData] = await Promise.all([getSports(), getCollegesAdmin()]);
+                const [sportsData, collegesData] = await Promise.all([getSports(), getColleges()]);
                 setSports(sportsData);
                 setColleges(collegesData);
             } catch (error) {
@@ -71,13 +71,13 @@ export function CommitteeDashboard() {
         fetchFilterOptions();
     }, [toast]);
     
-    const handleUpdateCheckinStatus = async (registrationId: string, updateData: { checked_in?: boolean; kit_delivered?: boolean; id_verified?: boolean; }, name: string) => {
+    const handleUpdateCheckinStatus = async (registrationId: string, updateData: { check_in_status?: boolean; kit_delivered?: boolean; id_verified?: boolean; }, name: string) => {
         try {
             await updateCheckIn(registrationId, updateData);
             setRegistrations(prev => 
-                prev.map(reg => reg.id === registrationId ? { ...reg, ...updateData } : reg)
+                prev.map(reg => reg.id === registrationId ? { ...reg, ...updateData, checked_in: updateData.check_in_status ?? reg.checked_in } : reg)
             );
-            const actionText = updateData.checked_in ? 'Checked In' : updateData.kit_delivered ? 'Kit Delivered' : 'ID Verified';
+            const actionText = updateData.check_in_status ? 'Checked In' : updateData.kit_delivered ? 'Kit Delivered' : 'ID Verified';
             toast({ title: 'Success', description: `${name} has been updated: ${actionText}.` });
         } catch (error) {
              toast({ variant: 'destructive', title: 'Update Failed', description: 'Could not update registration status.' });
@@ -101,7 +101,6 @@ export function CommitteeDashboard() {
             printWindow.document.write(passHtml);
             printWindow.document.close();
             
-            // Wait for the content to be fully loaded before printing
             printWindow.onload = () => {
                 printWindow.focus();
                 printWindow.print();
@@ -212,7 +211,7 @@ export function CommitteeDashboard() {
                                                             </DropdownMenuItem>
                                                             <DropdownMenuSeparator />
                                                             <DropdownMenuLabel>Check-in Actions</DropdownMenuLabel>
-                                                            <DropdownMenuItem onClick={() => handleUpdateCheckinStatus(reg.id, { checked_in: !reg.checked_in }, reg.name)} disabled={reg.checked_in}>
+                                                            <DropdownMenuItem onClick={() => handleUpdateCheckinStatus(reg.id, { check_in_status: !reg.checked_in }, reg.name)} disabled={reg.checked_in}>
                                                                 <CheckCircle className="mr-2 h-4 w-4" /><span>{reg.checked_in ? 'Checked In' : 'Check In'}</span>
                                                             </DropdownMenuItem>
                                                             <DropdownMenuItem onClick={() => handleUpdateCheckinStatus(reg.id, { kit_delivered: !reg.kit_delivered }, reg.name)} disabled={reg.kit_delivered}>

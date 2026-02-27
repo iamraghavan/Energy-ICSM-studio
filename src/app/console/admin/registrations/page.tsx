@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState, useMemo } from 'react';
-import { getRegistrations, type Registration, getSports, getCollegesAdmin, type ApiSport, type College } from '@/lib/api';
+import { getRegistrations, type Registration, getSports, getColleges, type ApiSport, type College } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -51,11 +51,11 @@ export default function AllRegistrationsPage() {
       const [regData, sportsData, collegeData] = await Promise.all([
         getRegistrations(),
         getSports(),
-        getCollegesAdmin()
+        getColleges()
       ]);
       setRegistrations(regData || []);
       setSports(sportsData || []);
-      setColleges(collegeData?.filter(c => c && String(c.id) !== 'other').map(c => ({...c, id: String(c.id)})) || []); 
+      setColleges(collegeData || []); 
       setError(null);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch data.');

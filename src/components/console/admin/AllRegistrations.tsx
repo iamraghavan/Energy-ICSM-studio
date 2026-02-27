@@ -6,7 +6,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
-import { VerifyPaymentModal } from './VerifyPaymentModal';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter, useParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,8 +29,6 @@ export function AllRegistrations() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedRegistration, setSelectedRegistration] = useState<Registration | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   
   const { toast } = useToast();
 
@@ -55,7 +52,7 @@ export function AllRegistrations() {
       ]);
       setRegistrations(regData);
       setSports(sportsData);
-      setColleges(collegeData.filter(c => c.id !== 'other')); // Exclude 'Other' option
+      setColleges(collegeData);
       setError(null);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch data.');
@@ -87,14 +84,14 @@ export function AllRegistrations() {
     return registrations.filter(reg => {
       // Search term filter
       const searchMatch = searchTerm.toLowerCase() === '' ||
-        reg.Student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (reg.Student.other_college || reg.Student.College?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (reg.Sport?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        reg.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (reg.college_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (reg.Sports?.[0]?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         reg.registration_code.toLowerCase().includes(searchTerm.toLowerCase());
 
       // Dropdown filters
-      const sportMatch = !filters.sport || String(reg.sport_id) === filters.sport;
-      const collegeMatch = !filters.college || reg.Student.college_id === filters.college;
+      const sportMatch = !filters.sport || (reg.Sports || []).some(s => String(s.id) === filters.sport);
+      const collegeMatch = !filters.college || String(reg.college_id) === filters.college;
       const paymentStatusMatch = !filters.paymentStatus || reg.payment_status === filters.paymentStatus;
       const registrationStatusMatch = !filters.registrationStatus || reg.status === filters.registrationStatus;
 
@@ -110,37 +107,8 @@ export function AllRegistrations() {
   }, [registrations, searchTerm, filters, date]);
 
 
-  const handleVerifyClick = (e: React.MouseEvent, registration: Registration) => {
-    e.stopPropagation(); // Prevent row click
-    setSelectedRegistration(registration);
-    setIsModalOpen(true);
-  };
-
-  const handleModalClose = () => {
-    setIsModalOpen(false);
-    setSelectedRegistration(null);
-  };
-
-  const handleVerification = async (registrationCode: string, status: 'approved' | 'rejected', remarks: string) => {
-    try {
-      await verifyPayment(registrationCode, status, remarks);
-      toast({
-        title: 'Success',
-        description: `Registration status updated to ${status}.`,
-      });
-      fetchData(); // Refresh the list
-      handleModalClose();
-    } catch (err: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Verification Failed',
-        description: err.response?.data?.message || 'Could not update status.',
-      });
-    }
-  };
-
-  const handleRowClick = (registrationCode: string) => {
-    router.push(`/console/${viewId}/registrations/${encodeURIComponent(registrationCode)}`);
+  const handleViewClick = (registrationId: string) => {
+    router.push(`/console/admin/registrations/details?id=${registrationId}`);
   };
 
   const renderTable = () => {
@@ -165,7 +133,7 @@ export function AllRegistrations() {
                 <TableRow>
                     <TableHead>Student</TableHead>
                     <TableHead className="hidden md:table-cell">College</TableHead>
-                    <TableHead className="hidden sm:table-cell">Sport</TableHead>
+                    <TableHead className="hidden sm:table-cell">Sport(s)</TableHead>
                     <TableHead className="hidden md:table-cell">Date</TableHead>
                     <TableHead>Payment</TableHead>
                     <TableHead>Status</TableHead>
@@ -174,13 +142,13 @@ export function AllRegistrations() {
                 </TableHeader>
                 <TableBody>
                 {filteredRegistrations.map((reg) => (
-                    <TableRow key={reg.id} onClick={() => handleRowClick(reg.registration_code)} className="cursor-pointer">
+                    <TableRow key={reg.id} onClick={() => handleViewClick(reg.id)} className="cursor-pointer">
                         <TableCell>
-                            <div className="font-medium">{reg.Student.name}</div>
+                            <div className="font-medium">{reg.name}</div>
                             <div className="text-xs text-muted-foreground font-mono">{reg.registration_code}</div>
                         </TableCell>
-                        <TableCell className="hidden md:table-cell">{reg.Student.other_college || reg.Student.College?.name}</TableCell>
-                        <TableCell className="hidden sm:table-cell">{reg.Sport?.name}</TableCell>
+                        <TableCell className="hidden md:table-cell">{reg.college_name}</TableCell>
+                        <TableCell className="hidden sm:table-cell">{(reg.Sports || []).map(s => s.name).join(', ')}</TableCell>
                         <TableCell className="hidden md:table-cell">{format(new Date(reg.created_at), 'PPP')}</TableCell>
                         <TableCell>
                             <Badge
@@ -211,15 +179,9 @@ export function AllRegistrations() {
                             </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                           {reg.payment_status === 'pending' && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={(e) => handleVerifyClick(e, reg)}
-                            >
-                                Verify
-                            </Button>
-                           )}
+                           <Button variant="ghost" size="sm">
+                               Details
+                           </Button>
                         </TableCell>
                     </TableRow>
                 ))}
@@ -313,14 +275,6 @@ export function AllRegistrations() {
             </div>
         </CardContent>
       </Card>
-      {selectedRegistration && (
-          <VerifyPaymentModal
-          isOpen={isModalOpen}
-          onClose={handleModalClose}
-          registration={selectedRegistration}
-          onVerify={handleVerification}
-          />
-      )}
     </>
   );
 }

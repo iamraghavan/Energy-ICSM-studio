@@ -316,10 +316,19 @@ export const getSports = async (): Promise<ApiSport[]> => {
   return Array.isArray(responseData) ? responseData : responseData?.data || [];
 };
 
+/**
+ * GET /api/v1/colleges/
+ * Returns a complete list of all colleges in the system.
+ */
 export const getColleges = async (): Promise<College[]> => {
     const response = await api.get('/colleges');
     const responseData = response.data;
-    return Array.isArray(responseData) ? responseData : responseData?.data || [];
+    const items = Array.isArray(responseData) ? responseData : responseData?.data || [];
+    // Ensure all IDs are strings for frontend consistency
+    return items.map((c: any) => ({
+        ...c,
+        id: String(c.id)
+    }));
 };
 
 export const getTeamsBySport = async (sportId: string): Promise<ApiTeam[]> => {
@@ -587,13 +596,23 @@ export const getPayments = async (filters: { status?: string, sport_id?: string 
     return Array.isArray(response.data) ? response.data : (response.data?.data || []);
 };
 
-export const getCollegesAdmin = async (): Promise<(Omit<College, 'id'> & {id: number})[]> => {
-    const response = await api.get('/colleges/admin');
-    return response.data.data || response.data;
-};
-
 export const createCollege = async (collegeData: Omit<College, 'id'>) => {
     const response = await api.post('/colleges', collegeData);
+    return response.data;
+};
+
+export const updateCollege = async (collegeId: number, collegeData: any) => {
+    const response = await api.put(`/colleges/${collegeId}`, collegeData);
+    return response.data;
+};
+
+export const deleteCollege = async (collegeId: number) => {
+    const response = await api.delete(`/colleges/${collegeId}`);
+    return response.data;
+};
+
+export const bulkCreateColleges = async (colleges: any[]) => {
+    const response = await api.post('/colleges/bulk', { colleges });
     return response.data;
 };
 
@@ -612,6 +631,10 @@ export const createSport = async (sportData: any) => {
     return response.data;
 }
 
+/**
+ * POST /api/v1/admin/verify-payment
+ * Approves or rejects a payment.
+ */
 export const verifyPayment = async (registrationId: string, status: 'approved' | 'rejected', remarks: string) => {
     const response = await api.post('/admin/verify-payment', {
         registrationId,
@@ -621,12 +644,20 @@ export const verifyPayment = async (registrationId: string, status: 'approved' |
     return response.data;
 };
 
+/**
+ * GET /api/v1/committee/registrations
+ * Simplified view for registration desks.
+ */
 export const getCommitteeRegistrations = async (filters: any): Promise<Registration[]> => {
     const response = await api.get('/committee/registrations', { params: filters });
     return Array.isArray(response.data) ? response.data : (response.data?.data || []);
 };
 
-export const updateCheckIn = async (registrationId: string, data: any) => {
+/**
+ * PATCH /api/v1/committee/checkin/:id
+ * Updates check-in status.
+ */
+export const updateCheckIn = async (registrationId: string, data: { check_in_status?: boolean; kit_delivered?: boolean; id_verified?: boolean; }) => {
     const response = await api.patch(`/committee/checkin/${registrationId}`, data);
     return response.data;
 };
@@ -637,4 +668,24 @@ export const getPassHTML = async (registrationId: string): Promise<string> => {
         responseType: 'text'
     });
     return response.data;
+};
+
+export const createUser = async (userData: any) => {
+    const response = await api.post('/users', userData);
+    return response.data;
+};
+
+export const updateUser = async (userId: string, userData: any) => {
+    const response = await api.put(`/users/${userId}`, userData);
+    return response.data;
+};
+
+export const deleteUser = async (userId: string) => {
+    const response = await api.delete(`/users/${userId}`);
+    return response.data;
+};
+
+export const getUsers = async (): Promise<User[]> => {
+    const response = await api.get('/users');
+    return Array.isArray(response.data) ? response.data : (response.data?.data || []);
 };
