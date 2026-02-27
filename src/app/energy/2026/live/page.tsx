@@ -2,15 +2,17 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getLiveMatches, type ApiMatch } from "@/lib/api";
 import { useMatchSync } from "@/hooks/useMatchSync";
-import { Activity, Radio, Trophy } from 'lucide-react';
+import { Activity, Radio, Trophy, ExternalLink, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
-import { LiveScoreCard, LiveScoreCardSkeleton } from '@/components/shared/LiveScoreCard';
-import { Goal, Square, Info, Zap } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Goal, Square, Info } from 'lucide-react';
 
 function TimelineEvent({ event }: { event: any }) {
     const getEventDetails = (event: any) => {
@@ -241,7 +243,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
     );
 }
 
-function LiveMatchCardWrapper({ match, onSelect }: { match: ApiMatch, onSelect: () => void }) {
+function LiveMatchRow({ match, onSelect }: { match: ApiMatch, onSelect: () => void }) {
     const { matchData } = useMatchSync(match.id);
     
     const getLiveScores = () => {
@@ -253,7 +255,7 @@ function LiveMatchCardWrapper({ match, onSelect }: { match: ApiMatch, onSelect: 
     };
 
     const scores = getLiveScores();
-    const { TeamA, TeamB, Sport, status, start_time } = match;
+    const { TeamA, TeamB, Sport, status } = match;
     const isCricket = Sport?.name === 'Cricket';
     const scoreA = scores[match.team_a_id] || { runs: 0, score: 0, wickets: 0, overs: 0 };
     const scoreB = scores[match.team_b_id] || { runs: 0, score: 0, wickets: 0, overs: 0 };
@@ -266,20 +268,51 @@ function LiveMatchCardWrapper({ match, onSelect }: { match: ApiMatch, onSelect: 
         ? `${scoreB.runs ?? 0}/${scoreB.wickets ?? 0}` 
         : (scoreB.score ?? scoreB.runs ?? 0);
 
-    const meta = isCricket 
-        ? `${parseFloat(String(scoreA.overs || 0)).toFixed(1)} Ov VS ${parseFloat(String(scoreB.overs || 0)).toFixed(1)} Ov`
-        : undefined;
-
     return (
-        <LiveScoreCard
-            sportType={Sport?.name}
-            date={format(new Date(start_time), 'MMM dd, yyyy')}
-            isLive={status === 'live'}
-            teamA={{ name: TeamA?.team_name, score: scoreADisplay }}
-            teamB={{ name: TeamB?.team_name, score: scoreBDisplay }}
-            metaInfo={meta}
+        <TableRow 
             onClick={onSelect}
-        />
+            className="cursor-pointer hover:bg-muted/50 transition-colors group"
+        >
+            <TableCell className="py-6">
+                <div className="flex flex-col gap-1">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{Sport?.name}</span>
+                    <div className="flex items-center gap-2">
+                        <div className={cn("h-2 w-2 rounded-full", status === 'live' ? "bg-red-600 animate-pulse shadow-[0_0_10px_rgba(220,38,38,0.5)]" : "bg-slate-200")} />
+                        <span className={cn("text-[9px] font-black uppercase tracking-widest", status === 'live' ? "text-red-600" : "text-slate-400")}>
+                            {status === 'live' ? 'Live Now' : status}
+                        </span>
+                    </div>
+                </div>
+            </TableCell>
+            <TableCell className="font-bold">
+                <div className="grid grid-cols-1 md:grid-cols-[1fr,auto,1fr] items-center gap-2 md:gap-8">
+                    <div className="text-left md:text-right uppercase tracking-tight text-xs md:text-sm">
+                        {TeamA?.team_name}
+                    </div>
+                    <div className="hidden md:flex items-center justify-center px-3 py-1 bg-slate-100 text-[10px] font-black text-slate-400 rounded-none border italic">VS</div>
+                    <div className="text-left uppercase tracking-tight text-xs md:text-sm">
+                        {TeamB?.team_name}
+                    </div>
+                </div>
+            </TableCell>
+            <TableCell className="text-center">
+                <div className="inline-flex items-center gap-4 bg-slate-950 text-white px-6 py-2 rounded-none font-mono font-black text-xl md:text-2xl tracking-tighter shadow-lg transform group-hover:scale-105 transition-transform">
+                    <span className="tabular-nums">{scoreADisplay}</span>
+                    <span className="text-slate-600 text-sm">/</span>
+                    <span className="tabular-nums">{scoreBDisplay}</span>
+                </div>
+                {isCricket && (
+                    <div className="mt-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                        {parseFloat(String(scoreA.overs || 0)).toFixed(1)} OV vs {parseFloat(String(scoreB.overs || 0)).toFixed(1)} OV
+                    </div>
+                )}
+            </TableCell>
+            <TableCell className="text-right">
+                <Button variant="outline" size="sm" className="rounded-none font-black text-[10px] uppercase tracking-widest border-2 hover:bg-primary hover:text-white transition-all">
+                    <ExternalLink className="h-3 w-3 mr-2" /> Match Hub
+                </Button>
+            </TableCell>
+        </TableRow>
     );
 }
 
@@ -304,25 +337,19 @@ export default function LivePage() {
     }, []);
 
     useEffect(() => {
-        // Fetch immediately on mount
         fetchLiveMatches();
-
-        // Setup polling interval (30s since we have real-time sync for active matches)
-        const intervalId = setInterval(() => {
-            fetchLiveMatches();
-        }, 30000);
-
+        const intervalId = setInterval(fetchLiveMatches, 30000);
         return () => clearInterval(intervalId);
     }, [fetchLiveMatches]);
 
     return (
-        <div className="min-h-screen bg-[#f5f7fa] pb-20">
+        <div className="min-h-screen bg-[#f8fafc] pb-20">
             <div className="container py-12 md:py-20 space-y-12">
                 <div className="text-center space-y-4 max-w-3xl mx-auto">
                     <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20 mb-4"
+                        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-none bg-primary/10 text-primary border-2 border-primary/20 mb-4"
                     >
                         <Radio className="h-4 w-4 animate-pulse" />
                         <span className="text-[10px] font-black uppercase tracking-[0.3em]">Stadium Live Bridge</span>
@@ -332,22 +359,40 @@ export default function LivePage() {
                     </h1>
                 </div>
 
-                <div className="min-h-[400px]">
+                <div className="max-w-6xl mx-auto">
                     {isLoading ? (
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10 max-w-6xl mx-auto">
-                            {[...Array(2)].map((_, i) => <LiveScoreCardSkeleton key={i} />)}
-                        </div>
-                    ) : liveMatches.length > 0 ? (
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10 max-w-6xl mx-auto">
-                            {liveMatches.map((match) => (
-                                <LiveMatchCardWrapper key={match.id} match={match} onSelect={() => setSelectedMatch(match)} />
+                        <div className="space-y-4">
+                            {[...Array(3)].map((_, i) => (
+                                <div key={i} className="h-20 w-full bg-slate-100 animate-pulse rounded-none" />
                             ))}
                         </div>
+                    ) : liveMatches.length > 0 ? (
+                        <div className="bg-white border-2 border-slate-200 shadow-xl rounded-none overflow-hidden">
+                            <Table>
+                                <TableHeader className="bg-slate-50 border-b-2 border-slate-200">
+                                    <TableRow>
+                                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 py-4">Status</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 py-4">Competing Teams</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 py-4 text-center">Live Score</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 py-4 text-right">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {liveMatches.map((match) => (
+                                        <LiveMatchRow 
+                                            key={match.id} 
+                                            match={match} 
+                                            onSelect={() => setSelectedMatch(match)} 
+                                        />
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
                     ) : (
-                        <div className="text-center py-24 bg-white border border-slate-200 rounded-none max-w-2xl mx-auto shadow-sm">
+                        <div className="text-center py-24 bg-white border-2 border-slate-200 rounded-none max-w-2xl mx-auto shadow-xl">
                             <Activity className="h-16 w-16 mx-auto mb-6 text-slate-300" />
                             <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-900 mb-2">Arena Quiet</h3>
-                            <p className="max-w-xs mx-auto text-sm font-medium text-slate-500">Check back soon for the next inter-college showdown!</p>
+                            <p className="max-w-xs mx-auto text-sm font-medium text-slate-500 italic">Check back soon for the next inter-college showdown!</p>
                         </div>
                     )}
                 </div>
