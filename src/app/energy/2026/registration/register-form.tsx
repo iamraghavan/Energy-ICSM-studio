@@ -4,27 +4,19 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
-import Tesseract from 'tesseract.js';
-import html2canvas from 'html2canvas';
 import { motion } from 'framer-motion';
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
 import { registerStudent, type ApiSport } from "@/lib/api";
-import { Loader2, Check, Copy, Download, Info } from "lucide-react";
+import { Loader2, Check, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
-import { Logo } from "@/components/shared/logo";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-
-
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "application/pdf"];
 
 const formSchema = z.object({
     fullName: z.string().min(3, "Full name must be at least 3 characters."),
@@ -44,15 +36,6 @@ const formSchema = z.object({
     pdWhatsapp: z.string().optional(),
     collegeEmail: z.string().optional(),
     collegeContact: z.string().optional(),
-
-    paymentScreenshot: z.any()
-        .refine((files) => files?.length == 1, "Payment screenshot is required.")
-        .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Max file size is 5MB.`)
-        .refine(
-            (files) => ACCEPTED_IMAGE_TYPES.includes(files?.[0]?.type),
-            "Only .jpg, .jpeg, .png, and .pdf formats are supported."
-        ),
-    transactionId: z.string().min(1, "Transaction ID is required."),
 }).refine(data => {
     if (data.isPd) {
         return !!data.pdName && !!data.pdWhatsapp && !!data.collegeEmail && !!data.collegeContact;
@@ -64,14 +47,6 @@ const formSchema = z.object({
 });
 
 type FormSchema = z.infer<typeof formSchema>;
-
-interface QrCodeStickerProps {
-    qrCodeUrl: string;
-    upiId: string;
-    totalAmount: number;
-    selectedSportIds: string[];
-    apiSports: ApiSport[];
-}
 
 const containerVariants = {
     hidden: { opacity: 0 },
@@ -94,83 +69,6 @@ const itemVariants = {
     },
 };
 
-
-const QrCodeSticker = React.forwardRef<HTMLDivElement, QrCodeStickerProps>(
-    ({ qrCodeUrl, upiId, totalAmount, selectedSportIds, apiSports }, ref) => {
-    const { toast } = useToast();
-    
-    const handleCopyUpiId = () => {
-        navigator.clipboard.writeText(upiId).then(() => {
-            toast({
-                title: "UPI ID Copied!",
-                description: `${upiId} has been copied to your clipboard.`,
-            });
-        }).catch(err => {
-             toast({
-                variant: "destructive",
-                title: "Copy Failed",
-                description: "Could not copy the UPI ID.",
-            });
-        });
-    };
-
-    return (
-        <div ref={ref} className="rounded-lg border bg-background p-4 flex flex-col items-center text-center shadow-md max-w-sm mx-auto">
-            <Logo className="h-10 w-28" />
-            <p className="text-sm font-medium mt-2">Pay using any UPI App</p>
-
-            <div className="my-4">
-                {totalAmount > 0 && qrCodeUrl ? (
-                    <Image src={qrCodeUrl} alt="Payment QR Code" width={170} height={170} />
-                ) : (
-                    <div className="w-[170px] h-[170px] flex items-center justify-center bg-muted border rounded-md">
-                        {totalAmount > 0 ? (
-                            <Loader2 className="h-8 w-8 animate-spin" />
-                        ) : (
-                           <p className="text-xs text-muted-foreground text-center p-2">Select a sport to generate QR code</p>
-                        )}
-                    </div>
-                )}
-            </div>
-
-            <p className="text-sm">Or pay to UPI ID:</p>
-            <div className="flex items-center gap-2 mt-1">
-                <p className="font-mono font-semibold text-primary">{upiId}</p>
-                <Button type="button" variant="ghost" size="icon" onClick={handleCopyUpiId} className="h-6 w-6">
-                    <Copy className="h-3 w-3" />
-                    <span className="sr-only">Copy UPI ID</span>
-                </Button>
-            </div>
-            
-            <div className="w-full text-left my-4 border-y py-2 space-y-2">
-                <div className="flex justify-between items-center font-bold">
-                    <span>Total Amount:</span>
-                    <span className="text-primary">₹{totalAmount.toFixed(2)}</span>
-                </div>
-                {selectedSportIds.length > 0 && (
-                    <div>
-                        <p className="text-xs font-medium text-muted-foreground">For:</p>
-                        <ul className="list-disc list-inside text-xs">
-                            {selectedSportIds.map(id => {
-                                const sport = apiSports.find(s => s.id.toString() === id);
-                                return <li key={id} className="font-medium">{sport?.name} ({sport?.category})</li>
-                            })}
-                        </ul>
-                    </div>
-                )}
-            </div>
-
-            <div className="flex items-center justify-center gap-4">
-                <Image src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg" alt="Google Pay" width={60} height={24} className="object-contain" />
-                <Image src="https://upload.wikimedia.org/wikipedia/commons/7/71/PhonePe_Logo.svg" alt="PhonePe" width={60} height={24} className="object-contain" />
-                <Image src="https://upload.wikimedia.org/wikipedia/commons/2/24/Paytm_Logo_%28standalone%29.svg" alt="Paytm" width={50} height={16} className="object-contain" />
-            </div>
-        </div>
-    )
-});
-QrCodeSticker.displayName = "QrCodeSticker";
-
-
 export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
     const { toast } = useToast();
     const router = useRouter();
@@ -179,16 +77,8 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
     const [selectedCategories, setSelectedCategories] = useState<string[]>(['Boys', 'Girls']);
     const [filteredSports, setFilteredSports] = useState<ApiSport[]>([]);
 
-    const [totalAmount, setTotalAmount] = useState(0);
-    const [qrCodeUrl, setQrCodeUrl] = useState('');
-    const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
-    const [isOcrRunning, setIsOcrRunning] = useState(false);
-
-
     const cityStateInputRef = useRef<HTMLInputElement | null>(null);
     const autocompleteRef = useRef<any>(null);
-    const qrStickerRef = useRef<HTMLDivElement>(null);
-
 
     const form = useForm<FormSchema>({
         resolver: zodResolver(formSchema),
@@ -202,7 +92,6 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
             cityState: "",
             selected_sport_ids: [],
             teamName: "",
-            transactionId: "",
             isPd: false,
         }
     });
@@ -214,11 +103,8 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
     const isWhatsappSame = watch('isWhatsappSame');
     const mobile = watch('mobile');
     const isPd = watch('isPd');
-    const paymentScreenshot = watch('paymentScreenshot');
     const fullName = watch('fullName');
     const whatsapp = watch('whatsapp');
-    
-    const upiId = "EGSPILLAYENGG@dbs";
 
     // Filter sports based on selected categories
     useEffect(() => {
@@ -245,27 +131,6 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
             return acc;
         }, {} as Record<string, ApiSport[]>);
     }, [filteredSports]);
-
-
-    // Calculate total amount
-    useEffect(() => {
-        const amount = selectedSportIds.reduce((sum, sportId) => {
-            const sport = apiSports.find(s => s.id.toString() === sportId);
-            return sum + (sport ? parseFloat(sport.amount) : 0);
-        }, 0);
-        setTotalAmount(amount);
-    }, [selectedSportIds, apiSports]);
-
-    // Generate QR code URL
-    useEffect(() => {
-        if (totalAmount > 0) {
-            const payeeName = "EGS Pillay Institutions";
-            const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${totalAmount.toFixed(2)}&cu=INR`;
-            setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUrl)}`);
-        } else {
-            setQrCodeUrl('');
-        }
-    }, [totalAmount, upiId]);
     
     // Auto-fill WhatsApp number
     useEffect(() => {
@@ -288,77 +153,6 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
     useEffect(() => {
         setIsClient(true);
     }, []);
-
-    // Screenshot preview and OCR for transaction ID
-    useEffect(() => {
-        if (paymentScreenshot && paymentScreenshot.length > 0) {
-            const file = paymentScreenshot[0];
-            if (ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-                if (file.type === 'application/pdf') {
-                    setScreenshotPreview(`PDF: ${file.name}`);
-                } else {
-                    const reader = new FileReader();
-                    reader.onloadend = () => setScreenshotPreview(reader.result as string);
-                    reader.readAsDataURL(file);
-
-                    const runOcr = async () => {
-                        setIsOcrRunning(true);
-                        toast({
-                            title: 'Scanning Screenshot...',
-                            description: 'Attempting to read the transaction ID.',
-                        });
-                        try {
-                            const { data: { text } } = await Tesseract.recognize(file, 'eng');
-                            
-                            const upiIdRegex = /(?:\bRef No\.?|Transaction ID|UPI Transaction ID|ID)\s*:?\s*([a-zA-Z0-9]{12,35})/i;
-                            const numberRegex = /\b\d{12,}\b/; // Look for a 12+ digit number, common for UPI IDs
-                            
-                            let match = text.match(upiIdRegex);
-
-                            if (match && match[1]) {
-                                setValue('transactionId', match[1], { shouldValidate: true });
-                                toast({
-                                    title: 'Transaction ID Found!',
-                                    description: `Extracted: ${match[1]}. Please verify.`,
-                                });
-                            } else {
-                                match = text.match(numberRegex);
-                                if (match && match[0]) {
-                                    setValue('transactionId', match[0], { shouldValidate: true });
-                                    toast({
-                                        title: 'Potential Transaction ID Found',
-                                        description: `Please verify this ID: ${match[0]}`,
-                                    });
-                                } else {
-                                    toast({
-                                        variant: 'destructive',
-                                        title: 'Could Not Find ID',
-                                        description: 'Please enter the transaction ID manually.',
-                                    });
-                                }
-                            }
-                        } catch (err) {
-                            console.error("OCR Error:", err);
-                            toast({
-                                variant: 'destructive',
-                                title: 'OCR Failed',
-                                description: 'Could not read the image. Please enter ID manually.',
-                            });
-                        } finally {
-                            setIsOcrRunning(false);
-                        }
-                    };
-                    runOcr();
-                }
-            } else {
-                 setScreenshotPreview(null);
-            }
-        } else {
-            setScreenshotPreview(null);
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [paymentScreenshot, setValue]);
-
 
     // Google Places Autocomplete
     useEffect(() => {
@@ -440,7 +234,6 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
         }
 
         formData.append('other_college', data.collegeName);
-        
         formData.append('selected_sport_ids', data.selected_sport_ids.join(','));
         
         const hasTeamSport = data.selected_sport_ids.some(id => apiSports.find(s => s.id.toString() === id)?.type === 'Team');
@@ -457,16 +250,10 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
         }
 
         formData.append('accommodation_needed', 'false');
-        formData.append('txn_id', data.transactionId);
-
-        if (data.paymentScreenshot && data.paymentScreenshot.length > 0) {
-            formData.append('screenshot', data.paymentScreenshot[0]);
-        }
 
         try {
             const result = await registerStudent(formData);
             
-            // Access registration_id and code from result.data or result based on potential formats
             const registrationId = result.data?.registration_id || result.registration_id;
             const registrationCode = result.data?.registration_code || result.registration_code;
 
@@ -487,30 +274,6 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
             router.push(`/energy/2026/registration/failure?error=${encodeURIComponent(errorMessage)}`);
         }
     };
-    
-    const handleDownloadQr = () => {
-        if (!qrStickerRef.current || totalAmount <= 0) return;
-
-        html2canvas(qrStickerRef.current, { useCORS: true }).then((canvas) => {
-            const link = document.createElement('a');
-            link.download = 'energy2026-payment-sticker.png';
-            link.href = canvas.toDataURL('image/png');
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            toast({
-                title: 'QR Sticker Downloading...',
-            });
-        }).catch(error => {
-            console.error('QR Download Error:', error);
-            toast({
-                variant: "destructive",
-                title: 'Download Failed',
-                description: 'Could not download the QR code sticker.',
-            });
-        });
-    };
-
 
     return (
         <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
@@ -682,58 +445,6 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                                         </div>
                                     </div>
                                 )}
-                             </FormSection>
-
-                            <FormSection title="Payment Details">
-                                <div className="space-y-6 rounded-lg border bg-muted/50 p-6">
-                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center font-bold text-lg">
-                                        <p>Total Amount:</p>
-                                        <p className="text-2xl text-primary">₹{totalAmount.toFixed(2)}</p>
-                                    </div>
-                                    
-                                    {selectedSportIds.length > 0 && (
-                                        <>
-                                            <QrCodeSticker
-                                                ref={qrStickerRef}
-                                                qrCodeUrl={qrCodeUrl}
-                                                upiId={upiId}
-                                                totalAmount={totalAmount}
-                                                selectedSportIds={selectedSportIds}
-                                                apiSports={apiSports}
-                                            />
-                                             <Button type="button" onClick={handleDownloadQr} variant="secondary" className="w-full max-w-sm mx-auto" disabled={totalAmount <= 0}>
-                                                <Download className="mr-2" />
-                                                Download Payment Sticker
-                                            </Button>
-                                        </>
-                                    )}
-
-                                    <FormField control={control} name="paymentScreenshot" render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Upload Payment Screenshot <span className="font-bold text-destructive">*</span></FormLabel>
-                                            <FormControl><Input type="file" accept={ACCEPTED_IMAGE_TYPES.join(',')} onChange={(e) => field.onChange(e.target.files)} /></FormControl>
-                                            <FormDescription>A screenshot of your payment is mandatory for verification. File must be JPG, PNG, or PDF, under 5MB.</FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )} />
-                                    {screenshotPreview && (
-                                        <div className="mt-4"><p className="text-sm font-medium mb-2">Screenshot Preview:</p>
-                                         {screenshotPreview.startsWith('PDF:') ? <p className="font-mono text-sm p-2 bg-background rounded-md border">{screenshotPreview}</p> : <Image src={screenshotPreview} alt="Screenshot preview" width={200} height={400} className="rounded-md border object-contain" />}
-                                        </div>
-                                    )}
-                                    <FormField name="transactionId" control={control} render={({ field }) => (
-                                        <FormItem><FormLabel>Transaction ID <span className="font-bold text-destructive">*</span></FormLabel>
-                                            <FormControl>
-                                                <div className="relative">
-                                                     <Input placeholder="Enter the UPI Transaction ID" {...field} disabled={isOcrRunning} />
-                                                     {isOcrRunning && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin" />}
-                                                </div>
-                                            </FormControl>
-                                             <FormDescription>We'll try to auto-fill this from your screenshot. Please verify it's correct.</FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )} />
-                                </div>
                              </FormSection>
 
                              <motion.div variants={itemVariants}>
