@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Card } from "@/components/ui/card";
 import { getLiveMatches, type ApiMatch } from "@/lib/api";
 import { useMatchSync } from "@/hooks/useMatchSync";
-import { Trophy, Goal, Square, Info, MapPin, Activity, ShieldCheck, ChevronRight, Zap } from 'lucide-react';
+import { Trophy, Goal, Square, Info, MapPin, Activity, ShieldCheck, ChevronRight, Zap, Radio } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { cn } from '@/lib/utils';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -73,8 +73,6 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
     
     if (!isOpen || !initialMatch) return null;
 
-    // Granular Merging: Preserve initial data while overlaying live score updates
-    // We must handle the case where initialMatch.score_details is a string
     const getInitialScores = () => {
         let base = initialMatch.score_details;
         if (typeof base === 'string') {
@@ -118,11 +116,9 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
     const bowlerStats = match.current_bowler_stats || {};
     const state = match.match_state || {};
 
-    // Enhanced lookup for player statistics
     const getStat = (id: any, source: any) => {
         if (!id || !source) return null;
         const sid = String(id);
-        // Try direct key, then student_id property, then id property
         return source[sid] || 
                Object.values(source).find((s: any) => String(s.student_id) === sid || String(s.id) === sid) || 
                null;
@@ -250,7 +246,6 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
 function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => void }) {
     const { matchData } = useMatchSync(match.id);
     
-    // Resolve score data from both REST poll and Realtime Sync
     const getLiveScores = () => {
         let base = match.score_details;
         if (typeof base === 'string') {
@@ -266,45 +261,85 @@ function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => v
     const scoreB = scores[match.team_b_id] || { runs: 0, score: 0, wickets: 0 };
 
     return (
-        <Card onClick={onSelect} className="cursor-pointer overflow-hidden border-2 border-primary/10 transition-all duration-300 hover:shadow-2xl bg-card/50 backdrop-blur-sm group hover:-translate-y-1 rounded-[2rem]">
-            <div className="p-6">
-                <div className="flex justify-between items-center mb-6">
-                    <div className="flex items-center gap-2">
-                        <div className="bg-primary/10 p-1.5 rounded-lg"><Trophy className="h-3 w-3 text-primary" /></div>
-                        <span className="font-black text-[10px] uppercase tracking-[0.2em] text-primary">{Sport?.name}</span>
+        <Card onClick={onSelect} className="cursor-pointer group relative overflow-hidden border-0 bg-slate-950 rounded-[2.5rem] shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:shadow-primary/20">
+            {/* Glossy Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none z-10" />
+            
+            {/* Dynamic Background */}
+            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                <Trophy className="h-32 w-32 text-primary rotate-12" />
+            </div>
+
+            <div className="relative z-20 p-6 md:p-8">
+                {/* Header */}
+                <div className="flex justify-between items-start mb-8">
+                    <div className="space-y-1">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary">
+                            <Zap className="h-3 w-3 fill-current" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em]">{Sport?.name}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-[10px] text-slate-500 font-bold uppercase tracking-widest pl-1">
+                            <MapPin className="h-3 w-3" /> {venue}
+                        </div>
                     </div>
-                    <Badge variant="outline" className="text-[9px] bg-background font-black tracking-widest uppercase"><MapPin className="h-2.5 w-2.5 mr-1 text-muted-foreground" /> {venue}</Badge>
+                    
+                    <Badge variant={status === 'live' ? 'destructive' : 'outline'} className={cn(
+                        "h-7 px-4 rounded-full font-black text-[10px] tracking-[0.2em] uppercase border-2",
+                        status === 'live' ? "animate-pulse bg-red-600 border-red-500 shadow-[0_0_15px_rgba(220,38,38,0.5)]" : "bg-slate-900 border-slate-800 text-slate-400"
+                    )}>
+                        <Radio className="h-3 w-3 mr-1.5" /> {status}
+                    </Badge>
                 </div>
-                <div className="grid grid-cols-[1fr,auto,1fr] gap-4 items-center mb-4">
-                    <div className="text-center">
-                        <p className="font-black text-[10px] uppercase leading-tight min-h-[2rem] flex items-center justify-center mb-2">{TeamA?.team_name}</p>
-                        <div className="text-4xl font-black font-mono tracking-tighter text-foreground">
+
+                {/* Scoreboard Grid */}
+                <div className="grid grid-cols-[1fr,auto,1fr] gap-4 items-center">
+                    {/* Team A */}
+                    <div className="text-center space-y-3">
+                        <div className="relative mx-auto w-16 h-16 rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center font-black text-2xl text-slate-400 shadow-inner group-hover:border-primary/50 transition-colors">
+                            {TeamA?.team_name?.charAt(0)}
+                        </div>
+                        <p className="font-black text-[11px] uppercase leading-tight min-h-[2.5rem] flex items-center justify-center text-slate-300 group-hover:text-white transition-colors tracking-tight">
+                            {TeamA?.team_name}
+                        </p>
+                        <div className="text-4xl md:text-5xl font-black font-mono tracking-tighter text-white tabular-nums">
                             {isCricket ? (
-                                <>{Number(scoreA.runs ?? 0)}<span className="text-xl text-muted-foreground">/{Number(scoreA.wickets ?? 0)}</span></>
+                                <>{Number(scoreA.runs ?? 0)}<span className="text-xl md:text-2xl text-slate-600">/{Number(scoreA.wickets ?? 0)}</span></>
                             ) : (Number(scoreA.score ?? 0))}
                         </div>
                     </div>
-                    <div className="flex flex-col items-center opacity-20">
-                        <div className="h-8 w-px bg-border" />
-                        <span className="text-[8px] font-black my-1">VS</span>
-                        <div className="h-8 w-px bg-border" />
+
+                    {/* Divider */}
+                    <div className="flex flex-col items-center gap-3 py-4">
+                        <div className="h-12 w-px bg-gradient-to-b from-transparent via-slate-800 to-transparent" />
+                        <span className="text-[9px] font-black text-slate-700 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800">VS</span>
+                        <div className="h-12 w-px bg-gradient-to-t from-transparent via-slate-800 to-transparent" />
                     </div>
-                    <div className="text-center">
-                        <p className="font-black text-[10px] uppercase leading-tight min-h-[2rem] flex items-center justify-center mb-2">{TeamB?.team_name}</p>
-                        <div className="text-4xl font-black font-mono tracking-tighter text-foreground">
+
+                    {/* Team B */}
+                    <div className="text-center space-y-3">
+                        <div className="relative mx-auto w-16 h-16 rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center font-black text-2xl text-slate-400 shadow-inner group-hover:border-primary/50 transition-colors">
+                            {TeamB?.team_name?.charAt(0)}
+                        </div>
+                        <p className="font-black text-[11px] uppercase leading-tight min-h-[2.5rem] flex items-center justify-center text-slate-300 group-hover:text-white transition-colors tracking-tight">
+                            {TeamB?.team_name}
+                        </p>
+                        <div className="text-4xl md:text-5xl font-black font-mono tracking-tighter text-white tabular-nums">
                             {isCricket ? (
-                                <>{Number(scoreB.runs ?? 0)}<span className="text-xl text-muted-foreground">/{Number(scoreB.wickets ?? 0)}</span></>
+                                <>{Number(scoreB.runs ?? 0)}<span className="text-xl md:text-2xl text-slate-600">/{Number(scoreB.wickets ?? 0)}</span></>
                             ) : (Number(scoreB.score ?? 0))}
                         </div>
                     </div>
                 </div>
             </div>
-            <div className="px-6 py-3 border-t bg-muted/30 flex justify-between items-center">
-                <div className={cn(status === 'live' ? 'text-destructive' : 'text-muted-foreground', "font-black text-[9px] tracking-[0.3em] uppercase flex items-center gap-1.5")}>
-                    {status === 'live' && <span className="flex h-2 w-2 rounded-full bg-destructive animate-pulse" />} {status}
+
+            {/* Action Footer */}
+            <div className="relative z-20 px-8 py-4 bg-slate-900/50 border-t border-slate-800/50 flex justify-between items-center group-hover:bg-primary/5 transition-colors">
+                <div className="flex items-center gap-2">
+                    <Activity className="h-3 w-3 text-primary animate-pulse" />
+                    <span className="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em]">Real-time Sync Active</span>
                 </div>
-                <div className="flex items-center gap-1 text-[9px] font-black uppercase text-muted-foreground group-hover:text-primary transition-colors tracking-widest">
-                    Match Center <ChevronRight className="h-3 w-3" />
+                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase text-primary group-hover:translate-x-1 transition-transform tracking-widest">
+                    Enter Match Center <ChevronRight className="h-4 w-4" />
                 </div>
             </div>
         </Card>
@@ -340,7 +375,7 @@ export default function LivePage() {
                     animate={{ opacity: 1, scale: 1 }}
                     className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20 mb-4"
                 >
-                    <Activity className="h-4 w-4 animate-pulse" />
+                    <Radio className="h-4 w-4 animate-pulse" />
                     <span className="text-[10px] font-black uppercase tracking-[0.3em]">Stadium Live Bridge</span>
                 </motion.div>
                 <h1 className="text-5xl md:text-7xl font-black font-headline tracking-tighter text-foreground uppercase italic leading-none">
@@ -352,7 +387,7 @@ export default function LivePage() {
             <div className="min-h-[400px]">
                 {isLoading ? (
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {[...Array(3)].map((_, i) => <Card key={i} className="h-64 w-full animate-pulse bg-muted rounded-[2.5rem]" />)}
+                        {[...Array(3)].map((_, i) => <Card key={i} className="h-80 w-full animate-pulse bg-muted rounded-[3rem]" />)}
                     </div>
                 ) : liveMatches.length > 0 ? (
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
