@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Card } from "@/components/ui/card";
 import { getLiveMatches, type ApiMatch } from "@/lib/api";
 import { useMatchSync } from "@/hooks/useMatchSync";
-import { Trophy, Goal, Square, Info, MapPin, Activity, ChevronRight, Zap, Radio } from 'lucide-react';
+import { Trophy, Goal, Square, Info, Activity, ChevronRight, Zap, Radio } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { cn } from '@/lib/utils';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -138,9 +138,6 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                         <div className="bg-white/10 p-2 rounded-xl"><Trophy className="h-5 w-5 text-white" /></div>
                         <div>
                             <h3 className="text-white font-bold text-sm uppercase tracking-widest leading-none">{Sport?.name}</h3>
-                            <div className="flex items-center gap-1.5 text-white/60 text-[10px] mt-1 font-bold uppercase">
-                                <MapPin className="h-3 w-3" /> {match.venue}
-                            </div>
                         </div>
                     </div>
                     <Badge variant={status === 'live' ? 'destructive' : 'outline'} className={cn(status === 'live' && "animate-pulse", "px-3 py-1 font-black text-[10px] tracking-[0.2em] uppercase")}>
@@ -256,7 +253,7 @@ function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => v
     };
 
     const scores = getLiveScores();
-    const { TeamA, TeamB, Sport, status, venue, start_time } = match;
+    const { TeamA, TeamB, Sport, status, start_time } = match;
     const isCricket = Sport?.name === 'Cricket';
     const scoreA = scores[match.team_a_id] || { runs: 0, score: 0, wickets: 0 };
     const scoreB = scores[match.team_b_id] || { runs: 0, score: 0, wickets: 0 };
@@ -312,12 +309,9 @@ function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => v
                     </div>
                 </div>
 
-                {/* Sport and Venue */}
+                {/* Sport */}
                 <div className="text-center pt-2">
-                    <p className="text-[11px] font-black uppercase tracking-widest text-primary mb-1">{Sport?.name}</p>
-                    <div className="flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground font-bold uppercase tracking-tight">
-                        <MapPin className="h-3 w-3" /> {venue}
-                    </div>
+                    <p className="text-[11px] font-black uppercase tracking-widest text-primary">{Sport?.name}</p>
                 </div>
             </div>
 
