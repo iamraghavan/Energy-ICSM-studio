@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { motion, AnimatePresence } from 'framer-motion';
+import { format } from 'date-fns';
 
 function TimelineEvent({ event }: { event: any }) {
     const getEventDetails = (e: any) => {
@@ -255,92 +256,76 @@ function LiveMatchCard({ match, onSelect }: { match: ApiMatch, onSelect: () => v
     };
 
     const scores = getLiveScores();
-    const { TeamA, TeamB, Sport, status, venue } = match;
+    const { TeamA, TeamB, Sport, status, venue, start_time } = match;
     const isCricket = Sport?.name === 'Cricket';
     const scoreA = scores[match.team_a_id] || { runs: 0, score: 0, wickets: 0 };
     const scoreB = scores[match.team_b_id] || { runs: 0, score: 0, wickets: 0 };
 
+    const teamAScore = Number(scoreA.runs ?? scoreA.score ?? 0);
+    const teamBScore = Number(scoreB.runs ?? scoreB.score ?? 0);
+
     return (
-        <Card onClick={onSelect} className="cursor-pointer group relative overflow-hidden border-0 bg-slate-950 rounded-[2.5rem] shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:shadow-primary/20">
-            {/* Glossy Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none z-10" />
-            
-            {/* Dynamic Background */}
-            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-                <Trophy className="h-32 w-32 text-primary rotate-12" />
-            </div>
-
-            <div className="relative z-20 p-6 md:p-8">
-                {/* Header */}
-                <div className="flex justify-between items-start mb-8">
-                    <div className="space-y-1">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary">
-                            <Zap className="h-3 w-3 fill-current" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em]">{Sport?.name}</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-[10px] text-slate-500 font-bold uppercase tracking-widest pl-1">
-                            <MapPin className="h-3 w-3" /> {venue}
-                        </div>
+        <Card onClick={onSelect} className="cursor-pointer group relative overflow-hidden border bg-white rounded-xl shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+            <div className="p-6 space-y-6">
+                {/* Header: Date and Live Indicator */}
+                <div className="flex flex-col items-center gap-1">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                        {format(new Date(start_time), 'MMM dd, yyyy')}
+                    </p>
+                    <div className="flex items-center gap-2">
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
+                        </span>
+                        <span className="text-[10px] font-black text-red-600 uppercase tracking-[0.2em] animate-pulse">Live</span>
                     </div>
-                    
-                    <Badge variant={status === 'live' ? 'destructive' : 'outline'} className={cn(
-                        "h-7 px-4 rounded-full font-black text-[10px] tracking-[0.2em] uppercase border-2",
-                        status === 'live' ? "animate-pulse bg-red-600 border-red-500 shadow-[0_0_15px_rgba(220,38,38,0.5)]" : "bg-slate-900 border-slate-800 text-slate-400"
-                    )}>
-                        <Radio className="h-3 w-3 mr-1.5" /> {status}
-                    </Badge>
                 </div>
 
-                {/* Scoreboard Grid */}
-                <div className="grid grid-cols-[1fr,auto,1fr] gap-4 items-center">
-                    {/* Team A */}
-                    <div className="text-center space-y-3">
-                        <div className="relative mx-auto w-16 h-16 rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center font-black text-2xl text-slate-400 shadow-inner group-hover:border-primary/50 transition-colors">
-                            {TeamA?.team_name?.charAt(0)}
-                        </div>
-                        <p className="font-black text-[11px] uppercase leading-tight min-h-[2.5rem] flex items-center justify-center text-slate-300 group-hover:text-white transition-colors tracking-tight">
+                {/* Scoreboard Grid (Industrial Style) */}
+                <div className="grid grid-cols-[1fr,auto,1fr] items-center gap-4">
+                    {/* Team A Name */}
+                    <div className="text-center">
+                        <h3 className="font-black text-xs md:text-sm uppercase tracking-tight leading-tight line-clamp-2 text-slate-800">
                             {TeamA?.team_name}
-                        </p>
-                        <div className="text-4xl md:text-5xl font-black font-mono tracking-tighter text-white tabular-nums">
-                            {isCricket ? (
-                                <>{Number(scoreA.runs ?? 0)}<span className="text-xl md:text-2xl text-slate-600">/{Number(scoreA.wickets ?? 0)}</span></>
-                            ) : (Number(scoreA.score ?? 0))}
-                        </div>
+                        </h3>
                     </div>
 
-                    {/* Divider */}
-                    <div className="flex flex-col items-center gap-3 py-4">
-                        <div className="h-12 w-px bg-gradient-to-b from-transparent via-slate-800 to-transparent" />
-                        <span className="text-[9px] font-black text-slate-700 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800">VS</span>
-                        <div className="h-12 w-px bg-gradient-to-t from-transparent via-slate-800 to-transparent" />
+                    {/* Score (Massive Center) */}
+                    <div className="flex flex-col items-center px-4">
+                        <div className="text-3xl md:text-4xl font-black font-mono tracking-tighter text-slate-900 flex items-center gap-2">
+                            <span>{teamAScore}</span>
+                            <span className="text-slate-300">-</span>
+                            <span>{teamBScore}</span>
+                        </div>
+                        {isCricket && (
+                            <div className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tighter">
+                                ({scoreA.wickets || 0} W) vs ({scoreB.wickets || 0} W)
+                            </div>
+                        )}
                     </div>
 
-                    {/* Team B */}
-                    <div className="text-center space-y-3">
-                        <div className="relative mx-auto w-16 h-16 rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center font-black text-2xl text-slate-400 shadow-inner group-hover:border-primary/50 transition-colors">
-                            {TeamB?.team_name?.charAt(0)}
-                        </div>
-                        <p className="font-black text-[11px] uppercase leading-tight min-h-[2.5rem] flex items-center justify-center text-slate-300 group-hover:text-white transition-colors tracking-tight">
+                    {/* Team B Name */}
+                    <div className="text-center">
+                        <h3 className="font-black text-xs md:text-sm uppercase tracking-tight leading-tight line-clamp-2 text-slate-800">
                             {TeamB?.team_name}
-                        </p>
-                        <div className="text-4xl md:text-5xl font-black font-mono tracking-tighter text-white tabular-nums">
-                            {isCricket ? (
-                                <>{Number(scoreB.runs ?? 0)}<span className="text-xl md:text-2xl text-slate-600">/{Number(scoreB.wickets ?? 0)}</span></>
-                            ) : (Number(scoreB.score ?? 0))}
-                        </div>
+                        </h3>
+                    </div>
+                </div>
+
+                {/* Sport and Venue */}
+                <div className="text-center pt-2">
+                    <p className="text-[11px] font-black uppercase tracking-widest text-primary mb-1">{Sport?.name}</p>
+                    <div className="flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground font-bold uppercase tracking-tight">
+                        <MapPin className="h-3 w-3" /> {venue}
                     </div>
                 </div>
             </div>
 
-            {/* Action Footer */}
-            <div className="relative z-20 px-8 py-4 bg-slate-900/50 border-t border-slate-800/50 flex justify-between items-center group-hover:bg-primary/5 transition-colors">
-                <div className="flex items-center gap-2">
-                    <Activity className="h-3 w-3 text-primary animate-pulse" />
-                    <span className="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em]">Real-time Sync Active</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase text-primary group-hover:translate-x-1 transition-transform tracking-widest">
-                    Enter Match Center <ChevronRight className="h-4 w-4" />
-                </div>
+            {/* Bottom Call to Action */}
+            <div className="bg-slate-50 py-3 text-center border-t transition-all duration-300 group-hover:bg-primary group-hover:text-white">
+                <span className="text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1">
+                    Enter Match Hub <ChevronRight className="h-3 w-3" />
+                </span>
             </div>
         </Card>
     );
@@ -379,14 +364,14 @@ export default function LivePage() {
                     <span className="text-[10px] font-black uppercase tracking-[0.3em]">Stadium Live Bridge</span>
                 </motion.div>
                 <h1 className="text-5xl md:text-7xl font-black font-headline tracking-tighter text-foreground uppercase italic leading-none">
-                    Arena <span className="text-primary">Live</span>
+                    Stadium <span className="text-primary">Live</span>
                 </h1>
             </div>
 
             <div className="min-h-[400px]">
                 {isLoading ? (
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {[...Array(3)].map((_, i) => <Card key={i} className="h-80 w-full animate-pulse bg-muted rounded-[3rem]" />)}
+                        {[...Array(3)].map((_, i) => <Card key={i} className="h-80 w-full animate-pulse bg-muted rounded-xl" />)}
                     </div>
                 ) : liveMatches.length > 0 ? (
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
