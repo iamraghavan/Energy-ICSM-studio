@@ -1,4 +1,3 @@
-
 "use client";
 import { useEffect, useState } from 'react';
 import { ref, onValue } from 'firebase/database';
@@ -22,7 +21,7 @@ export const useMatchSync = (matchId: string) => {
         return;
     }
 
-    // Path: sports/matches/UUID
+    // Path based on guide: sports/matches/{matchId}
     const matchRef = ref(db, `sports/matches/${matchId}`);
     
     const unsubscribe = onValue(matchRef, (snapshot) => {

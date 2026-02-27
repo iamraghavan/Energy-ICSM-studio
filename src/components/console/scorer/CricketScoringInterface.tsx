@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect } from 'react';
 import { Card } from "@/components/ui/card";
@@ -16,7 +15,7 @@ import { EndMatchDialog } from './EndMatchDialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const BatsmanCard = ({ player, onStrike, stats }: { player: any, onStrike: boolean, stats: any }) => {
-    const name = player?.name || player?.Student?.name || stats?.name || 'Waiting...';
+    const name = stats?.name || player?.Student?.name || player?.name || 'Assign Player';
     return (
         <Card className={cn(
             "border-slate-700 text-white p-4 transition-all duration-300 relative overflow-hidden", 
@@ -39,7 +38,7 @@ const BatsmanCard = ({ player, onStrike, stats }: { player: any, onStrike: boole
 }
 
 const BowlerCard = ({ player, stats }: { player: any, stats: any }) => {
-    const name = player?.name || player?.Student?.name || stats?.name || 'Select Bowler';
+    const name = stats?.name || player?.Student?.name || player?.name || 'Select Bowler';
     return (
         <Card className="bg-slate-900 border-slate-700 text-white p-4">
              <div className="flex justify-between items-center">
@@ -49,7 +48,7 @@ const BowlerCard = ({ player, stats }: { player: any, stats: any }) => {
                     </div>
                     <div>
                         <p className="font-black text-[11px] uppercase tracking-tight">{name}</p>
-                        <p className="text-[8px] text-emerald-500 uppercase font-black tracking-widest">Active Bowler</p>
+                        <p className="text-[8px] text-emerald-500 uppercase font-black tracking-widest">Active Spell</p>
                     </div>
                 </div>
                  <div className="text-right">
@@ -135,7 +134,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                 batting_team_id: battingTeamId,
                 current_innings: state.current_innings || 1
             });
-            toast({ title: 'Lineup Commitment Sent' });
+            toast({ title: 'Lineup Updated' });
             setIsPlayerSelectOpen(false);
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Update Failed', description: error.response?.data?.message || 'Server error.' });
@@ -152,7 +151,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
         }
         setIsProcessingCommand(true);
         try {
-            // PAYLOAD: Standardized high-performance scoring payload
+            // Commands: Specialized high-performance scoring payload
             await submitCricketBall(initialMatch.id, {
                 batting_team_id: battingTeamId,
                 striker_id: String(state.striker_id),
@@ -187,7 +186,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
         return (
             <div className="h-screen flex flex-col items-center justify-center bg-slate-950 text-white space-y-4">
                 <Loader2 className="animate-spin h-12 w-12 text-blue-500" />
-                <p className="font-black uppercase tracking-widest text-xs">Authenticating Scorers Hub...</p>
+                <p className="font-black uppercase tracking-widest text-xs">Loading Live Console...</p>
             </div>
         )
     }
@@ -201,13 +200,13 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
             <header className="p-4 flex items-center justify-between border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
                 <Button variant="ghost" size="icon" onClick={onBack}><ArrowLeft className="w-5 h-5"/></Button>
                 <div className="text-center">
-                    <h1 className="font-black text-[10px] tracking-[0.2em] uppercase text-blue-400">Cricket Scoring Hub</h1>
+                    <h1 className="font-black text-[10px] tracking-[0.2em] uppercase text-blue-400">Match Hub</h1>
                     <div className="flex items-center gap-1.5 justify-center mt-0.5">
                         <div className={cn("w-1.5 h-1.5 rounded-full", isSyncing ? "bg-amber-500 animate-pulse" : "bg-green-500")} />
-                        <span className="text-[9px] uppercase font-black text-slate-500 tracking-widest">{isSyncing ? 'Syncing RTDB' : 'State Ready'}</span>
+                        <span className="text-[9px] uppercase font-black text-slate-500 tracking-widest">{isSyncing ? 'Syncing RTDB' : 'Ready'}</span>
                     </div>
                 </div>
-                <Button variant="destructive" size="sm" className="font-black uppercase text-[10px] h-8" onClick={() => setIsEndMatchDialogOpen(true)}>Finish Match</Button>
+                <Button variant="destructive" size="sm" className="font-black uppercase text-[10px] h-8" onClick={() => setIsEndMatchDialogOpen(true)}>End Match</Button>
             </header>
 
             <main className="p-4 space-y-4 max-w-md mx-auto w-full flex-1 pb-24">
@@ -233,8 +232,8 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                 {isOverEnd && (
                     <Alert className="bg-amber-500/10 border-amber-500/20 text-amber-500 py-3">
                         <Info className="h-4 w-4 stroke-amber-500" />
-                        <AlertTitle className="font-black uppercase text-[10px] tracking-widest">Cycle Complete</AlertTitle>
-                        <AlertDescription className="text-[11px] font-bold">Over complete. Rotate bowlers and verify strikers.</AlertDescription>
+                        <AlertTitle className="font-black uppercase text-[10px] tracking-widest">End of Over</AlertTitle>
+                        <AlertDescription className="text-[11px] font-bold">Please select a new bowler and rotate strikers if needed.</AlertDescription>
                     </Alert>
                 )}
 
@@ -257,14 +256,14 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
-                        <Button variant="secondary" className="h-12 bg-amber-600 hover:bg-amber-700 font-black uppercase text-xs tracking-widest text-white border-b-4 border-amber-900" disabled={isProcessingCommand} onClick={() => handleBall(0, false, 'wide')}>WD (+1)</Button>
-                        <Button variant="secondary" className="h-12 bg-amber-600 hover:bg-amber-700 font-black uppercase text-xs tracking-widest text-white border-b-4 border-amber-900" disabled={isProcessingCommand} onClick={() => handleBall(0, false, 'noball')}>NB (+1)</Button>
+                        <Button variant="secondary" className="h-12 bg-amber-600 hover:bg-amber-700 font-black uppercase text-xs tracking-widest text-white border-b-4 border-amber-900" disabled={isProcessingCommand} onClick={() => handleBall(0, false, 'wide')}>WIDE (+1)</Button>
+                        <Button variant="secondary" className="h-12 bg-amber-600 hover:bg-amber-700 font-black uppercase text-xs tracking-widest text-white border-b-4 border-amber-900" disabled={isProcessingCommand} onClick={() => handleBall(0, false, 'noball')}>NO BALL (+1)</Button>
                     </div>
                 </div>
 
                 <Button variant="secondary" className="w-full h-14 bg-slate-800 font-black uppercase text-xs tracking-widest hover:bg-slate-700 border-slate-700 border" onClick={() => setIsPlayerSelectOpen(true)} disabled={isProcessingCommand}>
                     {isProcessingCommand ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <ChevronRight className="w-4 h-4 mr-2"/>}
-                    Lineup & State Proxy
+                    Lineup & Field Change
                 </Button>
             </main>
 
@@ -272,7 +271,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                 <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-[95vw] sm:max-w-md rounded-3xl overflow-hidden p-0">
                     <DialogHeader className="p-6 bg-slate-800/50">
                         <DialogTitle className="text-xl font-black uppercase tracking-tighter">Lineup Proxy</DialogTitle>
-                        <DialogDescription className="text-slate-400 text-xs font-bold uppercase">Commit active roles to Firebase state</DialogDescription>
+                        <DialogDescription className="text-slate-400 text-xs font-bold uppercase">Assign active players to the field</DialogDescription>
                     </DialogHeader>
                     <div className="p-6 space-y-6">
                         <div className="space-y-4">
@@ -299,7 +298,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-emerald-400 text-[10px] uppercase font-black tracking-[0.2em]">Bowler</Label>
+                                <Label className="text-emerald-400 text-[10px] uppercase font-black tracking-[0.2em]">Active Bowler</Label>
                                 <Select onValueChange={setModalBowlerId} value={modalBowlerId || undefined}>
                                     <SelectTrigger className="bg-slate-800 border-slate-700 h-14 rounded-2xl font-bold"><SelectValue placeholder="Select Bowler" /></SelectTrigger>
                                     <SelectContent className="bg-slate-800 border-slate-700 text-white">
@@ -314,7 +313,7 @@ export function CricketScoringInterface({ match: initialMatch, onBack }: { match
                     <DialogFooter className="p-6">
                         <Button onClick={handleSavePlayers} disabled={isProcessingCommand} className="w-full h-14 bg-blue-600 hover:bg-blue-700 font-black uppercase text-lg">
                             {isProcessingCommand ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : null}
-                            Sync Lineup to Fans
+                            Commit Lineup
                         </Button>
                     </DialogFooter>
                 </DialogContent>

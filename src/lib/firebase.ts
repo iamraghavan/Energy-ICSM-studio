@@ -1,7 +1,7 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getDatabase, Database } from "firebase/database";
 
-// Configuration from provided environment variables
+// Production Configuration for egspec-symposium
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -13,20 +13,18 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-/**
- * Lazy initialization for Firebase services.
- * Specifically handles the client-side RTDB connection.
- */
 let app: FirebaseApp | undefined;
 let database: Database | undefined;
 
+/**
+ * Lazy initialization for Firebase services.
+ * Only connects on the client side to avoid build-time errors.
+ */
 const getRtDatabase = (): Database | null => {
-    // Prevent initialization on the server during SSR/Prerendering
     if (typeof window === 'undefined') return null;
     
     if (!app) {
         try {
-            // Avoid re-initialization if app already exists
             app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
         } catch (error) {
             console.error("Firebase Initialization Error:", error);

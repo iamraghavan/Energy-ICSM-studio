@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import type { College } from './types';
 
@@ -44,11 +43,6 @@ export type TeamMember = {
     name: string;
     College: { name: string; } | null;
     other_college: string | null;
-};
-
-export type ApiTeamDetails = ApiTeam & {
-    Captain: TeamMember;
-    members: TeamMember[];
 };
 
 export type Registration = {
@@ -99,7 +93,6 @@ export type Registration = {
     } | null;
 };
 
-
 export type User = {
     id: string;
     name: string;
@@ -110,20 +103,6 @@ export type User = {
 };
 
 export type TeamMemberRole = 'Captain' | 'Vice-Captain' | 'Player';
-export type CricketSportRole = 'Batsman' | 'Bowler' | 'All-rounder';
-export type FootballSportRole = 'Goalkeeper' | 'Defender' | 'Midfielder' | 'Forward';
-export type BasketballSportRole = 'Point Guard' | 'Shooting Guard' | 'Small Forward' | 'Power Forward' | 'Center';
-
-export type BattingStyle = 'Right Hand' | 'Left Hand';
-export type BowlingStyle = 
-    | 'Right Arm Fast' 
-    | 'Right Arm Medium' 
-    | 'Right Arm Spin' 
-    | 'Left Arm Fast' 
-    | 'Left Arm Medium' 
-    | 'Left Arm Spin' 
-    | 'N/A';
-
 export type StudentTeamMember = {
     id: string;
     student_id: string;
@@ -131,9 +110,9 @@ export type StudentTeamMember = {
     email: string;
     mobile: string;
     role: TeamMemberRole;
-    sport_role?: CricketSportRole | FootballSportRole | BasketballSportRole | string | null;
-    batting_style?: BattingStyle | null;
-    bowling_style?: BowlingStyle | null;
+    sport_role?: string | null;
+    batting_style?: string | null;
+    bowling_style?: string | null;
     is_wicket_keeper?: boolean | null;
     additional_details?: any;
     Student?: {
@@ -227,12 +206,6 @@ export type SportStudent = {
     mobile: string;
     department: string | null;
 }
-
-export type SportsHeadAnalytics = {
-    totalTeams: number;
-    totalPlayers: number;
-    upcomingMatches: number;
-};
 
 export type SportsHeadTeam = {
     id: string;
@@ -330,6 +303,8 @@ api.interceptors.response.use(
   }
 );
 
+// --- Core API Methods ---
+
 export const loginUser = async (credentials: {username: string, password: string}) => {
     const response = await api.post('/auth/login', credentials);
     return response.data;
@@ -366,162 +341,10 @@ export const createMatch = async (matchData: any) => {
 export const getScorerTeamDetails = async (teamId: string): Promise<FullSportsHeadTeam> => {
     const response = await api.get(`/scorer/teams/${teamId}`);
     const data = response.data.data || response.data;
-    
-    if (data && !data.members && data.Members) {
-        data.members = data.Members;
-    }
-    
-    if (Array.isArray(data)) {
-        return { members: data } as any;
-    }
-
     return data;
 }
 
-export const getLineup = async (matchId: string) => {
-    const response = await api.get(`/scorer/matches/${matchId}/lineup`);
-    return response.data?.data || response.data;
-}
-
-export const saveLineup = async (matchId: string, lineup: {player_id: string, is_substitute: boolean}[]) => {
-    const response = await api.post(`/scorer/matches/${matchId}/lineup`, { players: lineup });
-    return response.data;
-}
-
-export const endMatch = async (matchId: string, winnerId: string | null, mvpId?: string | null) => {
-    const response = await api.post(`/scorer/matches/${matchId}/end`, {
-        winner_id: winnerId,
-        mvp_id: mvpId
-    });
-    return response.data;
-};
-
-export const getLiveMatches = async (): Promise<ApiMatch[]> => {
-    const response = await api.get('/matches/live');
-    const responseData = response.data;
-    return Array.isArray(responseData) ? responseData : responseData?.data || [];
-};
-
-export const getAdminAnalytics = async () => {
-    const response = await api.get('/admin/analytics');
-    return response.data?.data || response.data;
-}
-
-export const getUsers = async (): Promise<User[]> => {
-    const response = await api.get('/admin/users');
-    return Array.isArray(response.data) ? response.data : (response.data?.data || []);
-};
-
-export const createUser = async (userData: any) => {
-    const response = await api.post('/admin/users', userData);
-    return response.data;
-};
-
-export const updateUser = async (userId: string, userData: any) => {
-    const response = await api.put(`/admin/users/${userId}`, userData);
-    return response.data;
-}
-
-export const deleteUser = async (userId: string) => {
-    const response = await api.delete(`/admin/users/${userId}`);
-    return response.data;
-};
-
-export const getRegistrations = async (): Promise<Registration[]> => {
-    const response = await api.get('/admin/registrations');
-    const responseData = response.data;
-    return Array.isArray(responseData) ? responseData : (responseData?.data || []);
-};
-
-export const getPayments = async (filters: { status?: string, sport_id?: string }): Promise<Registration[]> => {
-    const response = await api.get('/admin/payments', { params: filters });
-    return Array.isArray(response.data) ? response.data : (response.data?.data || []);
-};
-
-export const getColleges = async (): Promise<College[]> => {
-    const response = await api.get('/colleges');
-    const responseData = response.data;
-    return Array.isArray(responseData) ? responseData : responseData?.data || [];
-};
-
-export const getCollegesAdmin = async (): Promise<(Omit<College, 'id'> & {id: number})[]> => {
-    const response = await api.get('/colleges/admin');
-    return response.data.data || response.data;
-};
-
-export const createCollege = async (collegeData: Omit<College, 'id'>) => {
-    const response = await api.post('/colleges', collegeData);
-    return response.data;
-};
-
-export const bulkCreateColleges = async (collegesData: Omit<College, 'id'>[]) => {
-    const response = await api.post('/colleges/bulk', { colleges: collegesData });
-    return response.data;
-}
-
-export const updateCollege = async (collegeId: number, collegeData: Partial<Omit<College, 'id'>>) => {
-    const response = await api.put(`/colleges/${collegeId}`, collegeData);
-    return response.data;
-}
-
-export const deleteCollege = async (collegeId: number) => {
-    const response = await api.delete(`/colleges/${collegeId}`);
-    return response.data;
-}
-
-export const deleteSport = async (sportId: number) => {
-    const response = await api.delete(`/sports/${sportId}`);
-    return response.data;
-}
-
-export const updateSport = async (sportId: number, sportData: any) => {
-    const response = await api.put(`/sports/${sportId}`, sportData);
-    return response.data;
-}
-
-export const createSport = async (sportData: any) => {
-    const response = await api.post('/sports', sportData);
-    return response.data;
-}
-
-export const getRegistration = async (id: string): Promise<Registration> => {
-    const response = await api.get(`/register/details`, { params: { id } });
-    return response.data?.data || response.data;
-};
-
-export const verifyPayment = async (registrationId: string, status: 'approved' | 'rejected', remarks: string) => {
-    const response = await api.post('/admin/verify-payment', {
-        registrationId,
-        status,
-        remarks,
-    });
-    return response.data;
-};
-
-export const getCommitteeRegistrations = async (filters: any): Promise<Registration[]> => {
-    const response = await api.get('/committee/registrations', { params: filters });
-    return Array.isArray(response.data) ? response.data : (response.data?.data || []);
-};
-
-export const updateCheckIn = async (registrationId: string, data: any) => {
-    const response = await api.patch(`/committee/checkin/${registrationId}`, data);
-    return response.data;
-};
-
-export const getPassHTML = async (registrationId: string): Promise<string> => {
-    const response = await api.get(`/committee/registrations/${registrationId}/print-pass`, {
-        headers: { 'Accept': 'text/html' },
-        responseType: 'text'
-    });
-    return response.data;
-};
-
-export const updateMatchState = async (matchId: string, state: any) => {
-    const response = await api.post(`/scorer/matches/${matchId}/state`, state);
-    return response.data;
-};
-
-// --- Command (REST) Methods for Scorer Hybrid Architecture ---
+// --- Firebase-First Scoring Engine (Hybrid Commands) ---
 
 export const submitCricketBall = async (matchId: string, ballData: {
     batting_team_id: string;
@@ -534,7 +357,7 @@ export const submitCricketBall = async (matchId: string, ballData: {
     is_wicket: boolean;
     wicket_type: string | null;
 }) => {
-    // API Endpoint per Ultimate Guide: POST /api/v1/matches/:matchId/cricket
+    // Aligns with Guide: POST /api/v1/matches/:matchId/cricket
     const response = await api.post(`/matches/${matchId}/cricket`, ballData);
     return response.data;
 };
@@ -544,19 +367,8 @@ export const submitStandardScore = async (matchId: string, scoreData: {
     team_id: string;
     event_type: string;
 }) => {
-    // Universal scoring for Football, Kabaddi, etc. per Ultimate Guide
+    // Aligns with Guide: POST /api/v1/matches/:matchId/standard
     const response = await api.post(`/matches/${matchId}/standard`, scoreData);
-    return response.data;
-};
-
-export const submitMatchEvent = async (matchId: string, eventData: {
-    event_type: string;
-    team_id?: string;
-    player_id?: string;
-    details: string;
-}) => {
-    // Arbitrary event logging per Ultimate Guide
-    const response = await api.post(`/matches/${matchId}/event`, eventData);
     return response.data;
 };
 
@@ -565,7 +377,14 @@ export const submitTossResult = async (matchId: string, tossData: {
     decision: string;
     details: string;
 }) => {
-    const response = await api.post(`/scorer/matches/${matchId}/toss`, tossData);
+    // Aligns with Guide: POST /api/v1/matches/:matchId/toss
+    const response = await api.post(`/matches/${matchId}/toss`, tossData);
+    return response.data;
+};
+
+export const updateMatchState = async (matchId: string, state: any) => {
+    // Aligns with Guide: POST /api/v1/matches/:matchId/state
+    const response = await api.post(`/matches/${matchId}/state`, state);
     return response.data;
 };
 
@@ -574,9 +393,29 @@ export const startMatch = async (matchId: string) => {
     return response.data;
 };
 
+export const endMatch = async (matchId: string, winnerId: string | null, mvpId?: string | null) => {
+    // Hits /end to trigger MySQL archival as per guide
+    const response = await api.post(`/scorer/matches/${matchId}/end`, {
+        winner_id: winnerId,
+        mvp_id: mvpId
+    });
+    return response.data;
+};
+
 export const undoLastBall = async (matchId: string) => {
     const response = await api.post(`/scorer/matches/${matchId}/undo`);
     return response.data;
+};
+
+export const getLiveMatches = async (): Promise<ApiMatch[]> => {
+    const response = await api.get('/matches/live');
+    const responseData = response.data;
+    return Array.isArray(responseData) ? responseData : responseData?.data || [];
+};
+
+export const getRegistration = async (id: string): Promise<Registration> => {
+    const response = await api.get(`/register/details`, { params: { id } });
+    return response.data?.data || response.data;
 };
 
 // --- Student Portal Functions ---
@@ -716,5 +555,75 @@ export const getSportsHeadStudents = async (): Promise<SportStudent[]> => {
 
 export const bulkAddPlayersToTeam = async (teamId: string, registrationIds: string[]) => {
     const response = await api.post(`/sports-head/teams/${teamId}/members`, { registrationIds });
+    return response.data;
+};
+
+// --- Admin Functions ---
+
+export const getAdminAnalytics = async () => {
+    const response = await api.get('/admin/analytics');
+    return response.data?.data || response.data;
+}
+
+export const getRegistrations = async (): Promise<Registration[]> => {
+    const response = await api.get('/admin/registrations');
+    const responseData = response.data;
+    return Array.isArray(responseData) ? responseData : (responseData?.data || []);
+};
+
+export const getPayments = async (filters: { status?: string, sport_id?: string }): Promise<Registration[]> => {
+    const response = await api.get('/admin/payments', { params: filters });
+    return Array.isArray(response.data) ? response.data : (response.data?.data || []);
+};
+
+export const getCollegesAdmin = async (): Promise<(Omit<College, 'id'> & {id: number})[]> => {
+    const response = await api.get('/colleges/admin');
+    return response.data.data || response.data;
+};
+
+export const createCollege = async (collegeData: Omit<College, 'id'>) => {
+    const response = await api.post('/colleges', collegeData);
+    return response.data;
+};
+
+export const deleteSport = async (sportId: number) => {
+    const response = await api.delete(`/sports/${sportId}`);
+    return response.data;
+}
+
+export const updateSport = async (sportId: number, sportData: any) => {
+    const response = await api.put(`/sports/${sportId}`, sportData);
+    return response.data;
+}
+
+export const createSport = async (sportData: any) => {
+    const response = await api.post('/sports', sportData);
+    return response.data;
+}
+
+export const verifyPayment = async (registrationId: string, status: 'approved' | 'rejected', remarks: string) => {
+    const response = await api.post('/admin/verify-payment', {
+        registrationId,
+        status,
+        remarks,
+    });
+    return response.data;
+};
+
+export const getCommitteeRegistrations = async (filters: any): Promise<Registration[]> => {
+    const response = await api.get('/committee/registrations', { params: filters });
+    return Array.isArray(response.data) ? response.data : (response.data?.data || []);
+};
+
+export const updateCheckIn = async (registrationId: string, data: any) => {
+    const response = await api.patch(`/committee/checkin/${registrationId}`, data);
+    return response.data;
+};
+
+export const getPassHTML = async (registrationId: string): Promise<string> => {
+    const response = await api.get(`/committee/registrations/${registrationId}/print-pass`, {
+        headers: { 'Accept': 'text/html' },
+        responseType: 'text'
+    });
     return response.data;
 };
