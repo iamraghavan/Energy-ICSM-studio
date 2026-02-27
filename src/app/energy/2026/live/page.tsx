@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Card } from "@/components/ui/card";
 import { getLiveMatches, type ApiMatch } from "@/lib/api";
 import { useMatchSync } from "@/hooks/useMatchSync";
-import { Trophy, Goal, Square, Info, MapPin, Activity, ShieldCheck, ChevronRight, Zap, Radio } from 'lucide-react';
+import { Trophy, Goal, Square, Info, MapPin, Activity, ChevronRight, Zap, Radio } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { cn } from '@/lib/utils';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -379,7 +379,7 @@ export default function LivePage() {
                     <span className="text-[10px] font-black uppercase tracking-[0.3em]">Stadium Live Bridge</span>
                 </motion.div>
                 <h1 className="text-5xl md:text-7xl font-black font-headline tracking-tighter text-foreground uppercase italic leading-none">
-                    Energy <span className="text-primary">2026</span> Live
+                    Arena <span className="text-primary">Live</span>
                 </h1>
             </div>
 
