@@ -29,13 +29,13 @@ const formSchema = z.object({
     cityState: z.string().min(2, "City/State is required."),
     
     selected_sport_ids: z.array(z.string()).min(1, "Please select at least one sport."),
-    teamName: z.string().optional(),
+    teamName: z.string().optional().or(z.literal('')),
 
     isPd: z.boolean().default(false),
-    pdName: z.string().optional(),
-    pdWhatsapp: z.string().optional(),
-    collegeEmail: z.string().optional(),
-    collegeContact: z.string().optional(),
+    pdName: z.string().optional().or(z.literal('')),
+    pdWhatsapp: z.string().optional().or(z.literal('')),
+    collegeEmail: z.string().optional().or(z.literal('')),
+    collegeContact: z.string().optional().or(z.literal('')),
 }).refine(data => {
     if (data.isPd) {
         return !!data.pdName && !!data.pdWhatsapp && !!data.collegeEmail && !!data.collegeContact;
@@ -93,6 +93,10 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
             selected_sport_ids: [],
             teamName: "",
             isPd: false,
+            pdName: "",
+            pdWhatsapp: "",
+            collegeEmail: "",
+            collegeContact: "",
         }
     });
 
