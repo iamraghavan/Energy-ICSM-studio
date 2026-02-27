@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card } from "@/components/ui/card";
 import { getLiveMatches, type ApiMatch } from "@/lib/api";
 import { useMatchSync } from "@/hooks/useMatchSync";
-import { Trophy, Goal, Square, Replace, Info, MapPin, ArrowRight, Activity, Users, Clock } from 'lucide-react';
+import { Trophy, Goal, Square, Info, MapPin, ArrowRight, Activity, Clock } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { cn } from '@/lib/utils';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -23,7 +23,7 @@ function TimelineEvent({ event }: { event: any }) {
                 return { icon: Square, color: 'text-red-500 bg-red-500/10', title: `WICKET! (${e.wicket_type || 'out'})`, commentary: e.details };
             case 'delivery':
                 let title = `${e.runs || 0} run${e.runs !== 1 ? 's' : ''}`;
-                if (e.extra_type) title = `${e.extra_type.toUpperCase()} (+${e.runs + e.extras})`;
+                if (e.extra_type) title = `${e.extra_type.toUpperCase()} (+${(e.runs || 0) + (e.extras || 0)})`;
                 return { icon: Trophy, color: 'text-blue-500 bg-blue-500/10', title: title, commentary: e.details };
             default:
                 return { icon: Info, color: 'text-gray-500 bg-gray-500/10', title: e.event_type?.toUpperCase() || 'Match Update', commentary: e.details };
@@ -77,16 +77,15 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
     
     if (!isOpen || !initialMatch) return null;
 
-    // Architecture: Merge REST metadata with RTDB state
+    // Architecture: REST metadata (names, icons) + RTDB state (scores, stats)
     const match = matchData ? { ...initialMatch, ...matchData } : initialMatch;
     
     const TeamA = initialMatch.TeamA;
     const TeamB = initialMatch.TeamB;
     const Sport = initialMatch.Sport;
+    const isCricket = Sport?.name === 'Cricket';
     const status = match.status || initialMatch.status;
 
-    const isCricket = Sport?.name === 'Cricket';
-    
     const scoreDetails = match.score_details || {};
     const teamAScoreData = scoreDetails[initialMatch.team_a_id] || { runs: 0, score: 0, wickets: 0, overs: 0 };
     const teamBScoreData = scoreDetails[initialMatch.team_b_id] || { runs: 0, score: 0, wickets: 0, overs: 0 };
@@ -130,7 +129,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                                 <p className="text-4xl sm:text-6xl font-black font-mono tracking-tighter">
                                     {teamAScore}{isCricket && <span className="text-2xl sm:text-3xl text-muted-foreground">/{teamAScoreData.wickets ?? 0}</span>}
                                 </p>
-                                {isCricket && <p className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest">({(teamAScoreData.overs ?? 0.0).toFixed(1)} Ov)</p>}
+                                {isCricket && <p className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest">({(teamAScoreData.overs || 0.0).toFixed(1)} Ov)</p>}
                             </div>
                         </div>
                         <div className="flex flex-col items-center gap-2"><div className="h-12 w-[2px] bg-border" /><span className="text-[10px] font-black text-muted-foreground uppercase bg-background px-2 py-1 rounded-full border">VS</span><div className="h-12 w-[2px] bg-border" /></div>
@@ -140,7 +139,7 @@ function MatchDetailsDialog({ initialMatch, isOpen, onClose }: { initialMatch: A
                                 <p className="text-4xl sm:text-6xl font-black font-mono tracking-tighter">
                                     {teamBScore}{isCricket && <span className="text-2xl sm:text-3xl text-muted-foreground">/{teamBScoreData.wickets ?? 0}</span>}
                                 </p>
-                                {isCricket && <p className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest">({(teamBScoreData.overs ?? 0.0).toFixed(1)} Ov)</p>}
+                                {isCricket && <p className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest">({(teamBScoreData.overs || 0.0).toFixed(1)} Ov)</p>}
                             </div>
                         </div>
                     </div>

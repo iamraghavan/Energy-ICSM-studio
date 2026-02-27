@@ -29,16 +29,18 @@ export const useMatchSync = (matchId: string) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
         
-        // Defensive data normalization
+        // Defensive data normalization for the UI
         if (data) {
-            // Convert history object to sorted array
-            if (data.match_history && !Array.isArray(data.match_history)) {
-                data.match_history = Object.values(data.match_history).sort((a: any, b: any) => 
-                    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-                );
+            // Convert match_history object (pushed by RTDB) to a sorted array
+            if (data.match_history && typeof data.match_history === 'object' && !Array.isArray(data.match_history)) {
+                data.match_history = Object.entries(data.match_history)
+                    .map(([id, val]: [string, any]) => ({ id, ...val }))
+                    .sort((a: any, b: any) => 
+                        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+                    );
             }
             
-            // Ensure mandatory objects exist to prevent crashes
+            // Ensure child nodes exist to prevent UI property-read crashes
             data.score_details = data.score_details || {};
             data.match_state = data.match_state || {};
             data.current_batsmen_stats = data.current_batsmen_stats || {};
