@@ -26,7 +26,7 @@ const getColors = (sportName: string) => SPORT_COLORS[sportName] || SPORT_COLORS
 function ScoreUnit({ value, subValue, colors, label }: { value: string | number, subValue?: string, colors: any, label: string }) {
     return (
         <div className="flex flex-col items-center justify-center w-full h-full text-center px-4">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4 line-clamp-2 min-h-[3rem] flex items-center justify-center leading-tight">
+            <span className="text-sm font-bold uppercase tracking-wider text-white mb-4 line-clamp-2 min-h-[3rem] flex items-center justify-center leading-tight">
                 {label}
             </span>
             <motion.span 
