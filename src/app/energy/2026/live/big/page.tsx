@@ -54,10 +54,20 @@ function ScoreUnit({ value, subValue, colors, label }: { value: string | number,
 /**
  * Simplified Match Board for Big Screen Signage
  */
-function BigMatchBoard({ match, isPrimary = false }: { match: ApiMatch, isPrimary?: boolean }) {
+function BigMatchBoard({ match, isPrimary = false, onCompleted }: { match: ApiMatch, isPrimary?: boolean, onCompleted?: (id: string) => void }) {
     const { matchData } = useMatchSync(match.id);
     const colors = getColors(match.Sport?.name);
     
+    // Auto-remove logic: if the real-time status becomes 'completed', notify parent
+    useEffect(() => {
+        if (matchData?.status === 'completed' && onCompleted) {
+            onCompleted(match.id);
+        }
+    }, [matchData?.status, match.id, onCompleted]);
+
+    // If match is already completed in sync, don't render
+    if (matchData?.status === 'completed') return null;
+
     // Merge RTDB data with initial REST data
     const scores = { ...(match.score_details || {}), ...(matchData?.score_details || {}) };
     const matchState = { ...(match.match_state || {}), ...(matchData?.match_state || {}) };
@@ -89,11 +99,18 @@ function BigMatchBoard({ match, isPrimary = false }: { match: ApiMatch, isPrimar
     }
 
     return (
-        <div className={cn(
-            "relative h-full flex flex-col items-center justify-between p-6 sm:p-10 border-2 bg-slate-950 overflow-hidden",
-            colors.border, colors.bg,
-            isPrimary ? "flex-1" : ""
-        )}>
+        <motion.div 
+            layout
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ duration: 0.5, ease: "easeInOut" }}
+            className={cn(
+                "relative h-full flex flex-col items-center justify-between p-6 sm:p-10 border-2 bg-slate-950 overflow-hidden",
+                colors.border, colors.bg,
+                isPrimary ? "flex-1" : ""
+            )}
+        >
             {/* Top Indicator */}
             <div className="w-full flex justify-between items-center border-b border-slate-900 pb-4 mb-4">
                 <span className={cn("font-bold text-lg sm:text-2xl uppercase tracking-[0.2em] italic", colors.primary)}>
@@ -149,7 +166,7 @@ function BigMatchBoard({ match, isPrimary = false }: { match: ApiMatch, isPrimar
                     <span className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.4em]">Match in Progress</span>
                 )}
             </div>
-        </div>
+        </motion.div>
     );
 }
 
@@ -163,7 +180,8 @@ export default function BigScreenLive() {
         isFetchingRef.current = true;
         try {
             const matches = await getLiveMatches();
-            setLiveMatches(matches);
+            // Ensure we only show live matches from the API
+            setLiveMatches(matches.filter(m => m.status === 'live'));
         } catch (error) {
             console.error("Big Screen Fetch error:", error);
         } finally {
@@ -177,6 +195,10 @@ export default function BigScreenLive() {
         const intervalId = setInterval(fetchMatches, 30000);
         return () => clearInterval(intervalId);
     }, [fetchMatches]);
+
+    const handleMatchCompleted = (id: string) => {
+        setLiveMatches(prev => prev.filter(m => m.id !== id));
+    };
 
     const cricketMatches = liveMatches.filter(m => m.Sport?.name === 'Cricket');
     const otherMatches = liveMatches.filter(m => m.Sport?.name !== 'Cricket');
@@ -196,25 +218,42 @@ export default function BigScreenLive() {
             return (
                 <div className="h-full flex flex-col lg:flex-row gap-4">
                     <div className="flex-[2]">
-                        <BigMatchBoard match={cricketMatches[0]} isPrimary />
+                        <BigMatchBoard 
+                            match={cricketMatches[0]} 
+                            isPrimary 
+                            onCompleted={handleMatchCompleted}
+                        />
                     </div>
                     <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4 overflow-hidden">
-                        {otherMatches.slice(0, 3).map(m => (
-                            <BigMatchBoard key={m.id} match={m} />
-                        ))}
+                        <AnimatePresence>
+                            {otherMatches.slice(0, 3).map(m => (
+                                <BigMatchBoard 
+                                    key={m.id} 
+                                    match={m} 
+                                    onCompleted={handleMatchCompleted}
+                                />
+                            ))}
+                        </AnimatePresence>
                     </div>
                 </div>
             );
         }
 
         const gridCols = liveMatches.length === 1 ? 'grid-cols-1' : 
-                         liveMatches.length === 2 ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 md:grid-cols-2';
+                         liveMatches.length === 2 ? 'grid-cols-1 lg:grid-cols-2' : 
+                         liveMatches.length === 3 ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-2';
         
         return (
             <div className={cn("h-full grid gap-4", gridCols)}>
-                {liveMatches.slice(0, 4).map(m => (
-                    <BigMatchBoard key={m.id} match={m} />
-                ))}
+                <AnimatePresence>
+                    {liveMatches.slice(0, 4).map(m => (
+                        <BigMatchBoard 
+                            key={m.id} 
+                            match={m} 
+                            onCompleted={handleMatchCompleted}
+                        />
+                    ))}
+                </AnimatePresence>
             </div>
         );
     };
