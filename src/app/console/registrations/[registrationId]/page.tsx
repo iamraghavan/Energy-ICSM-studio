@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getRegistration, type Registration } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,9 +12,9 @@ import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
-export default function RegistrationDetailsPage({ params }: { params: { registrationId: string } }) {
+export default function RegistrationDetailsPage({ params }: { params: Promise<{ registrationId: string }> }) {
     const router = useRouter();
-    const { registrationId } = params;
+    const { registrationId } = use(params);
     
     const [registration, setRegistration] = useState<Registration | null>(null);
     const [isLoading, setIsLoading] = useState(true);

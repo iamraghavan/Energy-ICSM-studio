@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 
-export default function Page({ params }: { params: { id: string } }) {
-    redirect(`/energy/2026/teams/${params.id}`);
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
+    redirect(`/energy/2026/teams/${id}`);
 }

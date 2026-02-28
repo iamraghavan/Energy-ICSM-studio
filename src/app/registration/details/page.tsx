@@ -1,16 +1,17 @@
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 
-function Redirector({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
+async function Redirector({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+    const sp = await searchParams;
     const params = new URLSearchParams();
-    if (searchParams?.id) {
-        params.set('id', Array.isArray(searchParams.id) ? searchParams.id[0] : searchParams.id);
+    if (sp?.id) {
+        params.set('id', Array.isArray(sp.id) ? sp.id[0] : sp.id);
     }
     redirect(`/energy/2026/registration/details?${params.toString()}`);
     return null;
 }
 
-export default function Page({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
+export default function Page({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
     return (
         <Suspense>
             <Redirector searchParams={searchParams} />

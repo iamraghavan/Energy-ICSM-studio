@@ -8,8 +8,9 @@ import Image from "next/image";
 import { getSportIcon } from "@/lib/icons";
 import type { Metadata } from 'next';
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const team = await getTeam(params.id).catch(() => null);
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const team = await getTeam(id).catch(() => null);
 
   if (!team) {
     return {
@@ -26,8 +27,9 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   };
 }
 
-export default async function TeamDetailsPage({ params }: { params: { id: string } }) {
-    const team = await getTeam(params.id).catch(() => null);
+export default async function TeamDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
+    const team = await getTeam(id).catch(() => null);
 
     if (!team) {
         notFound();

@@ -1,9 +1,7 @@
-
-
 import { ManageTeamClientPage } from '@/components/student-dashboard/ManageTeamClientPage';
 
-export default function ManageTeamPage({ params }: { params: { teamId: string } }) {
-    const teamId = params.teamId;
+export default async function ManageTeamPage({ params }: { params: Promise<{ teamId: string }> }) {
+    const { teamId } = await params;
 
     if (!teamId) {
         return (
