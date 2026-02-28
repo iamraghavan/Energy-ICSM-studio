@@ -33,7 +33,7 @@ function ScoreUnit({ value, colors, label, isDense = false }: { value: string | 
         <div className="flex flex-col items-center justify-center w-full h-full text-center px-2">
             <span className={cn(
                 "font-black uppercase tracking-wider text-white mb-2 line-clamp-2 flex items-center justify-center leading-tight",
-                isDense ? "text-sm min-h-[2.5rem]" : "text-base min-h-[3rem]"
+                isDense ? "text-sm min-h-[2rem]" : "text-base min-h-[3rem]"
             )}>
                 {label}
             </span>
@@ -46,7 +46,7 @@ function ScoreUnit({ value, colors, label, isDense = false }: { value: string | 
                     colors.primary,
                     isLongText 
                         ? (isDense ? "text-xl" : "text-3xl")
-                        : (isDense ? "text-5xl sm:text-6xl" : "text-7xl sm:text-8xl")
+                        : (isDense ? "text-6xl sm:text-7xl" : "text-7xl sm:text-8xl")
                 )}
             >
                 {value}
@@ -162,7 +162,7 @@ function ScheduledMatchesTable({ matches }: { matches: ApiMatch[] }) {
                     <Calendar className="h-4 w-4 text-amber-500" />
                     <h2 className="text-amber-500 font-black text-xs uppercase tracking-[0.4em]">Arena Schedule</h2>
                 </div>
-                <Badge variant="outline" className="border-slate-800 text-slate-600 rounded-none uppercase text-[8px] tracking-widest">Real-time Feed</Badge>
+                <Badge variant="outline" className="border-slate-800 text-slate-600 rounded-none uppercase text-[8px] tracking-widest">Upcoming Matchups</Badge>
             </div>
             
             <div className="overflow-hidden border border-slate-900 rounded-sm bg-slate-950/50">
@@ -170,23 +170,21 @@ function ScheduledMatchesTable({ matches }: { matches: ApiMatch[] }) {
                     <thead className="bg-slate-900/50 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 border-b border-slate-800">
                         <tr>
                             <th className="p-3 pl-6">Sport</th>
-                            <th className="p-3">Competitors</th>
-                            <th className="p-3 text-right pr-6">Status</th>
+                            <th className="p-3">Matchup</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-900">
                         {matches.map(m => (
                             <tr key={m.id} className="text-white">
-                                <td className="p-3 pl-6"><span className="font-black text-xs uppercase tracking-wider text-slate-400">{m.Sport?.name}</span></td>
+                                <td className="p-3 pl-6">
+                                    <span className="font-black text-xs uppercase tracking-wider text-slate-400">{m.Sport?.name}</span>
+                                </td>
                                 <td className="p-3">
                                     <div className="flex items-center gap-4 text-sm font-black uppercase tracking-tight">
-                                        <span className="truncate max-w-[200px]">{m.TeamA?.team_name}</span>
+                                        <span className="truncate max-w-[300px]">{m.TeamA?.team_name}</span>
                                         <span className="text-[10px] text-slate-600 italic">VS</span>
-                                        <span className="truncate max-w-[200px]">{m.TeamB?.team_name}</span>
+                                        <span className="truncate max-w-[300px]">{m.TeamB?.team_name}</span>
                                     </div>
-                                </td>
-                                <td className="p-3 text-right pr-6">
-                                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-600 px-2 py-1 border border-slate-800 rounded">Upcoming</span>
                                 </td>
                             </tr>
                         ))}
@@ -213,7 +211,7 @@ export default function BigScreenLive() {
         if (count <= 1) return "grid-cols-1 grid-rows-1";
         if (count === 2) return "grid-cols-2 grid-rows-1";
         if (count === 3) return "grid-cols-3 grid-rows-1";
-        if (count === 4) return "grid-cols-2 grid-rows-2"; // 2x2 Even Split
+        if (count === 4) return "grid-cols-2 grid-rows-2"; // 2x2 Even Split (1 2 / 3 4)
         return "grid-cols-3 grid-rows-2";
     };
 
@@ -246,8 +244,8 @@ export default function BigScreenLive() {
                         <ScheduledMatchesTable matches={scheduledMatches} />
                         
                         {error && (
-                            <div className="absolute top-4 right-4 flex items-center gap-3 px-4 py-2 bg-red-600 border-2 border-red-500 rounded-full text-[10px] font-black uppercase tracking-widest text-white shadow-2xl z-50">
-                                <AlertCircle className="h-4 w-4" /> {error}
+                            <div className="absolute top-4 right-4 flex items-center gap-3 px-4 py-2 bg-slate-900 border-2 border-slate-800 rounded-full text-[8px] font-black uppercase tracking-widest text-slate-500 shadow-2xl z-50">
+                                <Activity className="h-3 w-3 text-amber-500 animate-pulse" /> {error}
                             </div>
                         )}
                     </motion.div>

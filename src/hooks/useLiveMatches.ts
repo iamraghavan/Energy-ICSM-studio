@@ -35,8 +35,9 @@ export const useLiveMatches = (sportId?: string | number) => {
         };
 
         es.onerror = (err) => {
-            // Log full error for debugging but hide empty objects from UI
-            console.error("SSE Connection Error:", err);
+            // Using console.log to avoid dev overlay noise for transient connection drops or handshakes
+            // SSE connection errors often appear as empty objects {} in browsers
+            console.log("SSE Connection Status: Link lost or handshake in progress. Retrying in 5s...", err);
             setError("Link interrupted. Reconnecting...");
             setIsLoading(false);
             es.close();
