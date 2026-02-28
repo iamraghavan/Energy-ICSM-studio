@@ -8,11 +8,10 @@ import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, use } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ShareButton } from '@/components/shared/share-button';
-
 
 const API_BASE_URL = 'https://energy-sports-meet-backend.vercel.app/api/v1';
 
@@ -117,7 +116,7 @@ function PublicRegistrationDetailsContent() {
                         <AlertTriangle className="h-12 w-12 text-destructive mx-auto" />
                         <CardTitle className="text-destructive mt-4">Registration Not Found</CardTitle>
                         <CardDescription>
-                           {error || 'The registration details could not be loaded. The ID may be incorrect or the registration was not found.'}
+                           {error || 'The registration details could not be loaded.'}
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="text-center">
@@ -211,7 +210,6 @@ function PublicRegistrationDetailsContent() {
         </div>
     );
 }
-
 
 export default function PublicRegistrationDetailsPage() {
     return (

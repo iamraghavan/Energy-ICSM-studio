@@ -2,7 +2,7 @@
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, use } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle, CardFooter, CardContent } from '@/components/ui/card';
@@ -28,7 +28,6 @@ function InfoDetail({ icon: Icon, label, value, isMono = false, children }: { ic
         </div>
     )
 }
-
 
 function SuccessPageContent() {
     const searchParams = useSearchParams();
@@ -95,7 +94,7 @@ function SuccessPageContent() {
                     <div className="space-y-2">
                         <CardTitle className="text-2xl font-bold font-headline">Registration Submitted!</CardTitle>
                         <CardDescription>
-                            Your registration has been submitted. You will receive a confirmation email shortly.
+                            Your registration has been submitted.
                         </CardDescription>
                     </div>
                 </CardHeader>
@@ -125,7 +124,7 @@ function SuccessPageContent() {
                 <div className="space-y-2">
                     <CardTitle className="text-2xl font-bold font-headline">Registration Submitted!</CardTitle>
                     <CardDescription>
-                        Your registration is successful! Your code is <span className="font-mono font-bold text-foreground">{registration.registration_code}</span>.
+                        Your registration is successful! Code: <span className="font-mono font-bold text-foreground">{registration.registration_code}</span>.
                     </CardDescription>
                 </div>
             </CardHeader>
@@ -165,7 +164,7 @@ function SuccessPageContent() {
                     </Link>
                 </Button>
                  <Button asChild className="w-full" variant="outline">
-                    <Link href="/energy/2026/auth">Login to Your Portal <ArrowRight className="ml-2"/></Link>
+                    <Link href="/energy/2026/auth">Login to Portal <ArrowRight className="ml-2"/></Link>
                 </Button>
                  <Button asChild variant="link">
                     <Link href="/energy/2026">Back to Home</Link>

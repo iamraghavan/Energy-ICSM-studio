@@ -1,3 +1,4 @@
+
 'use client';
 import { use } from 'react';
 import { LiveScoringPage } from '@/components/console/scorer/LiveScoringPage';

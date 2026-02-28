@@ -1,5 +1,6 @@
+
 'use client';
-import { Suspense } from 'react';
+import { Suspense, use } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -28,7 +29,7 @@ function FailureContent() {
                         </div>
                     )}
                      <div className="border-t pt-6 text-center space-y-4">
-                        <p className="text-sm text-muted-foreground">If the problem persists, please contact our coordinators for assistance:</p>
+                        <p className="text-sm text-muted-foreground">Contact our coordinators for assistance:</p>
                         <div className="flex justify-center gap-x-8 gap-y-4 flex-wrap">
                             <div className="flex items-center gap-3">
                                 <Phone className="h-4 w-4 text-muted-foreground" />
@@ -60,11 +61,10 @@ function FailureContent() {
     )
 }
 
-function RegistrationFailurePage() {
+export default function RegistrationFailurePage() {
     return (
         <Suspense fallback={<div>Loading...</div>}>
             <FailureContent />
         </Suspense>
     );
 }
-export default RegistrationFailurePage;

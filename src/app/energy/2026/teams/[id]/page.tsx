@@ -1,10 +1,10 @@
+
 import { getTeam, getSports } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { User, Trophy as TrophyIcon } from "lucide-react";
-import Image from "next/image";
 import { getSportIcon } from "@/lib/icons";
 import type { Metadata } from 'next';
 
@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
   return {
     title: `${team.team_name} (${sport?.name || 'Team'})`,
-    description: `View the player roster and team info for ${team.team_name} from ${team.college.name}, competing in ENERGY 2026.`,
+    description: `View the player roster and team info for ${team.team_name}.`,
   };
 }
 
@@ -78,7 +78,7 @@ export default async function TeamDetailsPage({ params }: { params: Promise<{ id
                                 </div>
                              ) : (
                                 <div className="text-center py-10 border rounded-lg bg-muted/50">
-                                    <p className="text-muted-foreground">This team hasn't added any players yet.</p>
+                                    <p className="text-muted-foreground">No players in this team yet.</p>
                                 </div>
                              )}
                         </div>

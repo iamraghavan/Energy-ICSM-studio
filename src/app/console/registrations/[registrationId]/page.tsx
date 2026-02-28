@@ -1,3 +1,4 @@
+
 'use client';
 
 import { use, useEffect, useState } from 'react';
@@ -52,7 +53,7 @@ export default function RegistrationDetailsPage({ params }: { params: Promise<{ 
         );
     }
     
-    const { Student, Sport, Team, Payment, registration_code, payment_status, accommodation_needed, is_captain, status, created_at } = registration;
+    const { Sports, Team, Payment, registration_code, payment_status, accommodation_needed, is_captain, status, created_at, name, email, mobile, whatsapp, college_name, city, state } = registration;
 
     return (
         <div className="container py-8 space-y-6">
@@ -62,7 +63,7 @@ export default function RegistrationDetailsPage({ params }: { params: Promise<{ 
                 </Button>
                 <div>
                     <h1 className="text-2xl font-bold">Registration Details</h1>
-                    <p className="text-muted-foreground">Details for registration code: <span className="font-mono">{registration_code}</span></p>
+                    <p className="text-muted-foreground">Code: <span className="font-mono">{registration_code}</span></p>
                 </div>
                  <Badge
                     variant={
@@ -94,28 +95,33 @@ export default function RegistrationDetailsPage({ params }: { params: Promise<{ 
                 <Card className="lg:col-span-1">
                     <CardHeader><CardTitle>Student Information</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
-                        <InfoDetail icon={User} label="Name" value={Student.name} />
+                        <InfoDetail icon={User} label="Name" value={name} />
                         {is_captain && <InfoDetail icon={UserCheck} label="Role" value="Team Captain" />}
-                        <InfoDetail icon={Mail} label="Email" value={Student.email} />
-                        <InfoDetail icon={Phone} label="Mobile" value={Student.mobile} />
-                        <InfoDetail icon={Phone} label="WhatsApp" value={Student.whatsapp} />
+                        <InfoDetail icon={Mail} label="Email" value={email} />
+                        <InfoDetail icon={Phone} label="Mobile" value={mobile} />
+                        <InfoDetail icon={Phone} label="WhatsApp" value={whatsapp} />
                     </CardContent>
                 </Card>
 
                 <Card className="lg:col-span-1">
                     <CardHeader><CardTitle>Academic Details</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
-                        <InfoDetail icon={Building} label="College" value={Student.other_college || Student.College?.name || 'N/A'} />
-                        <InfoDetail icon={Building} label="City" value={Student.city} />
-                        <InfoDetail icon={Building} label="State" value={Student.state} />
+                        <InfoDetail icon={Building} label="College" value={college_name || 'N/A'} />
+                        <InfoDetail icon={Building} label="City" value={city} />
+                        <InfoDetail icon={Building} label="State" value={state} />
                     </CardContent>
                 </Card>
 
                 <Card className="lg:col-span-1">
                     <CardHeader><CardTitle>Event & Payment</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
-                         <InfoDetail icon={Dribbble} label="Sport" value={Sport?.name || 'N/A'} />
-                         {Sport?.type && <InfoDetail icon={UsersIcon} label="Event Type" value={Sport.type} />}
+                        <InfoDetail icon={Dribbble} label="Sports">
+                            <div className="flex flex-wrap gap-2 pt-1">
+                                {Sports?.map(sport => sport && (
+                                    <Badge key={sport.id} variant="secondary">{sport.name}</Badge>
+                                ))}
+                            </div>
+                        </InfoDetail>
                          {Team && <InfoDetail icon={UsersIcon} label="Team Name" value={Team.team_name} />}
                          <InfoDetail icon={Hash} label="Transaction ID" value={Payment?.txn_id || 'N/A'} isMono />
                          <InfoDetail label="Amount Paid" value={`₹${Payment?.amount || '0.00'}`} />
@@ -137,14 +143,15 @@ export default function RegistrationDetailsPage({ params }: { params: Promise<{ 
     );
 }
 
-function InfoDetail({ icon: Icon, label, value, isMono = false }: { icon?: React.ElementType, label: string, value: string | null, isMono?: boolean }) {
-    if (!value) return null;
+function InfoDetail({ icon: Icon, label, value, isMono = false, children }: { icon?: React.ElementType, label: string, value?: string | null, isMono?: boolean, children?: React.ReactNode }) {
+    if (!value && !children) return null;
     return (
         <div className="flex items-start gap-3">
             {Icon && <Icon className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />}
             <div className="flex-1">
                 <p className="text-sm text-muted-foreground">{label}</p>
-                <p className={cn("font-medium break-words", isMono && "font-mono")}>{value}</p>
+                {value && <p className={cn("font-medium break-words", isMono && "font-mono")}>{value}</p>}
+                {children}
             </div>
         </div>
     )
