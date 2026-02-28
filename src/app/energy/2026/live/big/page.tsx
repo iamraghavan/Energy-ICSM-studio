@@ -1,6 +1,6 @@
 
 'use client';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getLiveMatches, type ApiMatch } from "@/lib/api";
 import { useMatchSync } from "@/hooks/useMatchSync";
 import { Calendar, Zap, AlertCircle } from 'lucide-react';
@@ -33,7 +33,7 @@ function ScoreUnit({ value, subValue, colors, label, isDense = false }: { value:
         <div className="flex flex-col items-center justify-center w-full h-full text-center px-2">
             <span className={cn(
                 "font-bold uppercase tracking-wider text-white mb-2 line-clamp-2 flex items-center justify-center leading-tight",
-                isDense ? "text-sm min-h-[2.5rem]" : "text-base min-h-[3rem]"
+                isDense ? "text-base min-h-[3rem]" : "text-lg min-h-[3.5rem]"
             )}>
                 {label}
             </span>
@@ -45,8 +45,8 @@ function ScoreUnit({ value, subValue, colors, label, isDense = false }: { value:
                     "font-bold font-mono tracking-tighter tabular-nums leading-none", 
                     colors.primary,
                     isLongText 
-                        ? (isDense ? "text-3xl" : "text-5xl")
-                        : (isDense ? "text-6xl sm:text-7xl" : "text-8xl sm:text-9xl")
+                        ? (isDense ? "text-2xl" : "text-4xl")
+                        : (isDense ? "text-5xl sm:text-6xl" : "text-7xl sm:text-8xl")
                 )}
             >
                 {value}
@@ -54,7 +54,7 @@ function ScoreUnit({ value, subValue, colors, label, isDense = false }: { value:
             {subValue && (
                 <span className={cn(
                     "font-bold font-mono text-slate-400 mt-2 px-3 py-0.5 bg-slate-900 border border-slate-800 rounded",
-                    isDense ? "text-[10px]" : "text-sm"
+                    isDense ? "text-[10px]" : "text-xs"
                 )}>
                     {subValue}
                 </span>
@@ -119,8 +119,8 @@ function BigMatchBoard({ match, isDense = false, onCompleted }: { match: ApiMatc
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ duration: 0.5 }}
             className={cn(
-                "relative h-full flex flex-col items-center justify-between border-2 bg-slate-950 overflow-hidden shrink-0",
-                isDense ? "p-4" : "p-8",
+                "relative h-full flex flex-col items-center justify-between border bg-slate-950 overflow-hidden shrink-0",
+                isDense ? "p-4" : "p-6",
                 colors.border, colors.bg
             )}
         >
@@ -128,12 +128,12 @@ function BigMatchBoard({ match, isDense = false, onCompleted }: { match: ApiMatc
                 <span className={cn(
                     "font-bold uppercase tracking-widest italic", 
                     colors.primary,
-                    isDense ? "text-base" : "text-xl"
+                    isDense ? "text-xs" : "text-sm"
                 )}>
                     {match.Sport?.name}
                 </span>
                 <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-red-600 animate-pulse" />
+                    <div className="h-1.5 w-1.5 rounded-full bg-red-600 animate-pulse" />
                     <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">LIVE</span>
                 </div>
             </div>
@@ -146,9 +146,9 @@ function BigMatchBoard({ match, isDense = false, onCompleted }: { match: ApiMatc
                     isDense={isDense}
                 />
                 <div className="flex flex-col items-center justify-center gap-2 opacity-20">
-                    <div className="h-12 w-[1px] bg-slate-100" />
-                    <span className="text-xs font-bold italic text-white uppercase">VS</span>
-                    <div className="h-12 w-[1px] bg-slate-100" />
+                    <div className="h-8 w-[1px] bg-slate-100" />
+                    <span className="text-[10px] font-bold italic text-white uppercase">VS</span>
+                    <div className="h-8 w-[1px] bg-slate-100" />
                 </div>
                 <ScoreUnit 
                     label={match.TeamB?.team_name || 'Team B'}
@@ -160,24 +160,24 @@ function BigMatchBoard({ match, isDense = false, onCompleted }: { match: ApiMatc
 
             <div className="w-full flex justify-center items-center pt-2 border-t border-slate-900 mt-4">
                 {isCricket ? (
-                    <div className="flex gap-12">
+                    <div className="flex gap-8">
                         <div className="text-center">
                             <span className="text-[8px] font-bold text-slate-600 uppercase tracking-widest block">Overs</span>
-                            <span className={cn("font-bold font-mono text-white", isDense ? "text-lg" : "text-2xl")}>
+                            <span className={cn("font-bold font-mono text-white", isDense ? "text-base" : "text-xl")}>
                                 {parseFloat(String(battingTeamId === match.team_b_id ? scoreB.overs : scoreA.overs || 0)).toFixed(1)}
                             </span>
                         </div>
                         {matchState?.target_score && (
                             <div className="text-center">
                                 <span className="text-[8px] font-bold text-slate-600 uppercase tracking-widest block">Target</span>
-                                <span className={cn("font-bold font-mono text-amber-500", isDense ? "text-lg" : "text-2xl")}>
+                                <span className={cn("font-bold font-mono text-amber-500", isDense ? "text-base" : "text-xl")}>
                                     {matchState.target_score}
                                 </span>
                             </div>
                         )}
                     </div>
                 ) : (
-                    <span className="text-[9px] font-bold text-slate-600 uppercase tracking-[0.4em]">Arena Hub Online</span>
+                    <span className="text-[8px] font-bold text-slate-700 uppercase tracking-[0.4em]">Broadcast Engine Active</span>
                 )}
             </div>
         </motion.div>
@@ -187,39 +187,37 @@ function BigMatchBoard({ match, isDense = false, onCompleted }: { match: ApiMatc
 function ScheduledMatchesTable({ matches }: { matches: ApiMatch[] }) {
     if (matches.length === 0) return null;
     return (
-        <div className="w-full border-t border-slate-800 bg-slate-950 p-6 space-y-4 shrink-0 max-h-[35vh] overflow-hidden">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <Calendar className="h-4 w-4 text-amber-500" />
-                    <h2 className="text-amber-500 font-bold text-[10px] uppercase tracking-[0.4em]">Upcoming Showdowns</h2>
+        <div className="w-full border-t border-slate-800 bg-slate-950 p-4 space-y-3 shrink-0 max-h-[30vh] overflow-hidden">
+            <div className="flex items-center justify-between px-2">
+                <div className="flex items-center gap-2">
+                    <Calendar className="h-3 w-3 text-amber-500" />
+                    <h2 className="text-amber-500 font-bold text-[9px] uppercase tracking-[0.4em]">Upcoming Arena Schedule</h2>
                 </div>
-                <Badge variant="outline" className="border-slate-800 text-slate-500 rounded-none uppercase text-[8px] tracking-widest">Broadcast Feed</Badge>
+                <Badge variant="outline" className="border-slate-800 text-slate-600 rounded-none uppercase text-[7px] tracking-widest">Live Updates Enabled</Badge>
             </div>
             
             <div className="overflow-auto border border-slate-900 rounded-sm bg-slate-950/50">
                 <table className="w-full text-left border-collapse">
-                    <thead className="bg-slate-900/50 text-[9px] font-bold uppercase tracking-[0.25em] text-slate-500 border-b border-slate-800 sticky top-0 z-10">
+                    <thead className="bg-slate-900/50 text-[8px] font-bold uppercase tracking-[0.25em] text-slate-500 border-b border-slate-800 sticky top-0 z-10">
                         <tr>
-                            <th className="p-3">Event</th>
-                            <th className="p-3">Matchup</th>
-                            <th className="p-3">Arena</th>
-                            <th className="p-3 text-right">Status</th>
+                            <th className="p-2 pl-4">Sport</th>
+                            <th className="p-2">Competing Teams</th>
+                            <th className="p-2 text-right pr-4">Status</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-900">
                         {matches.map(m => (
                             <tr key={m.id} className="text-white hover:bg-slate-900/30 transition-colors">
-                                <td className="p-3"><span className="font-bold text-[10px] uppercase tracking-wider text-slate-400">{m.Sport?.name}</span></td>
-                                <td className="p-3">
+                                <td className="p-2 pl-4"><span className="font-bold text-[9px] uppercase tracking-wider text-slate-400">{m.Sport?.name}</span></td>
+                                <td className="p-2">
                                     <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-tight">
-                                        <span>{m.TeamA?.team_name}</span>
+                                        <span className="truncate max-w-[150px]">{m.TeamA?.team_name}</span>
                                         <span className="text-[8px] text-slate-600 italic">VS</span>
-                                        <span>{m.TeamB?.team_name}</span>
+                                        <span className="truncate max-w-[150px]">{m.TeamB?.team_name}</span>
                                     </div>
                                 </td>
-                                <td className="p-3"><span className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">{m.venue}</span></td>
-                                <td className="p-3 text-right">
-                                    <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-slate-600">Scheduled</span>
+                                <td className="p-2 text-right pr-4">
+                                    <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-slate-600">Upcoming</span>
                                 </td>
                             </tr>
                         ))}
@@ -237,34 +235,50 @@ export default function BigScreenLive() {
     const [hasNetworkError, setHasNetworkError] = useState(false);
 
     useEffect(() => {
-        const fetchInitial = async () => {
+        let eventSource: EventSource | null = null;
+        let retryTimeout: NodeJS.Timeout | null = null;
+
+        const connect = async () => {
+            if (eventSource) eventSource.close();
+            
             try {
-                const matches = await getLiveMatches();
-                setLiveMatches(matches.filter(m => (m.status || '').toLowerCase() === 'live'));
-                setScheduledMatches(matches.filter(m => (m.status || '').toLowerCase() === 'scheduled'));
+                // Initial fetch to populate state while SSE connects
+                const initial = await getLiveMatches();
+                setLiveMatches(initial.filter(m => (m.status || '').toLowerCase() === 'live'));
+                setScheduledMatches(initial.filter(m => (m.status || '').toLowerCase() === 'scheduled'));
                 setIsLoading(false);
             } catch (err) {
-                console.error("Initial load failed", err);
-                setIsLoading(false);
+                console.error("Initial match fetch failed", err);
             }
+
+            const sseUrl = `https://energy-sports-meet-backend.vercel.app/api/v1/matches/live?stream=true`;
+            eventSource = new EventSource(sseUrl);
+
+            eventSource.onmessage = (event) => {
+                try {
+                    const matches: ApiMatch[] = JSON.parse(event.data);
+                    setLiveMatches(matches.filter(m => (m.status || '').toLowerCase() === 'live'));
+                    setScheduledMatches(matches.filter(m => (m.status || '').toLowerCase() === 'scheduled'));
+                    setHasNetworkError(false);
+                    setIsLoading(false);
+                } catch (err) { console.error("SSE parse error", err); }
+            };
+
+            eventSource.onerror = (err) => {
+                console.error("SSE Connection Error:", err);
+                setHasNetworkError(true);
+                eventSource?.close();
+                // Attempt to reconnect in 10 seconds
+                retryTimeout = setTimeout(connect, 10000);
+            };
         };
-        fetchInitial();
 
-        const sseUrl = `https://energy-sports-meet-backend.vercel.app/api/v1/matches/live?stream=true`;
-        const eventSource = new EventSource(sseUrl);
+        connect();
 
-        eventSource.onmessage = (event) => {
-            try {
-                const matches: ApiMatch[] = JSON.parse(event.data);
-                setLiveMatches(matches.filter(m => (m.status || '').toLowerCase() === 'live'));
-                setScheduledMatches(matches.filter(m => (m.status || '').toLowerCase() === 'scheduled'));
-                setHasNetworkError(false);
-            } catch (err) { console.error("SSE parse error", err); }
+        return () => {
+            if (eventSource) eventSource.close();
+            if (retryTimeout) clearTimeout(retryTimeout);
         };
-
-        eventSource.onerror = () => setHasNetworkError(true);
-
-        return () => eventSource.close();
     }, []);
 
     const handleMatchCompleted = (id: string) => {
@@ -272,22 +286,28 @@ export default function BigScreenLive() {
     };
 
     const isDense = liveMatches.length > 2;
-    const gridCols = liveMatches.length === 1 ? 'grid-cols-1' : 
-                     liveMatches.length === 2 ? 'grid-cols-2' : 
-                     liveMatches.length === 3 ? 'grid-cols-3' :
-                     'grid-cols-2';
+    
+    // Split screen logic
+    const getGridConfig = () => {
+        const count = liveMatches.length;
+        if (count <= 1) return "grid-cols-1 grid-rows-1";
+        if (count === 2) return "grid-cols-2 grid-rows-1";
+        if (count === 3) return "grid-cols-3 grid-rows-1";
+        if (count === 4) return "grid-cols-2 grid-rows-2"; // Professional 2x2 split
+        return "grid-cols-3 grid-rows-2"; // 5 or 6 matches
+    };
 
     return (
-        <div className="fixed inset-0 bg-black text-white p-4 flex flex-col overflow-hidden select-none z-[9999]">
+        <div className="fixed inset-0 bg-black text-white p-2 flex flex-col overflow-hidden select-none z-[9999]">
             <AnimatePresence mode="wait">
                 {isLoading ? (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} key="loader" className="flex-1 flex items-center justify-center">
-                        <div className="h-12 w-12 animate-spin text-slate-800 border-2 border-t-blue-500 rounded-full" />
+                        <div className="h-10 w-10 animate-spin text-slate-800 border-2 border-t-blue-500 rounded-full" />
                     </motion.div>
                 ) : (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} key="content" className="flex-1 flex flex-col gap-4 min-h-0">
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} key="content" className="flex-1 flex flex-col gap-2 min-h-0">
                         {liveMatches.length > 0 ? (
-                            <div className={cn("flex-1 min-h-0 grid gap-4 overflow-hidden", gridCols)}>
+                            <div className={cn("flex-1 min-h-0 grid gap-2 overflow-hidden", getGridConfig())}>
                                 <AnimatePresence>
                                     {liveMatches.slice(0, 6).map(m => (
                                         <BigMatchBoard key={m.id} match={m} isDense={isDense} onCompleted={handleMatchCompleted} />
@@ -296,14 +316,16 @@ export default function BigScreenLive() {
                             </div>
                         ) : (
                             <div className="flex-1 flex flex-col items-center justify-center">
-                                <Zap className="h-16 w-16 text-slate-900 mb-4" />
-                                <h1 className="text-xl font-bold uppercase tracking-[0.5em] text-slate-800">Arena Standby</h1>
+                                <Zap className="h-12 w-12 text-slate-900 mb-4" />
+                                <h1 className="text-sm font-bold uppercase tracking-[0.5em] text-slate-800">Arena Standby</h1>
                             </div>
                         )}
+                        
                         <ScheduledMatchesTable matches={scheduledMatches} />
+                        
                         {hasNetworkError && (
-                            <div className="absolute top-2 right-2 flex items-center gap-2 px-3 py-1 bg-red-600/20 border border-red-600/50 rounded-full text-[8px] font-bold uppercase tracking-widest text-red-500">
-                                <AlertCircle className="h-3 w-3" /> Link Interrupted
+                            <div className="absolute top-2 right-2 flex items-center gap-2 px-3 py-1 bg-red-600/20 border border-red-600/50 rounded-full text-[7px] font-bold uppercase tracking-widest text-red-500">
+                                <AlertCircle className="h-2.5 w-2.5" /> Link Unstable - Reconnecting
                             </div>
                         )}
                     </motion.div>
