@@ -24,16 +24,21 @@ const getColors = (sportName: string) => SPORT_COLORS[sportName] || SPORT_COLORS
  * Clean Score Unit for public visibility
  */
 function ScoreUnit({ value, subValue, colors, label }: { value: string | number, subValue?: string, colors: any, label: string }) {
+    const isLongText = typeof value === 'string' && value.length > 7;
     return (
         <div className="flex flex-col items-center justify-center w-full h-full text-center px-4">
-            <span className="text-sm font-bold uppercase tracking-wider text-white mb-4 line-clamp-2 min-h-[3rem] flex items-center justify-center leading-tight">
+            <span className="text-base font-bold uppercase tracking-wider text-white mb-4 line-clamp-2 min-h-[3rem] flex items-center justify-center leading-tight">
                 {label}
             </span>
             <motion.span 
                 key={String(value)}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={cn("text-7xl sm:text-8xl md:text-9xl font-bold font-mono tracking-tighter tabular-nums leading-none", colors.primary)}
+                className={cn(
+                    "font-bold font-mono tracking-tighter tabular-nums leading-none", 
+                    colors.primary,
+                    isLongText ? "text-4xl sm:text-5xl md:text-6xl" : "text-7xl sm:text-8xl md:text-9xl"
+                )}
             >
                 {value}
             </motion.span>
@@ -53,13 +58,35 @@ function BigMatchBoard({ match, isPrimary = false }: { match: ApiMatch, isPrimar
     const { matchData } = useMatchSync(match.id);
     const colors = getColors(match.Sport?.name);
     
+    // Merge RTDB data with initial REST data
     const scores = { ...(match.score_details || {}), ...(matchData?.score_details || {}) };
+    const matchState = { ...(match.match_state || {}), ...(matchData?.match_state || {}) };
+    
     const scoreA = scores[match.team_a_id] || { runs: 0, score: 0, wickets: 0, overs: 0 };
     const scoreB = scores[match.team_b_id] || { runs: 0, score: 0, wickets: 0, overs: 0 };
     
     const isCricket = match.Sport?.name === 'Cricket';
-    const displayA = isCricket ? scoreA.runs : (scoreA.score ?? scoreA.runs ?? 0);
-    const displayB = isCricket ? scoreB.runs : (scoreB.score ?? scoreB.runs ?? 0);
+    const currentInnings = matchState.current_innings || 1;
+    const battingTeamId = matchState.batting_team_id;
+
+    // Default displays for non-cricket or standard case
+    let displayA: string | number = scoreA.score ?? scoreA.runs ?? 0;
+    let displayB: string | number = scoreB.score ?? scoreB.runs ?? 0;
+
+    if (isCricket) {
+        // Professional format: Runs/Wickets
+        displayA = `${scoreA.runs || 0}/${scoreA.wickets || 0}`;
+        displayB = `${scoreB.runs || 0}/${scoreB.wickets || 0}`;
+
+        // Cricket specific logic for 'Yet to Bat'
+        if (currentInnings === 1) {
+            if (battingTeamId === match.team_a_id) {
+                displayB = "YET TO BAT";
+            } else if (battingTeamId === match.team_b_id) {
+                displayA = "YET TO BAT";
+            }
+        }
+    }
 
     return (
         <div className={cn(
@@ -83,7 +110,6 @@ function BigMatchBoard({ match, isPrimary = false }: { match: ApiMatch, isPrimar
                 <ScoreUnit 
                     label={match.TeamA?.team_name || 'Team A'}
                     value={displayA} 
-                    subValue={isCricket ? `WKT: ${scoreA.wickets || 0}` : undefined} 
                     colors={colors} 
                 />
 
@@ -96,7 +122,6 @@ function BigMatchBoard({ match, isPrimary = false }: { match: ApiMatch, isPrimar
                 <ScoreUnit 
                     label={match.TeamB?.team_name || 'Team B'}
                     value={displayB} 
-                    subValue={isCricket ? `WKT: ${scoreB.wickets || 0}` : undefined} 
                     colors={colors} 
                 />
             </div>
@@ -104,18 +129,18 @@ function BigMatchBoard({ match, isPrimary = false }: { match: ApiMatch, isPrimar
             {/* Bottom Meta Info */}
             <div className="w-full flex justify-center items-center mt-6 pt-4 border-t border-slate-900">
                 {isCricket ? (
-                    <div className="flex gap-8">
+                    <div className="flex gap-12">
                         <div className="text-center">
                             <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest block mb-1">Overs</span>
                             <span className="text-2xl font-bold font-mono text-white">
-                                {parseFloat(String(scoreA.overs || 0)).toFixed(1)}
+                                {parseFloat(String(battingTeamId === match.team_b_id ? scoreB.overs : scoreA.overs || 0)).toFixed(1)}
                             </span>
                         </div>
-                        {matchData?.match_state?.target_score && (
+                        {matchState?.target_score && (
                             <div className="text-center">
                                 <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest block mb-1">Target</span>
                                 <span className="text-2xl font-bold font-mono text-amber-500">
-                                    {matchData.match_state.target_score}
+                                    {matchState.target_score}
                                 </span>
                             </div>
                         )}
