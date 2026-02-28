@@ -10,15 +10,23 @@ import { motion, AnimatePresence } from 'framer-motion';
  * Big Screen Color Config mapping sports to vibrant primary colors
  */
 const SPORT_COLORS: Record<string, { primary: string, border: string, bg: string }> = {
-    'Cricket': { primary: 'text-amber-400', border: 'border-amber-500/20', bg: 'bg-amber-500/5' },
-    'Kabaddi': { primary: 'text-orange-500', border: 'border-orange-500/20', bg: 'bg-orange-500/5' },
-    'Volleyball': { primary: 'text-cyan-400', border: 'border-cyan-500/20', bg: 'bg-cyan-500/5' },
-    'Basketball': { primary: 'text-red-500', border: 'border-red-500/20', bg: 'bg-red-500/5' },
-    'Badminton': { primary: 'text-emerald-400', border: 'border-emerald-500/20', bg: 'bg-emerald-500/5' },
+    'cricket': { primary: 'text-amber-400', border: 'border-amber-500/20', bg: 'bg-amber-500/5' },
+    'kabaddi': { primary: 'text-orange-500', border: 'border-orange-500/20', bg: 'bg-orange-500/5' },
+    'volleyball': { primary: 'text-cyan-400', border: 'border-cyan-500/20', bg: 'bg-cyan-500/5' },
+    'basketball': { primary: 'text-red-500', border: 'border-red-500/20', bg: 'bg-red-500/5' },
+    'badminton': { primary: 'text-emerald-400', border: 'border-emerald-500/20', bg: 'bg-emerald-500/5' },
     'default': { primary: 'text-white', border: 'border-slate-800', bg: 'bg-slate-900/5' }
 };
 
-const getColors = (sportName: string) => SPORT_COLORS[sportName] || SPORT_COLORS.default;
+const getColors = (sportName: string = '') => {
+    const name = sportName.toLowerCase();
+    if (name.includes('cricket')) return SPORT_COLORS.cricket;
+    if (name.includes('kabaddi')) return SPORT_COLORS.kabaddi;
+    if (name.includes('volleyball')) return SPORT_COLORS.volleyball;
+    if (name.includes('basketball')) return SPORT_COLORS.basketball;
+    if (name.includes('badminton')) return SPORT_COLORS.badminton;
+    return SPORT_COLORS.default;
+};
 
 /**
  * Clean Score Unit for public visibility
@@ -58,7 +66,7 @@ function BigMatchBoard({ match, isPrimary = false, onCompleted }: { match: ApiMa
     const { matchData } = useMatchSync(match.id);
     const colors = getColors(match.Sport?.name);
     
-    const currentStatus = matchData?.status || match.status;
+    const currentStatus = (matchData?.status || match.status || '').toLowerCase();
 
     // Auto-remove logic: if the real-time status becomes 'completed', notify parent
     useEffect(() => {
@@ -67,17 +75,24 @@ function BigMatchBoard({ match, isPrimary = false, onCompleted }: { match: ApiMa
         }
     }, [currentStatus, match.id, onCompleted]);
 
-    // If match is already completed in sync, don't render
     if (currentStatus === 'completed') return null;
 
+    const getInitialScores = () => {
+        let base = match.score_details;
+        if (typeof base === 'string') {
+            try { base = JSON.parse(base); } catch(e) { base = {}; }
+        }
+        return base || {};
+    };
+
     // Merge RTDB data with initial REST data
-    const scores = { ...(match.score_details || {}), ...(matchData?.score_details || {}) };
+    const scores = { ...getInitialScores(), ...(matchData?.score_details || {}) };
     const matchState = { ...(match.match_state || {}), ...(matchData?.match_state || {}) };
     
     const scoreA = scores[match.team_a_id] || { runs: 0, score: 0, wickets: 0, overs: 0 };
     const scoreB = scores[match.team_b_id] || { runs: 0, score: 0, wickets: 0, overs: 0 };
     
-    const isCricket = match.Sport?.name === 'Cricket';
+    const isCricket = match.Sport?.name?.toLowerCase().includes('cricket');
     const currentInnings = matchState.current_innings || 1;
     const battingTeamId = matchState.batting_team_id;
 
@@ -195,8 +210,12 @@ export default function BigScreenLive() {
         isFetchingRef.current = true;
         try {
             const matches = await getLiveMatches();
-            // Show both live and scheduled matches
-            setLiveMatches(matches.filter(m => ['live', 'scheduled'].includes(m.status)));
+            // Show both live and scheduled matches (case-insensitive)
+            const activeMatches = matches.filter(m => {
+                const s = (m.status || '').toLowerCase();
+                return s === 'live' || s === 'scheduled';
+            });
+            setLiveMatches(activeMatches);
         } catch (error) {
             console.error("Big Screen Fetch error:", error);
         } finally {
@@ -207,7 +226,8 @@ export default function BigScreenLive() {
 
     useEffect(() => {
         fetchMatches();
-        const intervalId = setInterval(fetchMatches, 30000);
+        // Check for new matches every 10 seconds for "automatic" appearance
+        const intervalId = setInterval(fetchMatches, 10000);
         return () => clearInterval(intervalId);
     }, [fetchMatches]);
 
@@ -215,8 +235,11 @@ export default function BigScreenLive() {
         setLiveMatches(prev => prev.filter(m => m.id !== id));
     };
 
-    const cricketMatches = liveMatches.filter(m => m.Sport?.name === 'Cricket');
-    const otherMatches = liveMatches.filter(m => m.Sport?.name !== 'Cricket');
+    const cricketMatches = liveMatches.filter(m => m.Sport?.name?.toLowerCase().includes('cricket'));
+    const nonCricketMatches = liveMatches.filter(m => !m.Sport?.name?.toLowerCase().includes('cricket'));
+    
+    // Sidebar should contain subsequent cricket matches and all other sports
+    const sidebarMatches = [...cricketMatches.slice(1), ...nonCricketMatches];
 
     const renderLayout = () => {
         if (liveMatches.length === 0) {
@@ -229,7 +252,7 @@ export default function BigScreenLive() {
             );
         }
 
-        if (cricketMatches.length > 0 && otherMatches.length > 0) {
+        if (cricketMatches.length > 0 && sidebarMatches.length > 0) {
             return (
                 <div className="h-full flex flex-col lg:flex-row gap-4">
                     <div className="flex-[2]">
@@ -241,7 +264,7 @@ export default function BigScreenLive() {
                     </div>
                     <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4 overflow-hidden">
                         <AnimatePresence>
-                            {otherMatches.slice(0, 3).map(m => (
+                            {sidebarMatches.slice(0, 3).map(m => (
                                 <BigMatchBoard 
                                     key={m.id} 
                                     match={m} 
