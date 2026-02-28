@@ -25,8 +25,10 @@ const getColors = (sportName: string) => SPORT_COLORS[sportName] || SPORT_COLORS
  */
 function ScoreUnit({ value, subValue, colors, label }: { value: string | number, subValue?: string, colors: any, label: string }) {
     return (
-        <div className="flex flex-col items-center justify-center w-full h-full">
-            <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-500 mb-2">{label}</span>
+        <div className="flex flex-col items-center justify-center w-full h-full text-center px-4">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4 line-clamp-2 min-h-[3rem] flex items-center justify-center leading-tight">
+                {label}
+            </span>
             <motion.span 
                 key={String(value)}
                 initial={{ opacity: 0, y: 10 }}
@@ -79,7 +81,7 @@ function BigMatchBoard({ match, isPrimary = false }: { match: ApiMatch, isPrimar
             {/* Main Scoreboard Area */}
             <div className="flex-1 w-full grid grid-cols-[1fr,auto,1fr] items-center gap-4 sm:gap-10">
                 <ScoreUnit 
-                    label="TEAM A"
+                    label={match.TeamA?.team_name || 'Team A'}
                     value={displayA} 
                     subValue={isCricket ? `WKT: ${scoreA.wickets || 0}` : undefined} 
                     colors={colors} 
@@ -92,7 +94,7 @@ function BigMatchBoard({ match, isPrimary = false }: { match: ApiMatch, isPrimar
                 </div>
 
                 <ScoreUnit 
-                    label="TEAM B"
+                    label={match.TeamB?.team_name || 'Team B'}
                     value={displayB} 
                     subValue={isCricket ? `WKT: ${scoreB.wickets || 0}` : undefined} 
                     colors={colors} 
