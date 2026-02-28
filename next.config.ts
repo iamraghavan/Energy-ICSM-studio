@@ -45,6 +45,11 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
+        source: '/live/big',
+        destination: '/energy/2026/live/big',
+        permanent: true,
+      },
+      {
         source: '/medals',
         destination: '/energy/2026/medals',
         permanent: true,
