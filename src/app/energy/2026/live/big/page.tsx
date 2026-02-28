@@ -2,9 +2,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getLiveMatches, type ApiMatch } from "@/lib/api";
 import { useMatchSync } from "@/hooks/useMatchSync";
-import { Activity } from 'lucide-react';
+import { Activity, Calendar, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Badge } from '@/components/ui/badge';
 
 /**
  * Big Screen Color Config mapping sports to vibrant primary colors
@@ -60,7 +61,7 @@ function ScoreUnit({ value, subValue, colors, label }: { value: string | number,
 }
 
 /**
- * Simplified Match Board for Big Screen Signage
+ * Simplified Match Board for Big Screen Signage - Focus on LIVE status
  */
 function BigMatchBoard({ match, isPrimary = false, onCompleted }: { match: ApiMatch, isPrimary?: boolean, onCompleted?: (id: string) => void }) {
     const { matchData } = useMatchSync(match.id);
@@ -75,7 +76,7 @@ function BigMatchBoard({ match, isPrimary = false, onCompleted }: { match: ApiMa
         }
     }, [currentStatus, match.id, onCompleted]);
 
-    if (currentStatus === 'completed') return null;
+    if (currentStatus === 'completed' || currentStatus === 'scheduled') return null;
 
     const getInitialScores = () => {
         let base = match.score_details;
@@ -101,21 +102,16 @@ function BigMatchBoard({ match, isPrimary = false, onCompleted }: { match: ApiMa
     let displayB: string | number = scoreB.score ?? scoreB.runs ?? 0;
 
     if (isCricket) {
-        if (currentStatus === 'scheduled') {
-            displayA = "PRE-MATCH";
-            displayB = "PRE-MATCH";
-        } else {
-            // Professional format: Runs/Wickets
-            displayA = `${scoreA.runs || 0}/${scoreA.wickets || 0}`;
-            displayB = `${scoreB.runs || 0}/${scoreB.wickets || 0}`;
+        // Professional format: Runs/Wickets
+        displayA = `${scoreA.runs || 0}/${scoreA.wickets || 0}`;
+        displayB = `${scoreB.runs || 0}/${scoreB.wickets || 0}`;
 
-            // Cricket specific logic for 'Yet to Bat'
-            if (currentInnings === 1) {
-                if (battingTeamId === match.team_a_id) {
-                    displayB = "YET TO BAT";
-                } else if (battingTeamId === match.team_b_id) {
-                    displayA = "YET TO BAT";
-                }
+        // Cricket specific logic for 'Yet to Bat'
+        if (currentInnings === 1) {
+            if (battingTeamId === match.team_a_id) {
+                displayB = "YET TO BAT";
+            } else if (battingTeamId === match.team_b_id) {
+                displayA = "YET TO BAT";
             }
         }
     }
@@ -139,14 +135,8 @@ function BigMatchBoard({ match, isPrimary = false, onCompleted }: { match: ApiMa
                     {match.Sport?.name}
                 </span>
                 <div className="flex items-center gap-2">
-                    {currentStatus === 'live' ? (
-                        <>
-                            <div className="h-2 w-2 rounded-full bg-red-600 animate-pulse" />
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">LIVE ARENA</span>
-                        </>
-                    ) : (
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">UPCOMING</span>
-                    )}
+                    <div className="h-2 w-2 rounded-full bg-red-600 animate-pulse" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">LIVE ARENA</span>
                 </div>
             </div>
 
@@ -173,7 +163,7 @@ function BigMatchBoard({ match, isPrimary = false, onCompleted }: { match: ApiMa
 
             {/* Bottom Meta Info */}
             <div className="w-full flex justify-center items-center mt-6 pt-4 border-t border-slate-900">
-                {isCricket && currentStatus !== 'scheduled' ? (
+                {isCricket ? (
                     <div className="flex gap-12">
                         <div className="text-center">
                             <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest block mb-1">Overs</span>
@@ -192,7 +182,7 @@ function BigMatchBoard({ match, isPrimary = false, onCompleted }: { match: ApiMa
                     </div>
                 ) : (
                     <span className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.4em]">
-                        {currentStatus === 'live' ? 'Match in Progress' : 'Match Scheduled'}
+                        Match in Progress
                     </span>
                 )}
             </div>
@@ -200,8 +190,65 @@ function BigMatchBoard({ match, isPrimary = false, onCompleted }: { match: ApiMa
     );
 }
 
+/**
+ * Technical Table for Scheduled Matches
+ */
+function ScheduledMatchesTable({ matches }: { matches: ApiMatch[] }) {
+    if (matches.length === 0) return null;
+    return (
+        <div className="w-full border-t border-slate-800 bg-slate-950 p-8 space-y-6">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <Calendar className="h-5 w-5 text-amber-500" />
+                    <h2 className="text-amber-500 font-black text-xs uppercase tracking-[0.4em]">Upcoming Showdowns</h2>
+                </div>
+                <Badge variant="outline" className="border-slate-800 text-slate-500 rounded-none uppercase text-[9px] tracking-widest">Tournament Feed Active</Badge>
+            </div>
+            
+            <div className="overflow-hidden border border-slate-900 rounded-sm bg-slate-950/50">
+                <table className="w-full text-left border-collapse">
+                    <thead className="bg-slate-900/50 text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 border-b border-slate-800">
+                        <tr>
+                            <th className="p-4">Sporting Event</th>
+                            <th className="p-4">Competitors</th>
+                            <th className="p-4">Arena Venue</th>
+                            <th className="p-4 text-right">Match Status</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-900">
+                        {matches.map(m => (
+                            <tr key={m.id} className="text-white hover:bg-slate-900/30 transition-all duration-300">
+                                <td className="p-4">
+                                    <span className="font-bold text-xs uppercase tracking-wider text-slate-400">{m.Sport?.name}</span>
+                                </td>
+                                <td className="p-4">
+                                    <div className="flex items-center gap-4 text-sm font-bold uppercase tracking-tight">
+                                        <span className="text-white">{m.TeamA?.team_name}</span>
+                                        <div className="px-3 py-0.5 bg-slate-900 border border-slate-800 text-[10px] text-slate-600 italic">VS</div>
+                                        <span className="text-white">{m.TeamB?.team_name}</span>
+                                    </div>
+                                </td>
+                                <td className="p-4">
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">{m.venue}</span>
+                                </td>
+                                <td className="p-4 text-right">
+                                    <div className="inline-flex items-center gap-2">
+                                        <div className="h-1.5 w-1.5 rounded-full bg-slate-700" />
+                                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-600">Scheduled</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}
+
 export default function BigScreenLive() {
     const [liveMatches, setLiveMatches] = useState<ApiMatch[]>([]);
+    const [scheduledMatches, setScheduledMatches] = useState<ApiMatch[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const isFetchingRef = useRef(false);
 
@@ -210,12 +257,13 @@ export default function BigScreenLive() {
         isFetchingRef.current = true;
         try {
             const matches = await getLiveMatches();
-            // Show both live and scheduled matches (case-insensitive)
-            const activeMatches = matches.filter(m => {
-                const s = (m.status || '').toLowerCase();
-                return s === 'live' || s === 'scheduled';
-            });
-            setLiveMatches(activeMatches);
+            
+            // Categorize matches by status (robust case-insensitive handling)
+            const live = matches.filter(m => (m.status || '').toLowerCase() === 'live');
+            const scheduled = matches.filter(m => (m.status || '').toLowerCase() === 'scheduled');
+            
+            setLiveMatches(live);
+            setScheduledMatches(scheduled);
         } catch (error) {
             console.error("Big Screen Fetch error:", error);
         } finally {
@@ -226,7 +274,7 @@ export default function BigScreenLive() {
 
     useEffect(() => {
         fetchMatches();
-        // Check for new matches every 10 seconds for "automatic" appearance
+        // 10 second polling ensures high visibility for newly scheduled games
         const intervalId = setInterval(fetchMatches, 10000);
         return () => clearInterval(intervalId);
     }, [fetchMatches]);
@@ -235,26 +283,18 @@ export default function BigScreenLive() {
         setLiveMatches(prev => prev.filter(m => m.id !== id));
     };
 
-    const cricketMatches = liveMatches.filter(m => m.Sport?.name?.toLowerCase().includes('cricket'));
-    const nonCricketMatches = liveMatches.filter(m => !m.Sport?.name?.toLowerCase().includes('cricket'));
-    
-    // Sidebar should contain subsequent cricket matches and all other sports
-    const sidebarMatches = [...cricketMatches.slice(1), ...nonCricketMatches];
+    const renderLiveGrid = () => {
+        if (liveMatches.length === 0) return null;
 
-    const renderLayout = () => {
-        if (liveMatches.length === 0) {
-            return (
-                <div className="h-full flex flex-col items-center justify-center space-y-6">
-                    <Activity className="h-20 w-20 text-slate-900" />
-                    <h1 className="text-2xl font-bold uppercase tracking-[0.5em] text-slate-800">Arena Offline</h1>
-                    <p className="text-slate-700 text-sm font-medium italic">Waiting for match data...</p>
-                </div>
-            );
-        }
+        const cricketMatches = liveMatches.filter(m => m.Sport?.name?.toLowerCase().includes('cricket'));
+        const nonCricketMatches = liveMatches.filter(m => !m.Sport?.name?.toLowerCase().includes('cricket'));
+        
+        // Priority: First live cricket match gets the hero spot
+        const sidebarMatches = [...cricketMatches.slice(1), ...nonCricketMatches];
 
         if (cricketMatches.length > 0 && sidebarMatches.length > 0) {
             return (
-                <div className="h-full flex flex-col lg:flex-row gap-4">
+                <div className="flex-1 flex flex-col lg:flex-row gap-4">
                     <div className="flex-[2]">
                         <BigMatchBoard 
                             match={cricketMatches[0]} 
@@ -282,7 +322,7 @@ export default function BigScreenLive() {
                          liveMatches.length === 3 ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-2';
         
         return (
-            <div className={cn("h-full grid gap-4", gridCols)}>
+            <div className={cn("flex-1 grid gap-4", gridCols)}>
                 <AnimatePresence>
                     {liveMatches.slice(0, 4).map(m => (
                         <BigMatchBoard 
@@ -296,6 +336,17 @@ export default function BigScreenLive() {
         );
     };
 
+    const renderEmptyState = () => {
+        if (liveMatches.length > 0 || scheduledMatches.length > 0) return null;
+        return (
+            <div className="h-full flex flex-col items-center justify-center space-y-6">
+                <Zap className="h-20 w-20 text-slate-900" />
+                <h1 className="text-2xl font-bold uppercase tracking-[0.5em] text-slate-800">Arena Hub Idle</h1>
+                <p className="text-slate-700 text-sm font-medium italic">Waiting for tournament activity...</p>
+            </div>
+        );
+    };
+
     return (
         <div className="fixed inset-0 bg-black text-white p-4 flex flex-col overflow-hidden select-none z-[9999]">
             <AnimatePresence mode="wait">
@@ -304,6 +355,7 @@ export default function BigScreenLive() {
                         initial={{ opacity: 0 }} 
                         animate={{ opacity: 1 }} 
                         exit={{ opacity: 0 }}
+                        key="loader"
                         className="h-full flex items-center justify-center"
                     >
                         <div className="h-12 w-12 animate-spin text-slate-800 border-2 border-t-blue-500 rounded-full" />
@@ -312,9 +364,12 @@ export default function BigScreenLive() {
                     <motion.div 
                         initial={{ opacity: 0 }} 
                         animate={{ opacity: 1 }} 
-                        className="h-full"
+                        key="content"
+                        className="h-full flex flex-col gap-4"
                     >
-                        {renderLayout()}
+                        {renderLiveGrid()}
+                        {renderEmptyState()}
+                        <ScheduledMatchesTable matches={scheduledMatches} />
                     </motion.div>
                 )}
             </AnimatePresence>
