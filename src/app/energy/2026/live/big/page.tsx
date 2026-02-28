@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getLiveMatches, type ApiMatch } from "@/lib/api";
@@ -6,6 +5,7 @@ import { useMatchSync } from "@/hooks/useMatchSync";
 import { Trophy, Activity, Zap, Maximize } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Button } from '@/components/ui/button';
 
 /**
  * Big Screen Color Config mapping sports to vibrant RGB glows
