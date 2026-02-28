@@ -1,5 +1,6 @@
+
 'use client';
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getLiveMatches, type ApiMatch } from "@/lib/api";
 import { useMatchSync } from "@/hooks/useMatchSync";
 import { Calendar, Zap, AlertCircle } from 'lucide-react';
@@ -38,7 +39,7 @@ function ScoreUnit({ value, subValue, colors, label, isDense = false }: { value:
         <div className="flex flex-col items-center justify-center w-full h-full text-center px-2">
             <span className={cn(
                 "font-bold uppercase tracking-wider text-white mb-2 line-clamp-2 flex items-center justify-center leading-tight",
-                isDense ? "text-xs min-h-[2rem]" : "text-base min-h-[3rem]"
+                isDense ? "text-xs min-h-[2rem]" : "text-sm sm:text-base min-h-[3rem]"
             )}>
                 {label}
             </span>
@@ -59,7 +60,7 @@ function ScoreUnit({ value, subValue, colors, label, isDense = false }: { value:
             {subValue && (
                 <span className={cn(
                     "font-bold font-mono text-slate-400 mt-2 px-3 py-0.5 bg-slate-900 border border-slate-800 rounded",
-                    isDense ? "text-sm" : "text-xl sm:text-2xl"
+                    isDense ? "text-xs sm:text-sm" : "text-lg sm:text-2xl"
                 )}>
                     {subValue}
                 </span>
@@ -71,7 +72,7 @@ function ScoreUnit({ value, subValue, colors, label, isDense = false }: { value:
 /**
  * Simplified Match Board for Big Screen Signage - Focus on LIVE status
  */
-function BigMatchBoard({ match, isPrimary = false, isDense = false, onCompleted }: { match: ApiMatch, isPrimary?: boolean, isDense?: boolean, onCompleted?: (id: string) => void }) {
+function BigMatchBoard({ match, isDense = false, onCompleted }: { match: ApiMatch, isDense?: boolean, onCompleted?: (id: string) => void }) {
     const { matchData } = useMatchSync(match.id);
     const colors = getColors(match.Sport?.name);
     
@@ -129,8 +130,7 @@ function BigMatchBoard({ match, isPrimary = false, isDense = false, onCompleted 
             className={cn(
                 "relative h-full flex flex-col items-center justify-between border-2 bg-slate-950 overflow-hidden shrink-0",
                 isDense ? "p-4 sm:p-6" : "p-6 sm:p-10",
-                colors.border, colors.bg,
-                isPrimary ? "flex-1" : ""
+                colors.border, colors.bg
             )}
         >
             {/* Top Indicator */}
@@ -300,47 +300,22 @@ export default function BigScreenLive() {
     };
 
     // Calculate density to automatically shrink cards
-    const isDense = liveMatches.length > 3;
+    // If more than 2 games, we start shrinking to fit the screen
+    const isDense = liveMatches.length > 2;
 
     const renderLiveGrid = () => {
         if (liveMatches.length === 0) return null;
 
-        const cricketMatches = liveMatches.filter(m => m.Sport?.name?.toLowerCase().includes('cricket'));
-        const nonCricketMatches = liveMatches.filter(m => !m.Sport?.name?.toLowerCase().includes('cricket'));
-        
-        // Priority: First live cricket match gets the hero spot
-        const sidebarMatches = [...cricketMatches.slice(1), ...nonCricketMatches];
-
-        if (cricketMatches.length > 0 && sidebarMatches.length > 0) {
-            return (
-                <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-4 overflow-hidden">
-                    <div className="flex-[1.5] min-h-0">
-                        <BigMatchBoard 
-                            match={cricketMatches[0]} 
-                            isPrimary 
-                            isDense={isDense}
-                            onCompleted={handleMatchCompleted}
-                        />
-                    </div>
-                    <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4 overflow-hidden">
-                        <AnimatePresence>
-                            {sidebarMatches.slice(0, 4).map(m => (
-                                <BigMatchBoard 
-                                    key={m.id} 
-                                    match={m} 
-                                    isDense={true}
-                                    onCompleted={handleMatchCompleted}
-                                />
-                            ))}
-                        </AnimatePresence>
-                    </div>
-                </div>
-            );
-        }
-
+        // Evenly split layout requested by user
+        // 1 match -> grid-cols-1
+        // 2 matches -> grid-cols-2 (side by side)
+        // 3 matches -> grid-cols-3 (side by side)
+        // 4 matches -> grid-cols-2 (2x2 grid)
+        // 5+ matches -> grid-cols-3
         const gridCols = liveMatches.length === 1 ? 'grid-cols-1' : 
-                         liveMatches.length === 2 ? 'grid-cols-1 lg:grid-cols-2' : 
-                         liveMatches.length === 3 ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3';
+                         liveMatches.length === 2 ? 'grid-cols-2' : 
+                         liveMatches.length === 3 ? 'grid-cols-3' :
+                         liveMatches.length === 4 ? 'grid-cols-2' : 'grid-cols-3';
         
         return (
             <div className={cn("flex-1 min-h-0 grid gap-4 overflow-hidden", gridCols)}>
