@@ -13,23 +13,25 @@ export default function MainLayout({
 }) {
   const pathname = usePathname();
   const isBigScreen = pathname.endsWith('/live/big');
+  const isVerticalScreen = pathname.includes('/live/vertical');
+  const isStandalone = isBigScreen || isVerticalScreen;
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-        {!isBigScreen && <Header />}
+        {!isStandalone && <Header />}
         <AnimatePresence mode="wait">
             <motion.main
                 key={pathname}
-                initial={isBigScreen ? { opacity: 0 } : { opacity: 0, y: 20 }}
+                initial={isStandalone ? { opacity: 0 } : { opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={isBigScreen ? { opacity: 0 } : { opacity: 0, y: -20 }}
+                exit={isStandalone ? { opacity: 0 } : { opacity: 0, y: -20 }}
                 transition={{ duration: 0.5 }}
-                className={cn("flex-1", isBigScreen && "p-0")}
+                className={cn("flex-1", isStandalone && "p-0")}
             >
                 {children}
             </motion.main>
         </AnimatePresence>
-        {!isBigScreen && <Footer />}
+        {!isStandalone && <Footer />}
     </div>
   );
 }
