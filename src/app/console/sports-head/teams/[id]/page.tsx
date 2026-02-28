@@ -1,8 +1,6 @@
-
-
 'use client';
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useState, useEffect, useCallback, use } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
     getSportsHeadTeamDetails, 
     removePlayerFromTeam,
@@ -27,10 +25,9 @@ import { BulkAddPlayersDialog } from '@/components/console/sports-head/BulkAddPl
 import { UploadPlayersDialog } from '@/components/console/sports-head/UploadPlayersDialog';
 
 
-export default function SportsHeadManageTeamPage() {
+export default function SportsHeadManageTeamPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
-    const params = useParams();
-    const teamId = params.id as string;
+    const { id: teamId } = use(params);
     
     const [team, setTeam] = useState<FullSportsHeadTeam | null>(null);
     const [isLoading, setIsLoading] = useState(true);
