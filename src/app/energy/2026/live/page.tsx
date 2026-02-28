@@ -336,26 +336,43 @@ export default function LivePage() {
     const [liveMatches, setLiveMatches] = useState<ApiMatch[]>([]);
     const [selectedMatch, setSelectedMatch] = useState<ApiMatch | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const isFetchingRef = useRef(false);
 
     const fetchLiveMatches = useCallback(async () => {
-        if (isFetchingRef.current) return;
-        isFetchingRef.current = true;
         try {
             const matches = await getLiveMatches();
             setLiveMatches(matches);
+            setIsLoading(false);
         } catch (error) {
             console.error("Fetch matches error:", error);
-        } finally {
             setIsLoading(false);
-            isFetchingRef.current = false;
         }
     }, []);
 
     useEffect(() => {
+        // Initial load
         fetchLiveMatches();
-        const intervalId = setInterval(fetchLiveMatches, 30000);
-        return () => clearInterval(intervalId);
+
+        // Establish SSE connection for real-time updates
+        const sseUrl = `https://energy-sports-meet-backend.vercel.app/api/v1/matches/live?stream=true`;
+        const eventSource = new EventSource(sseUrl);
+
+        eventSource.onmessage = (event) => {
+            try {
+                const matches: ApiMatch[] = JSON.parse(event.data);
+                setLiveMatches(matches);
+                setIsLoading(false);
+            } catch (error) {
+                console.error("SSE Parse Error:", error);
+            }
+        };
+
+        eventSource.onerror = (error) => {
+            console.error("SSE Connection Error:", error);
+        };
+
+        return () => {
+            eventSource.close();
+        };
     }, [fetchLiveMatches]);
 
     return (

@@ -39,7 +39,7 @@ function ScoreUnit({ value, subValue, colors, label, isDense = false }: { value:
         <div className="flex flex-col items-center justify-center w-full h-full text-center px-2">
             <span className={cn(
                 "font-bold uppercase tracking-wider text-white mb-2 line-clamp-2 flex items-center justify-center leading-tight",
-                isDense ? "text-xs min-h-[2rem]" : "text-sm sm:text-base min-h-[3rem]"
+                isDense ? "text-xs min-h-[2rem]" : "text-base min-h-[3rem]"
             )}>
                 {label}
             </span>
@@ -182,7 +182,7 @@ function BigMatchBoard({ match, isDense = false, onCompleted }: { match: ApiMatc
                 {isCricket ? (
                     <div className="flex gap-8">
                         <div className="text-center">
-                            <span className="text-[8px] font-bold text-slate-600 uppercase tracking-widest block mb-0.5">Overs</span>
+                            <span className="text-[8px] font-bold text-slate-600 uppercase tracking-widest block mb-0.5">Batting Overs</span>
                             <span className={cn("font-bold font-mono text-white", isDense ? "text-lg" : "text-2xl")}>
                                 {parseFloat(String(battingTeamId === match.team_b_id ? scoreB.overs : scoreA.overs || 0)).toFixed(1)}
                             </span>
@@ -267,11 +267,9 @@ export default function BigScreenLive() {
     const [scheduledMatches, setScheduledMatches] = useState<ApiMatch[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [hasNetworkError, setHasNetworkError] = useState(false);
-    const isFetchingRef = useRef(false);
+    const isInitialFetchDone = useRef(false);
 
     const fetchMatches = useCallback(async () => {
-        if (isFetchingRef.current) return;
-        isFetchingRef.current = true;
         try {
             const matches = await getLiveMatches();
             const live = matches.filter(m => (m.status || '').toLowerCase() === 'live');
@@ -280,38 +278,59 @@ export default function BigScreenLive() {
             setLiveMatches(live);
             setScheduledMatches(scheduled);
             setHasNetworkError(false);
-        } catch (error) {
-            console.error("Big Screen Fetch error:", error);
-            setHasNetworkError(true);
-        } finally {
             setIsLoading(false);
-            isFetchingRef.current = false;
+            isInitialFetchDone.current = true;
+        } catch (error) {
+            console.error("Initial Fetch error:", error);
+            setHasNetworkError(true);
+            setIsLoading(false);
         }
     }, []);
 
     useEffect(() => {
+        // Initial load
         fetchMatches();
-        const intervalId = setInterval(fetchMatches, 10000);
-        return () => clearInterval(intervalId);
+
+        // Establish SSE connection for real-time updates
+        const sseUrl = `https://energy-sports-meet-backend.vercel.app/api/v1/matches/live?stream=true`;
+        const eventSource = new EventSource(sseUrl);
+
+        eventSource.onmessage = (event) => {
+            try {
+                const matches: ApiMatch[] = JSON.parse(event.data);
+                const live = matches.filter(m => (m.status || '').toLowerCase() === 'live');
+                const scheduled = matches.filter(m => (m.status || '').toLowerCase() === 'scheduled');
+                
+                setLiveMatches(live);
+                setScheduledMatches(scheduled);
+                setHasNetworkError(false);
+                setIsLoading(false);
+            } catch (error) {
+                console.error("SSE Parse Error:", error);
+            }
+        };
+
+        eventSource.onerror = (error) => {
+            console.error("SSE Connection Error:", error);
+            setHasNetworkError(true);
+        };
+
+        return () => {
+            eventSource.close();
+        };
     }, [fetchMatches]);
 
     const handleMatchCompleted = (id: string) => {
         setLiveMatches(prev => prev.filter(m => m.id !== id));
     };
 
-    // Calculate density to automatically shrink cards
-    // If more than 2 games, we start shrinking to fit the screen
+    // Density Engine: If more than 2 games, shrink typography and padding
     const isDense = liveMatches.length > 2;
 
     const renderLiveGrid = () => {
         if (liveMatches.length === 0) return null;
 
-        // Evenly split layout requested by user
-        // 1 match -> grid-cols-1
-        // 2 matches -> grid-cols-2 (side by side)
-        // 3 matches -> grid-cols-3 (side by side)
-        // 4 matches -> grid-cols-2 (2x2 grid)
-        // 5+ matches -> grid-cols-3
+        // Evenly split layout
         const gridCols = liveMatches.length === 1 ? 'grid-cols-1' : 
                          liveMatches.length === 2 ? 'grid-cols-2' : 
                          liveMatches.length === 3 ? 'grid-cols-3' :
@@ -334,7 +353,7 @@ export default function BigScreenLive() {
     };
 
     const renderEmptyState = () => {
-        if (liveMatches.length > 0 || scheduledMatches.length > 0) return null;
+        if (isLoading || liveMatches.length > 0 || scheduledMatches.length > 0) return null;
         return (
             <div className="flex-1 flex flex-col items-center justify-center space-y-6">
                 <Zap className="h-20 w-20 text-slate-900" />
@@ -368,7 +387,7 @@ export default function BigScreenLive() {
                         {renderEmptyState()}
                         <ScheduledMatchesTable matches={scheduledMatches} />
                         
-                        {/* Subtle Error Indicator */}
+                        {/* Status Error Indicator */}
                         {hasNetworkError && (
                             <div className="absolute top-2 right-2 flex items-center gap-2 px-3 py-1 bg-red-600/20 border border-red-600/50 rounded-full text-[8px] font-black uppercase tracking-widest text-red-500">
                                 <AlertCircle className="h-3 w-3" />
