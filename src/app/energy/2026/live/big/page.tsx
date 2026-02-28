@@ -58,15 +58,17 @@ function BigMatchBoard({ match, isPrimary = false, onCompleted }: { match: ApiMa
     const { matchData } = useMatchSync(match.id);
     const colors = getColors(match.Sport?.name);
     
+    const currentStatus = matchData?.status || match.status;
+
     // Auto-remove logic: if the real-time status becomes 'completed', notify parent
     useEffect(() => {
-        if (matchData?.status === 'completed' && onCompleted) {
+        if (currentStatus === 'completed' && onCompleted) {
             onCompleted(match.id);
         }
-    }, [matchData?.status, match.id, onCompleted]);
+    }, [currentStatus, match.id, onCompleted]);
 
     // If match is already completed in sync, don't render
-    if (matchData?.status === 'completed') return null;
+    if (currentStatus === 'completed') return null;
 
     // Merge RTDB data with initial REST data
     const scores = { ...(match.score_details || {}), ...(matchData?.score_details || {}) };
@@ -84,16 +86,21 @@ function BigMatchBoard({ match, isPrimary = false, onCompleted }: { match: ApiMa
     let displayB: string | number = scoreB.score ?? scoreB.runs ?? 0;
 
     if (isCricket) {
-        // Professional format: Runs/Wickets
-        displayA = `${scoreA.runs || 0}/${scoreA.wickets || 0}`;
-        displayB = `${scoreB.runs || 0}/${scoreB.wickets || 0}`;
+        if (currentStatus === 'scheduled') {
+            displayA = "PRE-MATCH";
+            displayB = "PRE-MATCH";
+        } else {
+            // Professional format: Runs/Wickets
+            displayA = `${scoreA.runs || 0}/${scoreA.wickets || 0}`;
+            displayB = `${scoreB.runs || 0}/${scoreB.wickets || 0}`;
 
-        // Cricket specific logic for 'Yet to Bat'
-        if (currentInnings === 1) {
-            if (battingTeamId === match.team_a_id) {
-                displayB = "YET TO BAT";
-            } else if (battingTeamId === match.team_b_id) {
-                displayA = "YET TO BAT";
+            // Cricket specific logic for 'Yet to Bat'
+            if (currentInnings === 1) {
+                if (battingTeamId === match.team_a_id) {
+                    displayB = "YET TO BAT";
+                } else if (battingTeamId === match.team_b_id) {
+                    displayA = "YET TO BAT";
+                }
             }
         }
     }
@@ -117,8 +124,14 @@ function BigMatchBoard({ match, isPrimary = false, onCompleted }: { match: ApiMa
                     {match.Sport?.name}
                 </span>
                 <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-red-600 animate-pulse" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">LIVE ARENA</span>
+                    {currentStatus === 'live' ? (
+                        <>
+                            <div className="h-2 w-2 rounded-full bg-red-600 animate-pulse" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">LIVE ARENA</span>
+                        </>
+                    ) : (
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">UPCOMING</span>
+                    )}
                 </div>
             </div>
 
@@ -145,7 +158,7 @@ function BigMatchBoard({ match, isPrimary = false, onCompleted }: { match: ApiMa
 
             {/* Bottom Meta Info */}
             <div className="w-full flex justify-center items-center mt-6 pt-4 border-t border-slate-900">
-                {isCricket ? (
+                {isCricket && currentStatus !== 'scheduled' ? (
                     <div className="flex gap-12">
                         <div className="text-center">
                             <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest block mb-1">Overs</span>
@@ -163,7 +176,9 @@ function BigMatchBoard({ match, isPrimary = false, onCompleted }: { match: ApiMa
                         )}
                     </div>
                 ) : (
-                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.4em]">Match in Progress</span>
+                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.4em]">
+                        {currentStatus === 'live' ? 'Match in Progress' : 'Match Scheduled'}
+                    </span>
                 )}
             </div>
         </motion.div>
@@ -180,8 +195,8 @@ export default function BigScreenLive() {
         isFetchingRef.current = true;
         try {
             const matches = await getLiveMatches();
-            // Ensure we only show live matches from the API
-            setLiveMatches(matches.filter(m => m.status === 'live'));
+            // Show both live and scheduled matches
+            setLiveMatches(matches.filter(m => ['live', 'scheduled'].includes(m.status)));
         } catch (error) {
             console.error("Big Screen Fetch error:", error);
         } finally {
@@ -209,7 +224,7 @@ export default function BigScreenLive() {
                 <div className="h-full flex flex-col items-center justify-center space-y-6">
                     <Activity className="h-20 w-20 text-slate-900" />
                     <h1 className="text-2xl font-bold uppercase tracking-[0.5em] text-slate-800">Arena Offline</h1>
-                    <p className="text-slate-700 text-sm font-medium italic">Waiting for live data...</p>
+                    <p className="text-slate-700 text-sm font-medium italic">Waiting for match data...</p>
                 </div>
             );
         }
