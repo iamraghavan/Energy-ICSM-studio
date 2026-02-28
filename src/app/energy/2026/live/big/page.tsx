@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { getLiveMatches, type ApiMatch } from "@/lib/api";
 import { useMatchSync } from "@/hooks/useMatchSync";
-import { Activity, Calendar, Zap } from 'lucide-react';
+import { Calendar, Zap, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
@@ -266,6 +266,7 @@ export default function BigScreenLive() {
     const [liveMatches, setLiveMatches] = useState<ApiMatch[]>([]);
     const [scheduledMatches, setScheduledMatches] = useState<ApiMatch[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [hasNetworkError, setHasNetworkError] = useState(false);
     const isFetchingRef = useRef(false);
 
     const fetchMatches = useCallback(async () => {
@@ -278,8 +279,10 @@ export default function BigScreenLive() {
             
             setLiveMatches(live);
             setScheduledMatches(scheduled);
+            setHasNetworkError(false);
         } catch (error) {
             console.error("Big Screen Fetch error:", error);
+            setHasNetworkError(true);
         } finally {
             setIsLoading(false);
             isFetchingRef.current = false;
@@ -389,6 +392,14 @@ export default function BigScreenLive() {
                         {renderLiveGrid()}
                         {renderEmptyState()}
                         <ScheduledMatchesTable matches={scheduledMatches} />
+                        
+                        {/* Subtle Error Indicator */}
+                        {hasNetworkError && (
+                            <div className="absolute top-2 right-2 flex items-center gap-2 px-3 py-1 bg-red-600/20 border border-red-600/50 rounded-full text-[8px] font-black uppercase tracking-widest text-red-500">
+                                <AlertCircle className="h-3 w-3" />
+                                Link Interrupted
+                            </div>
+                        )}
                     </motion.div>
                 )}
             </AnimatePresence>
