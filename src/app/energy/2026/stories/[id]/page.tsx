@@ -81,19 +81,24 @@ export default function StoryViewerPage({ params }: { params: Promise<{ id: stri
     }
   }, [currentPage]);
 
+  // Handle the progress timer independently
   useEffect(() => {
     const timer = setInterval(() => {
       setProgress(prev => {
-        if (prev >= 100) {
-          nextPage();
-          return 0;
-        }
+        if (prev >= 100) return 100;
         return prev + 1;
       });
-    }, 50); // 5 seconds per page
+    }, 50); // 5 seconds total (50ms * 100)
 
     return () => clearInterval(timer);
-  }, [nextPage, currentPage]);
+  }, [currentPage]);
+
+  // Trigger page change when progress finishes, outside of the render/updater cycle
+  useEffect(() => {
+    if (progress >= 100) {
+      nextPage();
+    }
+  }, [progress, nextPage]);
 
   if (pages.length === 0) return null;
 
