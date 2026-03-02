@@ -1,27 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { Play } from 'lucide-react';
-
-const stories = [
-  {
-    id: 'intro',
-    title: 'Tournament Kickoff',
-    description: 'Get ready for the biggest sports event of 2026.',
-    thumbnail: 'https://images.unsplash.com/photo-1762341582157-20d9e1430f9a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
-    color: 'bg-blue-600'
-  },
-  {
-    id: 'cricket-highlights',
-    title: 'Cricket Fever',
-    description: 'Relive the best moments from the pitch.',
-    thumbnail: 'https://images.unsplash.com/photo-1531415074968-036ba1b575da?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
-    color: 'bg-emerald-600'
-  }
-];
+import { STORIES } from '@/lib/stories-data';
 
 export default function StoriesListPage() {
   return (
@@ -36,7 +20,7 @@ export default function StoriesListPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-        {stories.map((story, index) => (
+        {STORIES.map((story, index) => (
           <motion.div
             key={story.id}
             initial={{ opacity: 0, y: 20 }}
