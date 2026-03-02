@@ -10,8 +10,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { ApiMatch } from '@/lib/api';
 
 /**
+ * Technical Utility: Cleans team names for small screens.
+ * Removes redundant sport/category info if present.
+ */
+const cleanTeamName = (name: string = '') => {
+    return name
+        .replace(/-\s*cricket\s*-\s*boys/gi, '')
+        .replace(/-\s*cricket\s*-\s*girls/gi, '')
+        .replace(/-\s*kabaddi\s*-\s*boys/gi, '')
+        .trim();
+};
+
+/**
  * Robust Score Unit for Portrait LEDs
- * Automatically adjusts font-size based on the total number of live matches.
  */
 function ScoreUnitVertical({ 
     label, 
@@ -24,12 +35,12 @@ function ScoreUnitVertical({
     labelColor: string, 
     matchCount: number 
 }) {
-    // Dynamic sizing based on match density to prevent overflow
+    // Dynamic sizing strictly tied to match density to guarantee FIT
     const getDensityStyles = () => {
-        if (matchCount === 1) return { score: "text-[18vh]", team: "text-3xl sm:text-4xl", py: "py-4" };
-        if (matchCount === 2) return { score: "text-[14vh]", team: "text-2xl sm:text-3xl", py: "py-2" };
-        if (matchCount === 3) return { score: "text-[10vh]", team: "text-xl sm:text-2xl", py: "py-1" };
-        return { score: "text-[7vh]", team: "text-base sm:text-lg", py: "py-0.5" }; // Compact for 4+ matches
+        if (matchCount === 1) return { score: "text-[16vh]", team: "text-[4vh]", py: "py-4" };
+        if (matchCount === 2) return { score: "text-[10vh]", team: "text-[2.5vh]", py: "py-2" };
+        if (matchCount === 3) return { score: "text-[8vh]", team: "text-[2vh]", py: "py-1" };
+        return { score: "text-[6vh]", team: "text-[1.8vh]", py: "py-0.5" };
     };
 
     const styles = getDensityStyles();
@@ -37,11 +48,11 @@ function ScoreUnitVertical({
     return (
         <div className={cn("flex flex-col items-center justify-center w-full text-center overflow-hidden shrink-0", styles.py)}>
             <span className={cn(
-                "font-black uppercase tracking-tighter mb-0.5 px-2 leading-tight w-full break-words text-wrap",
+                "font-black uppercase tracking-tighter mb-1 px-4 leading-[1.1] w-full break-words",
                 labelColor,
                 styles.team
             )}>
-                {label}
+                {cleanTeamName(label)}
             </span>
             
             <motion.span 
@@ -73,34 +84,30 @@ function VerticalMatchBoard({ match, matchCount }: { match: ApiMatch, matchCount
         <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex-1 flex flex-col items-center justify-center bg-black w-full min-h-0 px-2"
+            className="flex-1 flex flex-col items-center justify-around bg-black w-full min-h-0 py-4 px-2"
         >
-            <div className="w-full flex flex-col justify-center min-h-0">
-                {/* Team A - Amber/Gold */}
-                <ScoreUnitVertical 
-                    label={match.TeamA?.team_name || 'Team A'} 
-                    value={displayA} 
-                    labelColor="text-amber-400" 
-                    matchCount={matchCount}
-                />
-                
-                {/* Visual Divider - Hidden in high density to save space */}
-                {matchCount < 4 && (
-                    <div className="flex items-center justify-center gap-4 px-10 opacity-10 shrink-0 my-1">
-                        <div className="h-[1px] flex-1 bg-white" />
-                        <span className="font-black italic text-white uppercase tracking-widest text-xs">VS</span>
-                        <div className="h-[1px] flex-1 bg-white" />
-                    </div>
-                )}
-
-                {/* Team B - Sky Blue */}
-                <ScoreUnitVertical 
-                    label={match.TeamB?.team_name || 'Team B'} 
-                    value={displayB} 
-                    labelColor="text-sky-400" 
-                    matchCount={matchCount}
-                />
+            {/* Team A - Amber/Gold */}
+            <ScoreUnitVertical 
+                label={match.TeamA?.team_name || 'Team A'} 
+                value={displayA} 
+                labelColor="text-amber-400" 
+                matchCount={matchCount}
+            />
+            
+            {/* Visual Divider */}
+            <div className="flex items-center justify-center gap-4 w-full opacity-20 shrink-0">
+                <div className="h-[1px] flex-1 bg-white" />
+                <span className="font-black italic text-white uppercase tracking-widest text-[1.5vh]">VS</span>
+                <div className="h-[1px] flex-1 bg-white" />
             </div>
+
+            {/* Team B - Sky Blue */}
+            <ScoreUnitVertical 
+                label={match.TeamB?.team_name || 'Team B'} 
+                value={displayB} 
+                labelColor="text-sky-400" 
+                matchCount={matchCount}
+            />
         </motion.div>
     );
 }
@@ -126,9 +133,9 @@ function VerticalFixturesView({ matches, sportName }: { matches: ApiMatch[], spo
                                 <span className="px-2 py-0.5 bg-slate-800 text-amber-500">Scheduled</span>
                             </div>
                             <div className="flex flex-col">
-                                <p className="text-lg font-black text-white uppercase leading-tight break-words">{m.TeamA.team_name}</p>
+                                <p className="text-lg font-black text-white uppercase leading-tight break-words">{cleanTeamName(m.TeamA.team_name)}</p>
                                 <p className="text-[10px] font-black text-slate-600 italic tracking-widest my-0.5">VERSUS</p>
-                                <p className="text-lg font-black text-white uppercase leading-tight break-words">{m.TeamB.team_name}</p>
+                                <p className="text-lg font-black text-white uppercase leading-tight break-words">{cleanTeamName(m.TeamB.team_name)}</p>
                             </div>
                         </div>
                     </div>
@@ -175,10 +182,7 @@ function VerticalDisplayContent() {
                         <VerticalFixturesView matches={scheduledMatches} sportName={gameQuery || 'All Sports'} />
                     ) : liveMatches.length > 0 ? (
                         <div className={cn(
-                            "flex-1 min-h-0 h-full overflow-hidden",
-                            liveMatches.length >= 4 
-                                ? "grid grid-cols-2 divide-x divide-y divide-white/5" 
-                                : "flex flex-col divide-y divide-white/10"
+                            "flex-1 min-h-0 h-full overflow-hidden flex flex-col divide-y divide-white/10"
                         )}>
                             {liveMatches.map(match => (
                                 <VerticalMatchBoard 
@@ -198,7 +202,7 @@ function VerticalDisplayContent() {
                 </AnimatePresence>
 
                 {error && (
-                    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50">
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50">
                         <div className="flex items-center gap-2 px-3 py-1 bg-red-600/20 border border-red-600/50 rounded-full text-[7px] font-black uppercase tracking-[0.4em] text-red-500 shadow-2xl">
                             <AlertCircle className="h-3 w-3" /> Signal Interrupted
                         </div>
