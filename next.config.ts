@@ -70,6 +70,11 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
+        source: '/matches/:id',
+        destination: '/energy/2026/matches/:id',
+        permanent: true,
+      },
+      {
         source: '/register',
         destination: '/energy/2026/registration',
         permanent: true,
