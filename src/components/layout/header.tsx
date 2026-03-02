@@ -11,7 +11,7 @@ import {
   SheetDescription,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { Menu, User } from 'lucide-react';
+import { Menu, User, Zap } from 'lucide-react';
 import { Logo } from '@/components/shared/logo';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
@@ -31,14 +31,11 @@ import { motion } from 'framer-motion';
 
 const navLinks = [
   { href: '/energy/2026', label: 'Home' },
+  { href: '/energy/2026/stories', label: 'Stories', isNew: true },
   { href: '/energy/2026/schedule', label: 'Schedule' },
   { href: '/energy/2026/sports', label: 'Sports' },
-  { href: '/energy/2026/teams', label: 'Teams' },
   { href: '/energy/2026/live', label: 'Live' },
-  { href: '/energy/2026/gallery', label: 'Gallery' },
-  { href: '/energy/2026/instructions', label: 'General Instructions' },
-  { href: '/energy/2026/rules', label: 'Important Rules' },
-  { href: '/energy/2026/about', label: 'About' },
+  { href: '/energy/2026/rules', label: 'Rules' },
   { href: '/energy/2026/contact', label: 'Contact' },
 ];
 
@@ -80,16 +77,19 @@ export function Header() {
             <Link href="/energy/2026" className="flex items-center gap-2">
                 <Logo />
             </Link>
-            <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
+            <nav className="hidden xl:flex items-center space-x-6 text-sm font-medium">
                 {navLinks.map((link) => (
                 <Link
                     key={link.label}
                     href={link.href}
                     className={cn(
-                        "transition-colors hover:text-primary flex items-center"
+                        "transition-colors hover:text-primary flex items-center relative"
                     )}
                 >
                     {link.label}
+                    {link.isNew && (
+                        <span className="ml-1 px-1 py-0.5 bg-accent text-[8px] font-black uppercase rounded text-white animate-pulse">New</span>
+                    )}
                 </Link>
                 ))}
             </nav>
@@ -148,7 +148,7 @@ export function Header() {
           </div>
 
           {/* Mobile Menu */}
-          <div className="md:hidden">
+          <div className="xl:hidden">
             {!isClient ? (
               <Skeleton className="h-10 w-10" />
             ) : (
@@ -176,6 +176,7 @@ export function Header() {
                               onClick={() => setIsMobileMenuOpen(false)}
                           >
                             {link.label}
+                            {link.isNew && <span className="ml-2 bg-accent text-[8px] px-1 rounded text-white font-black">NEW</span>}
                           </Link>
                       </Button>
                   ))}

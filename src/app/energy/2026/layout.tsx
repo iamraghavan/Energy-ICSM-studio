@@ -14,7 +14,8 @@ export default function MainLayout({
   const pathname = usePathname();
   const isBigScreen = pathname.endsWith('/live/big');
   const isVerticalScreen = pathname.includes('/live/vertical');
-  const isStandalone = isBigScreen || isVerticalScreen;
+  const isStory = pathname.includes('/stories/');
+  const isStandalone = isBigScreen || isVerticalScreen || isStory;
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
