@@ -30,13 +30,12 @@ export const useLiveMatches = (sportId?: string | number) => {
                 setError(null);
                 setIsLoading(false);
             } catch (err) {
-                console.error("SSE Parse Error:", err);
+                console.log("SSE Parse Error:", err);
             }
         };
 
         es.onerror = (err) => {
-            // Using console.log to avoid dev overlay noise for transient connection drops or handshakes
-            // SSE connection errors often appear as empty objects {} in browsers
+            // Using console.log to avoid dev overlay noise for transient connection drops
             console.log("SSE Connection Status: Link lost or handshake in progress. Retrying in 5s...", err);
             setError("Link interrupted. Reconnecting...");
             setIsLoading(false);
