@@ -23,6 +23,11 @@ export default function OfficialReportPage() {
     const [filters, setFilters] = useState({ status: '', sport_id: '', college_id: '' });
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(true);
+    const [generationTime, setGenerationTime] = useState<string>('');
+
+    useEffect(() => {
+        setGenerationTime(new Date().toLocaleString());
+    }, []);
 
     const fetchData = async () => {
         setIsLoading(true);
@@ -81,7 +86,9 @@ export default function OfficialReportPage() {
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b-2 border-black pb-4 mb-6 gap-4">
                 <div>
                     <h1 className="text-2xl font-bold uppercase tracking-tight">Registration Registry - Official Use</h1>
-                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Generated on {new Date().toLocaleString()}</p>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">
+                        {generationTime ? `Generated on ${generationTime}` : 'Generating registry view...'}
+                    </p>
                 </div>
                 <div className="flex items-center gap-2">
                     <button 
