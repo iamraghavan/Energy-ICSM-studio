@@ -4,8 +4,11 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion } from 'framer-motion';
+import Tesseract from 'tesseract.js';
+import html2canvas from 'html2canvas';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -13,10 +16,14 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
 import { registerStudent, type ApiSport } from "@/lib/api";
-import { Loader2, Check, Info } from "lucide-react";
+import { Loader2, Check, Info, Download, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Logo } from "@/components/shared/logo";
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "application/pdf"];
 
 const formSchema = z.object({
     fullName: z.string().min(3, "Full name must be at least 3 characters."),
@@ -36,6 +43,15 @@ const formSchema = z.object({
     pdWhatsapp: z.string().optional().or(z.literal('')),
     collegeEmail: z.string().optional().or(z.literal('')),
     collegeContact: z.string().optional().or(z.literal('')),
+
+    paymentScreenshot: z.any()
+        .refine((files) => files?.length === 1, "Payment screenshot is required.")
+        .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Max file size is 5MB.`)
+        .refine(
+            (files) => ACCEPTED_IMAGE_TYPES.includes(files?.[0]?.type),
+            "Only .jpg, .jpeg, .png, and .pdf formats are supported."
+        ),
+    transactionId: z.string().min(1, "Transaction ID is required."),
 }).refine(data => {
     if (data.isPd) {
         return !!data.pdName && !!data.pdWhatsapp && !!data.collegeEmail && !!data.collegeContact;
@@ -69,16 +85,105 @@ const itemVariants = {
     },
 };
 
+interface QrCodeStickerProps {
+    qrCodeUrl: string;
+    upiId: string;
+    totalAmount: number;
+    selectedSportIds: string[];
+    apiSports: ApiSport[];
+}
+
+const QrCodeSticker = React.forwardRef<HTMLDivElement, QrCodeStickerProps>(
+    ({ qrCodeUrl, upiId, totalAmount, selectedSportIds, apiSports }, ref) => {
+    const { toast } = useToast();
+    
+    const handleCopyUpiId = () => {
+        navigator.clipboard.writeText(upiId).then(() => {
+            toast({
+                title: "UPI ID Copied!",
+                description: `${upiId} has been copied to your clipboard.`,
+            });
+        }).catch(err => {
+             toast({
+                variant: "destructive",
+                title: "Copy Failed",
+                description: "Could not copy the UPI ID.",
+            });
+        });
+    };
+
+    return (
+        <div ref={ref} className="rounded-lg border bg-background p-4 flex flex-col items-center text-center shadow-md max-w-sm mx-auto">
+            <Logo className="h-10 w-28" />
+            <p className="text-sm font-medium mt-2">Pay using any UPI App</p>
+
+            <div className="my-4">
+                {totalAmount > 0 && qrCodeUrl ? (
+                    <Image src={qrCodeUrl} alt="Payment QR Code" width={170} height={170} />
+                ) : (
+                    <div className="w-[170px] h-[170px] flex items-center justify-center bg-muted border rounded-md">
+                        {totalAmount > 0 ? (
+                            <Loader2 className="h-8 w-8 animate-spin" />
+                        ) : (
+                           <p className="text-xs text-muted-foreground text-center p-2">Select a sport to generate QR code</p>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            <p className="text-sm">Or pay to UPI ID:</p>
+            <div className="flex items-center gap-2 mt-1">
+                <p className="font-mono font-semibold text-primary">{upiId}</p>
+                <Button type="button" variant="ghost" size="icon" onClick={handleCopyUpiId} className="h-6 w-6">
+                    <Copy className="h-3 w-3" />
+                    <span className="sr-only">Copy UPI ID</span>
+                </Button>
+            </div>
+            
+            <div className="w-full text-left my-4 border-y py-2 space-y-2">
+                <div className="flex justify-between items-center font-bold">
+                    <span>Total Amount:</span>
+                    <span className="text-primary">₹{totalAmount.toFixed(2)}</span>
+                </div>
+                {selectedSportIds.length > 0 && (
+                    <div>
+                        <p className="text-xs font-medium text-muted-foreground">For:</p>
+                        <ul className="list-disc list-inside text-xs">
+                            {selectedSportIds.map(id => {
+                                const sport = apiSports.find(s => s.id.toString() === id);
+                                return <li key={id} className="font-medium">{sport?.name} ({sport?.category})</li>
+                            })}
+                        </ul>
+                    </div>
+                )}
+            </div>
+
+            <div className="flex items-center justify-center gap-4">
+                <Image src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg" alt="Google Pay" width={60} height={24} className="object-contain" />
+                <Image src="https://upload.wikimedia.org/wikipedia/commons/7/71/PhonePe_Logo.svg" alt="PhonePe" width={60} height={24} className="object-contain" />
+                <Image src="https://upload.wikimedia.org/wikipedia/commons/2/24/Paytm_Logo_%28standalone%29.svg" alt="Paytm" width={50} height={16} className="object-contain" />
+            </div>
+        </div>
+    )
+});
+QrCodeSticker.displayName = "QrCodeSticker";
+
 export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
     const { toast } = useToast();
     const router = useRouter();
-    const [isClient, setIsClient] = useState(false);
+    const [isHydrated, setIsHydrated] = useState(false);
     
     const [selectedCategories, setSelectedCategories] = useState<string[]>(['Boys', 'Girls']);
     const [filteredSports, setFilteredSports] = useState<ApiSport[]>([]);
 
+    const [totalAmount, setTotalAmount] = useState(0);
+    const [qrCodeUrl, setQrCodeUrl] = useState('');
+    const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+    const [isOcrRunning, setIsOcrRunning] = useState(false);
+
     const cityStateInputRef = useRef<HTMLInputElement | null>(null);
     const autocompleteRef = useRef<any>(null);
+    const qrStickerRef = useRef<HTMLDivElement>(null);
 
     const form = useForm<FormSchema>({
         resolver: zodResolver(formSchema),
@@ -92,6 +197,7 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
             cityState: "",
             selected_sport_ids: [],
             teamName: "",
+            transactionId: "",
             isPd: false,
             pdName: "",
             pdWhatsapp: "",
@@ -109,13 +215,19 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
     const isPd = watch('isPd');
     const fullName = watch('fullName');
     const whatsapp = watch('whatsapp');
+    const paymentScreenshot = watch('paymentScreenshot');
+    
+    const upiId = "EGSPILLAYENGG@dbs";
+
+    useEffect(() => {
+        setIsHydrated(true);
+    }, []);
 
     // Filter sports based on selected categories
     useEffect(() => {
         const filtered = apiSports.filter(sport => selectedCategories.includes(sport.category));
         setFilteredSports(filtered);
 
-        // Also deselect any sports that are no longer visible
         const currentSelected = getValues('selected_sport_ids');
         const filteredSportIds = new Set(filtered.map(s => s.id.toString()));
         const newSelected = currentSelected.filter(id => filteredSportIds.has(id));
@@ -135,6 +247,26 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
             return acc;
         }, {} as Record<string, ApiSport[]>);
     }, [filteredSports]);
+
+    // Calculate total amount
+    useEffect(() => {
+        const amount = selectedSportIds.reduce((sum, sportId) => {
+            const sport = apiSports.find(s => s.id.toString() === sportId);
+            return sum + (sport ? parseFloat(sport.amount) : 0);
+        }, 0);
+        setTotalAmount(amount);
+    }, [selectedSportIds, apiSports]);
+
+    // Generate QR code URL
+    useEffect(() => {
+        if (totalAmount > 0) {
+            const payeeName = "EGS Pillay Institutions";
+            const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${totalAmount.toFixed(2)}&cu=INR`;
+            setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUrl)}`);
+        } else {
+            setQrCodeUrl('');
+        }
+    }, [totalAmount, upiId]);
     
     // Auto-fill WhatsApp number
     useEffect(() => {
@@ -154,13 +286,59 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
         }
     }, [isPd, fullName, mobile, isWhatsappSame, whatsapp, setValue]);
 
+    // Screenshot preview and OCR for transaction ID
     useEffect(() => {
-        setIsClient(true);
-    }, []);
+        if (paymentScreenshot && paymentScreenshot.length > 0) {
+            const file = paymentScreenshot[0];
+            if (ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+                if (file.type === 'application/pdf') {
+                    setScreenshotPreview(`PDF: ${file.name}`);
+                } else {
+                    const reader = new FileReader();
+                    reader.onloadend = () => setScreenshotPreview(reader.result as string);
+                    reader.readAsDataURL(file);
+
+                    const runOcr = async () => {
+                        setIsOcrRunning(true);
+                        toast({
+                            title: 'Scanning Screenshot...',
+                            description: 'Attempting to read the transaction ID.',
+                        });
+                        try {
+                            const { data: { text } } = await Tesseract.recognize(file, 'eng');
+                            const upiIdRegex = /(?:\bRef No\.?|Transaction ID|UPI Transaction ID|ID)\s*:?\s*([a-zA-Z0-9]{12,35})/i;
+                            const numberRegex = /\b\d{12,}\b/;
+                            
+                            let match = text.match(upiIdRegex);
+                            if (match && match[1]) {
+                                setValue('transactionId', match[1], { shouldValidate: true });
+                                toast({ title: 'Transaction ID Found!', description: `Extracted: ${match[1]}. Please verify.` });
+                            } else {
+                                match = text.match(numberRegex);
+                                if (match && match[0]) {
+                                    setValue('transactionId', match[0], { shouldValidate: true });
+                                    toast({ title: 'Potential Transaction ID Found', description: `Please verify this ID: ${match[0]}` });
+                                } else {
+                                    toast({ variant: 'destructive', title: 'Could Not Find ID', description: 'Please enter the transaction ID manually.' });
+                                }
+                            }
+                        } catch (err) {
+                            toast({ variant: 'destructive', title: 'OCR Failed', description: 'Could not read the image. Please enter ID manually.' });
+                        } finally {
+                            setIsOcrRunning(false);
+                        }
+                    };
+                    runOcr();
+                }
+            }
+        } else {
+            setScreenshotPreview(null);
+        }
+    }, [paymentScreenshot, setValue, toast]);
 
     // Google Places Autocomplete
     useEffect(() => {
-        if (!isClient || !cityStateInputRef.current) return;
+        if (!isHydrated || !cityStateInputRef.current) return;
 
         const initAutocomplete = () => {
             if (autocompleteRef.current || !(window as any).google?.maps?.places) {
@@ -189,7 +367,7 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                 (window as any).google.maps.event.clearInstanceListeners(autocompleteRef.current);
             }
         };
-    }, [isClient, setValue]);
+    }, [isHydrated, setValue]);
 
     // Auto-generate team name
     useEffect(() => {
@@ -219,6 +397,21 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
         }
     }, [selectedSportIds, collegeName, apiSports, setValue]);
 
+    const handleDownloadQr = () => {
+        if (!qrStickerRef.current || totalAmount <= 0) return;
+
+        html2canvas(qrStickerRef.current, { useCORS: true }).then((canvas) => {
+            const link = document.createElement('a');
+            link.download = 'energy2026-payment-sticker.png';
+            link.href = canvas.toDataURL('image/png');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            toast({ title: 'QR Sticker Downloading...' });
+        }).catch(error => {
+            toast({ variant: 'destructive', title: 'Download Failed', description: 'Could not download the QR code sticker.' });
+        });
+    };
 
     const onSubmit = async (data: FormSchema) => {
         const formData = new FormData();
@@ -254,6 +447,11 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
         }
 
         formData.append('accommodation_needed', 'false');
+        formData.append('txn_id', data.transactionId);
+
+        if (data.paymentScreenshot && data.paymentScreenshot.length > 0) {
+            formData.append('screenshot', data.paymentScreenshot[0]);
+        }
 
         try {
             const result = await registerStudent(formData);
@@ -262,7 +460,6 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
             const registrationCode = result.data?.registration_code || result.registration_code;
 
             if (!registrationId) {
-                console.error("No registration ID returned:", result);
                 throw new Error("Registration succeeded but no ID was returned from server.");
             }
 
@@ -273,11 +470,28 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
             
             router.push(`/energy/2026/registration/success?id=${registrationId}${registrationCode ? `&code=${registrationCode}` : ''}`);
         } catch (error: any) {
-            console.error("Form submission error:", error);
             const errorMessage = error.response?.data?.error || error.response?.data?.message || "An unknown error occurred. Please try again.";
             router.push(`/energy/2026/registration/failure?error=${encodeURIComponent(errorMessage)}`);
         }
     };
+
+    if (!isHydrated) {
+        return (
+            <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
+                <Card className="w-full max-w-4xl my-8">
+                    <CardHeader className="text-center bg-primary/5 p-6 rounded-t-lg">
+                        <h1 className="font-headline text-2xl md:text-3xl font-bold text-primary">Chevalier Dr.G.S.Pillay Memorial Tournament</h1>
+                        <h2 className="font-headline text-xl md:text-2xl font-semibold">ENERGY - 2026</h2>
+                        <p className="text-muted-foreground">AN INTER-COLLEGE SPORTS MEET</p>
+                    </CardHeader>
+                    <CardContent className="p-12 flex flex-col items-center justify-center gap-4">
+                        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                        <p className="text-muted-foreground font-medium animate-pulse">Initializing Secure Registration Hub...</p>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
@@ -297,7 +511,6 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                             initial="hidden"
                             animate="visible"
                         >
-                            
                             <FormSection title="Personal Details">
                                 <Alert>
                                     <Info className="h-4 w-4" />
@@ -339,7 +552,7 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                                             </FormControl>
                                             <div className="flex items-center space-x-2 pt-2">
                                                 <Checkbox id="isWhatsappSame" checked={isWhatsappSame} onCheckedChange={(checked) => setValue('isWhatsappSame', !!checked)} />
-                                                <label htmlFor="isWhatsappSame" className="text-sm font-medium leading-none">Same as mobile number as a whatsapp number</label>
+                                                <label htmlFor="isWhatsappSame" className="text-sm font-medium leading-none">Same as mobile number</label>
                                             </div>
                                             <FormMessage />
                                         </FormItem>
@@ -355,7 +568,7 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                                     <FormField name="cityState" control={control} render={({ field }) => (
                                         <FormItem><FormLabel>City/State</FormLabel>
                                             <FormControl><Input placeholder="e.g. Chennai, Tamil Nadu" {...field} ref={(el) => { field.ref(el); cityStateInputRef.current = el; }} /></FormControl>
-                                            <FormDescription>Please select your city from the suggestions for accuracy.</FormDescription>
+                                            <FormDescription>Please select your city from the suggestions.</FormDescription>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
@@ -390,35 +603,33 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                                             {Object.keys(sportsByCategory).sort().map(category => (
                                                 <div key={category}>
                                                     <h4 className="text-md font-semibold text-muted-foreground pb-2">{category} Sports</h4>
-                                                    {sportsByCategory[category].length > 0 ? (
-                                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                                            {sportsByCategory[category].map((sport) => (
-                                                                <FormItem key={sport.id} className="rounded-lg">
-                                                                    <FormControl>
-                                                                        <Checkbox
-                                                                            checked={field.value?.includes(sport.id.toString())}
-                                                                            onCheckedChange={(checked) => {
-                                                                                return checked
-                                                                                ? field.onChange([...(field.value || []), sport.id.toString()])
-                                                                                : field.onChange(field.value?.filter((value) => value !== sport.id.toString()))
-                                                                            }}
-                                                                            className="sr-only"
-                                                                            id={`sport-${sport.id}`}
-                                                                        />
-                                                                    </FormControl>
-                                                                    <Label htmlFor={`sport-${sport.id}`} className="relative flex flex-col items-center justify-center p-4 border-2 rounded-lg cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors data-[state=checked]:border-primary data-[state=checked]:bg-primary/10">
-                                                                        {field.value?.includes(sport.id.toString()) && (
-                                                                            <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-0.5">
-                                                                                <Check className="h-3 w-3" />
-                                                                            </div>
-                                                                        )}
-                                                                        <p className="font-semibold text-center">{sport.name}</p>
-                                                                        <p className="text-sm text-muted-foreground">₹{sport.amount}</p>
-                                                                    </Label>
-                                                                </FormItem>
-                                                            ))}
-                                                        </div>
-                                                    ) : <p className="text-muted-foreground col-span-full text-center">No sports available for this category.</p>}
+                                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                                        {sportsByCategory[category].map((sport) => (
+                                                            <FormItem key={sport.id} className="rounded-lg">
+                                                                <FormControl>
+                                                                    <Checkbox
+                                                                        checked={field.value?.includes(sport.id.toString())}
+                                                                        onCheckedChange={(checked) => {
+                                                                            return checked
+                                                                            ? field.onChange([...(field.value || []), sport.id.toString()])
+                                                                            : field.onChange(field.value?.filter((value) => value !== sport.id.toString()))
+                                                                        }}
+                                                                        className="sr-only"
+                                                                        id={`sport-${sport.id}`}
+                                                                    />
+                                                                </FormControl>
+                                                                <Label htmlFor={`sport-${sport.id}`} className="relative flex flex-col items-center justify-center p-4 border-2 rounded-lg cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors data-[state=checked]:border-primary data-[state=checked]:bg-primary/10">
+                                                                    {field.value?.includes(sport.id.toString()) && (
+                                                                        <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-0.5">
+                                                                            <Check className="h-3 w-3" />
+                                                                        </div>
+                                                                    )}
+                                                                    <p className="font-semibold text-center">{sport.name}</p>
+                                                                    <p className="text-sm text-muted-foreground">₹{sport.amount}</p>
+                                                                </Label>
+                                                            </FormItem>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
@@ -433,7 +644,7 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                                         <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                                         <div className="space-y-1 leading-none">
                                             <FormLabel>I am a Physical Director / managing a college-wide entry.</FormLabel>
-                                            <FormDescription>Select this to provide your contact details for event coordination.</FormDescription>
+                                            <FormDescription>Select this to provide contact details for coordination.</FormDescription>
                                         </div>
                                     </FormItem>
                                 )} />
@@ -441,20 +652,99 @@ export function RegisterForm({ sports: apiSports }: { sports: ApiSport[] }) {
                                     <div className="space-y-4 pt-4">
                                         <div className="grid md:grid-cols-2 gap-4">
                                             <FormField name="pdName" control={control} render={({ field }) => (<FormItem><FormLabel>PD Name</FormLabel><FormControl><Input placeholder="Name of the Physical Director" {...field} readOnly /></FormControl><FormMessage /></FormItem>)} />
-                                            <FormField name="pdWhatsapp" control={control} render={({ field }) => (<FormItem><FormLabel>PD WhatsApp</FormLabel><FormControl><Input type="tel" placeholder="WhatsApp number for coordination" {...field} readOnly /></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField name="pdWhatsapp" control={control} render={({ field }) => (<FormItem><FormLabel>PD WhatsApp</FormLabel><FormControl><Input type="tel" placeholder="WhatsApp number" {...field} readOnly /></FormControl><FormMessage /></FormItem>)} />
                                         </div>
                                          <div className="grid md:grid-cols-2 gap-4">
                                             <FormField name="collegeEmail" control={control} render={({ field }) => (<FormItem><FormLabel>College Office Email</FormLabel><FormControl><Input type="email" placeholder="Official college email" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                            <FormField name="collegeContact" control={control} render={({ field }) => (<FormItem><FormLabel>College Contact No.</FormLabel><FormControl><Input type="tel" placeholder="Landline or official contact" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField name="collegeContact" control={control} render={({ field }) => (<FormItem><FormLabel>College Contact No.</FormLabel><FormControl><Input type="tel" placeholder="Official contact" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                         </div>
                                     </div>
                                 )}
                              </FormSection>
 
+                             <FormSection title="Payment Details">
+                                <div className="space-y-6 rounded-lg border bg-muted/50 p-6">
+                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center font-bold text-lg border-b pb-4">
+                                        <p>Total Fee Payable:</p>
+                                        <p className="text-2xl text-primary">₹{totalAmount.toFixed(2)}</p>
+                                    </div>
+                                    
+                                    {selectedSportIds.length > 0 && (
+                                        <div className="space-y-4">
+                                            <QrCodeSticker
+                                                ref={qrStickerRef}
+                                                qrCodeUrl={qrCodeUrl}
+                                                upiId={upiId}
+                                                totalAmount={totalAmount}
+                                                selectedSportIds={selectedSportIds}
+                                                apiSports={apiSports}
+                                            />
+                                             <Button type="button" onClick={handleDownloadQr} variant="outline" className="w-full max-w-sm mx-auto" disabled={totalAmount <= 0}>
+                                                <Download className="mr-2 h-4 w-4" />
+                                                Download Payment Sticker
+                                            </Button>
+                                        </div>
+                                    )}
+
+                                    <div className="grid md:grid-cols-2 gap-8 pt-4">
+                                        <div className="space-y-4">
+                                            <FormField control={control} name="paymentScreenshot" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="font-bold">Step 1: Upload Proof of Payment <span className="text-destructive">*</span></FormLabel>
+                                                    <FormControl><Input type="file" accept={ACCEPTED_IMAGE_TYPES.join(',')} onChange={(e) => field.onChange(e.target.files)} className="bg-background" /></FormControl>
+                                                    <FormDescription>Upload UPI screenshot (JPG/PNG/PDF). Max 5MB.</FormDescription>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )} />
+                                            {screenshotPreview && (
+                                                <div className="mt-4 p-2 border rounded-lg bg-background">
+                                                    <p className="text-[10px] font-black uppercase text-muted-foreground mb-2">Preview</p>
+                                                    {screenshotPreview.startsWith('PDF:') ? (
+                                                        <div className="h-32 flex items-center justify-center font-mono text-xs text-muted-foreground">{screenshotPreview}</div>
+                                                    ) : (
+                                                        <div className="relative h-64 w-full">
+                                                            <Image src={screenshotPreview} alt="Payment proof" fill className="object-contain rounded" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <FormField name="transactionId" control={control} render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="font-bold">Step 2: Verify Transaction ID <span className="text-destructive">*</span></FormLabel>
+                                                    <FormControl>
+                                                        <div className="relative">
+                                                            <Input placeholder="Enter UPI Ref / Trans ID" {...field} disabled={isOcrRunning} className="bg-background font-mono" />
+                                                            {isOcrRunning && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-primary" />}
+                                                        </div>
+                                                    </FormControl>
+                                                    <FormDescription>The system will attempt to extract this from your photo.</FormDescription>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )} />
+                                            <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                                                <div className="flex items-start gap-3">
+                                                    <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                                                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                                                        Our team will manually verify the <strong>Transaction ID</strong> against the <strong>Screenshot</strong>. Registrations with mismatched data will be rejected.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                             </FormSection>
+
                              <motion.div variants={itemVariants}>
-                                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    {isSubmitting ? "Processing..." : 'Register Now'}
+                                <Button type="submit" className="w-full h-14 text-lg font-bold" disabled={isSubmitting}>
+                                    {isSubmitting ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                            Submitting Registration...
+                                        </>
+                                    ) : 'Complete Registration'}
                                 </Button>
                              </motion.div>
                         </motion.form>
