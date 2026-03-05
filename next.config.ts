@@ -138,7 +138,9 @@ const nextConfig: NextConfig = {
   },
   /* config options here */
   experimental: {
-    allowedOrigins: ['https://*.cloudworkstations.dev'],
+    serverActions: {
+      allowedOrigins: ['https://*.cloudworkstations.dev'],
+    },
   },
   typescript: {
     ignoreBuildErrors: true,
