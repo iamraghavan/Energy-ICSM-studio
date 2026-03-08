@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Download, Search, Loader2 } from 'lucide-react';
+import { Download, Search, Loader2, Filter, BarChart2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getSports, type ApiSport } from '@/lib/api';
 
 interface Registration {
     id: string;
@@ -20,6 +21,7 @@ export default function OfficialReportPage() {
         analytics: {}, 
         registrations: [] 
     });
+    const [availableSports, setAvailableSports] = useState<ApiSport[]>([]);
     const [filters, setFilters] = useState({ status: '', sport_id: '', college_id: '' });
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(true);
@@ -27,6 +29,8 @@ export default function OfficialReportPage() {
 
     useEffect(() => {
         setGenerationTime(new Date().toLocaleString());
+        // Fetch available sports for the filter dropdown
+        getSports().then(setAvailableSports).catch(() => []);
     }, []);
 
     const fetchData = async () => {
@@ -55,6 +59,37 @@ export default function OfficialReportPage() {
         );
     }, [data.registrations, searchTerm]);
 
+    // Optimized Statistical Analysis per Sport
+    const sportsStatistics = useMemo(() => {
+        const stats: Record<string, { total: number; approved: number; pending: number; value: number }> = {};
+        
+        filteredRegistrations.forEach(reg => {
+            const sportItems = reg.sports.split(',').map(s => s.trim());
+            sportItems.forEach(sport => {
+                if (!stats[sport]) {
+                    stats[sport] = { total: 0, approved: 0, pending: 0, value: 0 };
+                }
+                stats[sport].total += 1;
+                if (reg.status === 'approved') {
+                    stats[sport].approved += 1;
+                    // For statistics, we distribute the total amount across the sports listed
+                    // This is an estimation since amount is per-registration
+                    stats[sport].value += parseFloat(reg.total_amount) / sportItems.length;
+                } else {
+                    stats[sport].pending += 1;
+                }
+            });
+        });
+
+        return Object.entries(stats).sort((a, b) => b[1].total - a[1].total);
+    }, [filteredRegistrations]);
+
+    const totalRevenue = useMemo(() => {
+        return filteredRegistrations
+            .filter(r => r.status === 'approved')
+            .reduce((sum, r) => sum + parseFloat(r.total_amount), 0);
+    }, [filteredRegistrations]);
+
     const exportToExcel = () => {
         const headers = ["ID", "Name", "College", "Sports", "Amount", "Status", "Date"];
         const rows = filteredRegistrations.map(r => [
@@ -74,18 +109,18 @@ export default function OfficialReportPage() {
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `energy_registrations_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute("download", `energy_report_${new Date().toISOString().split('T')[0]}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     };
 
     return (
-        <div className="min-h-screen bg-white font-sans text-black p-4 md:p-8">
+        <div className="min-h-screen bg-white font-sans text-black p-4 md:p-8 selection:bg-blue-100">
             {/* Simple Spreadsheet-style Header */}
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b-2 border-black pb-4 mb-6 gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold uppercase tracking-tight">Registration Registry - Official Use</h1>
+                    <h1 className="text-2xl font-bold uppercase tracking-tight">Registration Registry & Sport Analytics</h1>
                     <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">
                         {generationTime ? `Generated on ${generationTime}` : 'Generating registry view...'}
                     </p>
@@ -100,13 +135,58 @@ export default function OfficialReportPage() {
                 </div>
             </div>
 
+            {/* Sport Summary Section (Utilitarian Table) */}
+            <div className="mb-8">
+                <div className="flex items-center gap-2 mb-3">
+                    <BarChart2 size={16} className="text-gray-400" />
+                    <h2 className="text-xs font-black uppercase tracking-[0.2em] text-gray-600">Sport Wise Metrics Summary</h2>
+                </div>
+                <div className="overflow-x-auto border border-gray-300">
+                    <table className="w-full text-left border-collapse table-auto text-[11px]">
+                        <thead>
+                            <tr className="bg-gray-100 border-b border-gray-300">
+                                <th className="px-4 py-2 border-r border-gray-300 font-black uppercase">Sport Name</th>
+                                <th className="px-4 py-2 border-r border-gray-300 font-black uppercase text-center">Total Teams</th>
+                                <th className="px-4 py-2 border-r border-gray-300 font-black uppercase text-center">Approved</th>
+                                <th className="px-4 py-2 border-r border-gray-300 font-black uppercase text-center">Pending</th>
+                                <th className="px-4 py-2 text-right font-black uppercase">Estimated Value (Approved)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {sportsStatistics.map(([sport, stats], idx) => (
+                                <tr key={sport} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                                    <td className="px-4 py-1.5 border-r border-gray-200 font-bold">{sport}</td>
+                                    <td className="px-4 py-1.5 border-r border-gray-200 text-center font-mono">{stats.total}</td>
+                                    <td className="px-4 py-1.5 border-r border-gray-200 text-center text-green-700 font-bold">{stats.approved}</td>
+                                    <td className="px-4 py-1.5 border-r border-gray-200 text-center text-amber-700 font-bold">{stats.pending}</td>
+                                    <td className="px-4 py-1.5 text-right font-mono">₹{stats.value.toFixed(2)}</td>
+                                </tr>
+                            ))}
+                            {sportsStatistics.length === 0 && (
+                                <tr>
+                                    <td colSpan={5} className="px-4 py-8 text-center text-gray-400 italic uppercase tracking-widest">No data available for summary</td>
+                                </tr>
+                            )}
+                        </tbody>
+                        <tfoot className="bg-gray-100 border-t border-gray-300 font-black">
+                            <tr>
+                                <td className="px-4 py-2 border-r border-gray-300 uppercase">Total Consolidated</td>
+                                <td className="px-4 py-2 border-r border-gray-300 text-center font-mono">{filteredRegistrations.length}</td>
+                                <td className="px-4 py-2 border-r border-gray-300" colSpan={2}></td>
+                                <td className="px-4 py-2 text-right font-mono">₹{totalRevenue.toLocaleString()}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
             {/* Toolbar */}
             <div className="flex flex-wrap items-center gap-4 mb-6 p-3 bg-gray-50 border border-gray-300 text-xs font-bold uppercase">
-                <div className="flex items-center gap-2 bg-white border border-gray-300 px-3 py-1.5 w-full md:w-96 shadow-inner">
+                <div className="flex items-center gap-2 bg-white border border-gray-300 px-3 py-1.5 w-full md:w-80 shadow-inner">
                     <Search size={14} className="text-gray-400" />
                     <input 
                         type="text"
-                        placeholder="Quick filter (Name, Code, College)..."
+                        placeholder="Search Name, Code, College..."
                         className="w-full outline-none bg-transparent"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -114,21 +194,40 @@ export default function OfficialReportPage() {
                 </div>
                 
                 <div className="flex items-center gap-3">
-                    <label className="text-gray-500 tracking-widest">Filter by status:</label>
+                    <label className="text-gray-500 tracking-widest flex items-center gap-1"><Filter size={12}/> Status:</label>
                     <select 
                         className="bg-white border border-gray-300 px-3 py-1.5 outline-none font-bold"
                         onChange={(e) => setFilters({...filters, status: e.target.value})}
                         value={filters.status}
                     >
-                        <option value="">Show All Rows</option>
+                        <option value="">All Rows</option>
                         <option value="approved">Approved</option>
                         <option value="pending">Pending</option>
                         <option value="rejected">Rejected</option>
                     </select>
                 </div>
 
-                <div className="ml-auto text-[10px] text-gray-400 font-black">
-                    Live Record Count: {filteredRegistrations.length}
+                <div className="flex items-center gap-3 border-l pl-4 border-gray-300">
+                    <label className="text-gray-500 tracking-widest">Discipline:</label>
+                    <select 
+                        className="bg-white border border-gray-300 px-3 py-1.5 outline-none font-bold"
+                        onChange={(e) => setFilters({...filters, sport_id: e.target.value})}
+                        value={filters.sport_id}
+                    >
+                        <option value="">All Sports</option>
+                        {availableSports.map(s => (
+                            <option key={s.id} value={s.id}>{s.name} ({s.category})</option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="ml-auto flex items-center gap-4">
+                    <div className="text-[10px] text-gray-400 font-black">
+                        Total Records: {filteredRegistrations.length}
+                    </div>
+                    <div className="text-[10px] text-blue-600 font-black border-l pl-4 border-gray-300">
+                        Total Value: ₹{totalRevenue.toLocaleString()}
+                    </div>
                 </div>
             </div>
 
@@ -141,7 +240,7 @@ export default function OfficialReportPage() {
                             <th className="px-4 py-3 border-r border-gray-300">Student Name</th>
                             <th className="px-4 py-3 border-r border-gray-300">Academic Institution</th>
                             <th className="px-4 py-3 border-r border-gray-300">Registered Sports</th>
-                            <th className="px-4 py-3 border-r border-gray-300 w-28">Status</th>
+                            <th className="px-4 py-3 border-r border-gray-300 w-28 text-center">Status</th>
                             <th className="px-4 py-3 text-right w-32">Fee Value</th>
                         </tr>
                     </thead>
@@ -161,10 +260,10 @@ export default function OfficialReportPage() {
                                     <td className="px-4 py-2.5 border-r border-gray-200 font-mono text-blue-700 font-black tracking-tighter">{reg.registration_code}</td>
                                     <td className="px-4 py-2.5 border-r border-gray-200 font-bold text-gray-800">{reg.student_name}</td>
                                     <td className="px-4 py-2.5 border-r border-gray-200 text-gray-600 font-medium">{reg.college_name}</td>
-                                    <td className="px-4 py-2.5 border-r border-gray-200 text-gray-500 font-medium italic truncate max-w-[300px]">{reg.sports}</td>
+                                    <td className="px-4 py-2.5 border-r border-gray-200 text-gray-500 font-medium italic whitespace-normal min-w-[250px]">{reg.sports}</td>
                                     <td className="px-4 py-2.5 border-r border-gray-200">
                                         <div className={cn(
-                                            "text-[9px] font-black px-2 py-0.5 border text-center",
+                                            "text-[9px] font-black px-2 py-0.5 border text-center rounded-none mx-auto w-fit min-w-[80px]",
                                             reg.status === 'approved' ? "bg-green-50 text-green-700 border-green-200" : 
                                             reg.status === 'pending' ? "bg-amber-50 text-amber-700 border-amber-200" :
                                             "bg-red-50 text-red-700 border-red-200"
@@ -172,7 +271,7 @@ export default function OfficialReportPage() {
                                             {reg.status.toUpperCase()}
                                         </div>
                                     </td>
-                                    <td className="px-4 py-2.5 text-right font-black text-gray-900 tabular-nums">₹{reg.total_amount}</td>
+                                    <td className="px-4 py-2.5 text-right font-black text-gray-900 tabular-nums">₹{parseFloat(reg.total_amount).toLocaleString()}</td>
                                 </tr>
                             ))
                         ) : (
