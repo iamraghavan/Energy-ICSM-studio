@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
@@ -27,7 +28,8 @@ import { UploadPlayersDialog } from '@/components/console/sports-head/UploadPlay
 
 export default function SportsHeadManageTeamPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
-    const { id: teamId } = use(params);
+    const { id: rawId } = use(params);
+    const teamId = rawId.replace(/^REG-/, '');
     
     const [team, setTeam] = useState<FullSportsHeadTeam | null>(null);
     const [isLoading, setIsLoading] = useState(true);
