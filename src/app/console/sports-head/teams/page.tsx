@@ -1,5 +1,4 @@
 
-
 'use client';
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
@@ -8,13 +7,14 @@ import { getSportsHeadTeams, createSportsHeadTeam, getSportsHeadRegistrations, t
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, Eye } from 'lucide-react';
+import { Users, Eye, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 function CreateTeamDialog({ student, sports, onTeamCreated, onClose }: { student: SportsHeadRegistration | null, sports: ApiSport[], onTeamCreated: () => void, onClose: () => void }) {
     const { toast } = useToast();
@@ -86,6 +86,7 @@ export default function SportsHeadTeamsPage() {
     const [registrations, setRegistrations] = useState<SportsHeadRegistration[]>([]);
     const [sports, setSports] = useState<ApiSport[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [hasTeamError, setHasTeamError] = useState(false);
     const [studentToCreateFor, setStudentToCreateFor] = useState<SportsHeadRegistration | null>(null);
     const { toast } = useToast();
     
@@ -93,17 +94,35 @@ export default function SportsHeadTeamsPage() {
 
     const fetchData = async () => {
         setIsLoading(true);
+        setHasTeamError(false);
+        
         try {
-            const [teamsData, regsData, sportsData] = await Promise.all([
-                getSportsHeadTeams(),
-                getSportsHeadRegistrations(),
-                getSports(),
+            // Fetch registrations and sports which are usually reliable
+            const [regsData, sportsData] = await Promise.all([
+                getSportsHeadRegistrations().catch(err => {
+                    console.error("Regs Error:", err);
+                    return [] as SportsHeadRegistration[];
+                }),
+                getSports().catch(err => {
+                    console.error("Sports Error:", err);
+                    return [] as ApiSport[];
+                }),
             ]);
-            setTeams(teamsData);
+            
             setRegistrations(regsData);
             setSports(sportsData);
+
+            // Fetch teams separately so it doesn't block the rest of the UI if the 500 error persists
+            try {
+                const teamsData = await getSportsHeadTeams();
+                setTeams(teamsData);
+            } catch (teamError) {
+                console.error("Teams Error:", teamError);
+                setHasTeamError(true);
+                // Partial failure: we still have registrations, so we don't throw an error toast
+            }
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch teams and registrations.' });
+            toast({ variant: 'destructive', title: 'Fetch Error', description: 'Could not load registration data.' });
         } finally {
             setIsLoading(false);
         }
@@ -116,35 +135,47 @@ export default function SportsHeadTeamsPage() {
 
     return (
         <div className="container py-8 space-y-8">
-            <Card>
-                <CardHeader>
+            {hasTeamError && (
+                <Alert variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20 rounded-xl shadow-sm">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle className="font-bold">Teams Sync Issue</AlertTitle>
+                    <AlertDescription className="text-xs font-medium">
+                        The teams directory is currently experiencing a server error. However, you can still view registrations and create new teams using the list below.
+                    </AlertDescription>
+                </Alert>
+            )}
+
+            <Card className="rounded-2xl border-slate-200 shadow-sm overflow-hidden">
+                <CardHeader className="bg-slate-50/50 border-b">
                     <CardTitle>Created Teams</CardTitle>
                     <CardDescription>View and manage all teams for your assigned sport.</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-6">
                     {isLoading ? (
                         <div className="space-y-2">
                             {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
                         </div>
                     ) : teams.length > 0 ? (
-                         <div className="border rounded-lg">
+                         <div className="border rounded-lg overflow-hidden">
                             <Table>
-                                <TableHeader>
+                                <TableHeader className="bg-slate-50">
                                     <TableRow>
-                                        <TableHead>Team Name</TableHead>
-                                        <TableHead>Captain</TableHead>
-                                        <TableHead>Player Count</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
+                                        <TableHead className="font-bold">Team Name</TableHead>
+                                        <TableHead className="font-bold">Captain</TableHead>
+                                        <TableHead className="font-bold">Players</TableHead>
+                                        <TableHead className="text-right px-6 font-bold">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {teams.map(team => (
-                                        <TableRow key={team.id}>
-                                            <TableCell className="font-medium">{team.team_name}</TableCell>
+                                        <TableRow key={team.id} className="hover:bg-slate-50/50">
+                                            <TableCell className="font-medium text-slate-900">{team.team_name}</TableCell>
                                             <TableCell>{team.Captain?.name || 'Not Assigned'}</TableCell>
-                                            <TableCell>{team.player_count}</TableCell>
-                                            <TableCell className="text-right">
-                                                <Button asChild variant="outline" size="sm">
+                                            <TableCell>
+                                                <Badge variant="secondary" className="font-mono">{team.player_count}</Badge>
+                                            </TableCell>
+                                            <TableCell className="text-right px-6">
+                                                <Button asChild variant="outline" size="sm" className="font-bold">
                                                     <Link href={`/console/sports-head/teams/${team.id}`}>Manage</Link>
                                                 </Button>
                                             </TableCell>
@@ -154,50 +185,54 @@ export default function SportsHeadTeamsPage() {
                             </Table>
                         </div>
                     ) : (
-                         <div className="text-center py-16 text-muted-foreground border rounded-lg">
-                            <Users className="h-12 w-12 mx-auto mb-4" />
-                            <p className="font-medium">No teams found for this sport.</p>
-                            <p className="text-sm">Create teams from the unassigned registrations below.</p>
+                         <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-xl bg-slate-50/50">
+                            <Users className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                            <p className="font-bold text-slate-600">
+                                {hasTeamError ? "Teams currently unreachable" : "No teams found for this sport"}
+                            </p>
+                            <p className="text-xs mt-1">Start creating teams from the registrations list below.</p>
                         </div>
                     )}
                 </CardContent>
             </Card>
 
-            <Card>
-                 <CardHeader>
+            <Card className="rounded-2xl border-slate-200 shadow-sm overflow-hidden">
+                 <CardHeader className="bg-slate-50/50 border-b">
                     <CardTitle>Registrations Pending Team Creation</CardTitle>
-                    <CardDescription>These students have registered for your sport but do not have a team yet.</CardDescription>
+                    <CardDescription>Approved registrations awaiting team assignment.</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-6">
                      {isLoading ? (
                         <div className="space-y-2">
                             {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
                         </div>
                     ) : unassignedRegistrations.length > 0 ? (
-                         <div className="border rounded-lg">
+                         <div className="border rounded-lg overflow-hidden">
                             <Table>
-                                <TableHeader>
+                                <TableHeader className="bg-slate-50">
                                     <TableRow>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>College</TableHead>
-                                        <TableHead>Contact</TableHead>
-                                        <TableHead className="text-right">Action</TableHead>
+                                        <TableHead className="font-bold">Name & Code</TableHead>
+                                        <TableHead className="font-bold">College</TableHead>
+                                        <TableHead className="font-bold">Contact Info</TableHead>
+                                        <TableHead className="text-right px-6 font-bold">Action</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {unassignedRegistrations.map(reg => (
-                                        <TableRow key={reg.id}>
+                                        <TableRow key={reg.id} className="hover:bg-slate-50/50">
                                             <TableCell>
-                                                <div className="font-medium">{reg.name}</div>
-                                                <div className="text-xs text-muted-foreground font-mono">{reg.registration_code}</div>
+                                                <div className="font-bold text-slate-900">{reg.name}</div>
+                                                <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-tighter">{reg.registration_code}</div>
                                             </TableCell>
-                                            <TableCell>{reg.college_name}</TableCell>
+                                            <TableCell className="text-xs font-medium text-slate-600 max-w-[200px] truncate">{reg.college_name}</TableCell>
                                             <TableCell>
-                                                <div>{reg.email}</div>
-                                                <div className="text-muted-foreground">{reg.mobile}</div>
+                                                <div className="text-[10px] font-bold text-slate-500 truncate max-w-[150px]">{reg.email}</div>
+                                                <div className="text-[10px] text-muted-foreground font-mono">{reg.mobile}</div>
                                             </TableCell>
-                                            <TableCell className="text-right">
-                                                <Button size="sm" onClick={() => setStudentToCreateFor(reg)}>Create Team</Button>
+                                            <TableCell className="text-right px-6">
+                                                <Button size="sm" onClick={() => setStudentToCreateFor(reg)} className="font-bold shadow-md shadow-primary/10">
+                                                    Create Team
+                                                </Button>
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -205,8 +240,8 @@ export default function SportsHeadTeamsPage() {
                             </Table>
                          </div>
                     ) : (
-                         <div className="text-center py-16 text-muted-foreground border rounded-lg">
-                            <p className="font-medium">All registered students have been assigned to a team.</p>
+                         <div className="text-center py-16 text-muted-foreground border rounded-xl bg-slate-50/20 italic text-sm">
+                            All registered students for your sport have been assigned to a team.
                         </div>
                     )}
                 </CardContent>
