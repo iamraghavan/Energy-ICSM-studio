@@ -85,7 +85,7 @@ function BigMatchBoard({ match, isDense = false }: { match: ApiMatch, isDense?: 
             )}
         >
             <div className="w-full flex justify-between items-center border-b border-slate-900 pb-1 shrink-0">
-                <span className={cn("font-black uppercase tracking-widest italic", colors.primary, isDense ? "text-[8px]" : "text-[10px]")}>
+                <span className={cn("font-black uppercase tracking-widest italic", colors.primary, isDense ? "text-sm" : "text-2xl")}>
                     {match.Sport?.name}
                 </span>
                 <div className="flex items-center gap-1.5">
